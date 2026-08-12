@@ -1,0 +1,87 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: #000;
+  color: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden;
+}
+
+.nyxtryp {
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(
+      circle at 50% 45%,
+      rgba(30, 45, 65, 0.35),
+      transparent 45%
+    ),
+    #000;
+}
+
+.intro {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.artist {
+  margin: 0 0 18px;
+  font-size: clamp(28px, 6vw, 72px);
+  font-weight: 300;
+  letter-spacing: 0.45em;
+  text-indent: 0.45em;
+}
+
+h1 {
+  margin: 0 0 42px;
+  font-size: clamp(11px, 1.5vw, 18px);
+  font-weight: 300;
+  letter-spacing: 0.35em;
+}
+
+.enter-button {
+  padding: 14px 34px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 999px;
+  background: transparent;
+  color: #fff;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  cursor: pointer;
+  transition:
+    background 0.4s ease,
+    color 0.4s ease,
+    transform 0.4s ease;
+}
+
+.enter-button:hover {
+  background: #fff;
+  color: #000;
+  transform: scale(1.05);
+}
+
+@media (max-width: 600px) {
+  .artist {
+    font-size: 30px;
+  }
+
+  h1 {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+  }
+}
