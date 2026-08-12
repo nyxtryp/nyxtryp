@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import Ocean from './Ocean.jsx'
 
 export default function Scene() {
   const [entered, setEntered] = useState(false)
@@ -19,11 +20,7 @@ export default function Scene() {
           </button>
         </section>
       ) : (
-        <section className="universe">
-          <div className="universe-title">
-            NYXTRYP UNIVERSE
-          </div>
-        </section>
+        <Ocean />
       )}
     </div>
   )
