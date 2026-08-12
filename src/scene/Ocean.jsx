@@ -8,7 +8,6 @@ export default function Ocean() {
     const mount = mountRef.current
 
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(0x020711)
 
     const camera = new THREE.PerspectiveCamera(
       55,
@@ -23,6 +22,7 @@ export default function Ocean() {
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       powerPreference: 'high-performance',
+      alpha: true,
     })
 
     renderer.setPixelRatio(
@@ -34,143 +34,74 @@ export default function Ocean() {
       window.innerHeight
     )
 
-    renderer.outputColorSpace =
-      THREE.SRGBColorSpace
+    renderer.outputColorSpace = THREE.SRGBColorSpace
 
     mount.appendChild(renderer.domElement)
 
-    // ─────────────────────────
-    // LIGHT
-    // ─────────────────────────
+    // IMAGE BACKGROUND
+    const loader = new THREE.TextureLoader()
 
-    const ambientLight =
-      new THREE.AmbientLight(
-        0x7890aa,
-        1.2
-      )
+    const backgroundTexture = loader.load(
+      '/nyxtryp-ocean.png'
+    )
+
+    backgroundTexture.colorSpace = THREE.SRGBColorSpace
+
+    scene.background = backgroundTexture
+
+    // LIGHT
+
+    const ambientLight = new THREE.AmbientLight(
+      0x7890aa,
+      1.2
+    )
 
     scene.add(ambientLight)
 
-    const moonLight =
-      new THREE.DirectionalLight(
-        0x7fa8ff,
-        3
-      )
-
-    moonLight.position.set(
-      -30,
-      40,
-      -60
+    const moonLight = new THREE.DirectionalLight(
+      0x7fa8ff,
+      3
     )
+
+    moonLight.position.set(-30, 40, -60)
 
     scene.add(moonLight)
 
-    // ─────────────────────────
     // OCEAN
-    // ─────────────────────────
 
-    const oceanGeometry =
-      new THREE.PlaneGeometry(
-        600,
-        600,
-        220,
-        220
-      )
+    const oceanGeometry = new THREE.PlaneGeometry(
+      600,
+      600,
+      220,
+      220
+    )
 
-    const oceanMaterial =
-      new THREE.MeshStandardMaterial({
-        color: 0x073b52,
-        roughness: 0.18,
-        metalness: 0.55,
-        side: THREE.DoubleSide,
-      })
+    const oceanMaterial = new THREE.MeshStandardMaterial({
+      color: 0x073b52,
+      roughness: 0.18,
+      metalness: 0.55,
+      transparent: true,
+      opacity: 0.28,
+      side: THREE.DoubleSide,
+    })
 
-    const ocean =
-      new THREE.Mesh(
-        oceanGeometry,
-        oceanMaterial
-      )
+    const ocean = new THREE.Mesh(
+      oceanGeometry,
+      oceanMaterial
+    )
 
-    ocean.rotation.x =
-      -Math.PI / 2
-
+    ocean.rotation.x = -Math.PI / 2
     ocean.position.y = -3
 
     scene.add(ocean)
 
-    // ─────────────────────────
-    // MOON
-    // ─────────────────────────
-
-    const moonGeometry =
-      new THREE.SphereGeometry(
-        22,
-        64,
-        64
-      )
-
-    const moonMaterial =
-      new THREE.MeshStandardMaterial({
-        color: 0x9db6d8,
-        roughness: 0.8,
-        metalness: 0.05,
-      })
-
-    const moon =
-      new THREE.Mesh(
-        moonGeometry,
-        moonMaterial
-      )
-
-    moon.position.set(
-      -35,
-      30,
-      -110
-    )
-
-    scene.add(moon)
-
-    // ─────────────────────────
-    // MOON GLOW
-    // ─────────────────────────
-
-    const glowGeometry =
-      new THREE.SphereGeometry(
-        24,
-        64,
-        64
-      )
-
-    const glowMaterial =
-      new THREE.MeshBasicMaterial({
-        color: 0x5c91d9,
-        transparent: true,
-        opacity: 0.1,
-        side: THREE.BackSide,
-      })
-
-    const glow =
-      new THREE.Mesh(
-        glowGeometry,
-        glowMaterial
-      )
-
-    glow.position.copy(
-      moon.position
-    )
-
-    scene.add(glow)
-
-    // ─────────────────────────
     // STARS
-    // ─────────────────────────
 
     const starCount = 3500
 
-    const starPositions =
-      new Float32Array(
-        starCount * 3
-      )
+    const starPositions = new Float32Array(
+      starCount * 3
+    )
 
     for (
       let i = 0;
@@ -180,15 +111,13 @@ export default function Ocean() {
       const i3 = i * 3
 
       starPositions[i3] =
-        (Math.random() - 0.5) *
-        1200
+        (Math.random() - 0.5) * 1200
 
       starPositions[i3 + 1] =
         Math.random() * 500
 
       starPositions[i3 + 2] =
-        (Math.random() - 0.5) *
-        1200
+        (Math.random() - 0.5) * 1200
     }
 
     const starGeometry =
@@ -210,28 +139,24 @@ export default function Ocean() {
         opacity: 0.9,
       })
 
-    const stars =
-      new THREE.Points(
-        starGeometry,
-        starMaterial
-      )
+    const stars = new THREE.Points(
+      starGeometry,
+      starMaterial
+    )
 
     scene.add(stars)
 
-    // ─────────────────────────
     // ANIMATION
-    // ─────────────────────────
 
-    const clock =
-      new THREE.Clock()
+    const clock = new THREE.Clock()
+
+    let animationId
 
     const animate = () => {
-      const elapsed =
-        clock.getElapsedTime()
+      const elapsed = clock.getElapsedTime()
 
       const positions =
-        oceanGeometry.attributes
-          .position.array
+        oceanGeometry.attributes.position.array
 
       for (
         let i = 0;
@@ -244,39 +169,30 @@ export default function Ocean() {
         positions[i + 2] =
           Math.sin(
             x * 0.035 +
-              elapsed * 0.8
+            elapsed * 0.8
           ) * 0.7 +
           Math.sin(
             y * 0.025 +
-              elapsed * 0.55
+            elapsed * 0.55
           ) * 0.45 +
           Math.sin(
             (x + y) * 0.015 +
-              elapsed * 0.35
+            elapsed * 0.35
           ) * 0.3
       }
 
-      oceanGeometry.attributes
-        .position.needsUpdate = true
+      oceanGeometry.attributes.position.needsUpdate = true
 
-      stars.rotation.y =
-        elapsed * 0.002
+      stars.rotation.y = elapsed * 0.002
 
-      renderer.render(
-        scene,
-        camera
-      )
+      renderer.render(scene, camera)
 
-      requestAnimationFrame(
-        animate
-      )
+      animationId = requestAnimationFrame(animate)
     }
 
     animate()
 
-    // ─────────────────────────
     // RESIZE
-    // ─────────────────────────
 
     const handleResize = () => {
       camera.aspect =
@@ -291,10 +207,7 @@ export default function Ocean() {
       )
 
       renderer.setPixelRatio(
-        Math.min(
-          window.devicePixelRatio,
-          2
-        )
+        Math.min(window.devicePixelRatio, 2)
       )
     }
 
@@ -309,28 +222,22 @@ export default function Ocean() {
         handleResize
       )
 
+      cancelAnimationFrame(animationId)
+
       renderer.dispose()
+
+      backgroundTexture.dispose()
 
       oceanGeometry.dispose()
       oceanMaterial.dispose()
-
-      moonGeometry.dispose()
-      moonMaterial.dispose()
-
-      glowGeometry.dispose()
-      glowMaterial.dispose()
 
       starGeometry.dispose()
       starMaterial.dispose()
 
       if (
-        mount.contains(
-          renderer.domElement
-        )
+        mount.contains(renderer.domElement)
       ) {
-        mount.removeChild(
-          renderer.domElement
-        )
+        mount.removeChild(renderer.domElement)
       }
     }
   }, [])
