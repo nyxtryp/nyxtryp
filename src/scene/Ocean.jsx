@@ -81,7 +81,7 @@ export default function Ocean() {
     // STARS
     // =========================
 
-    const starCount = 3000
+    const starCount = 30
 
     const starPositions =
       new Float32Array(starCount * 3)
