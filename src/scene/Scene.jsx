@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import Ocean from './Ocean.jsx'
+import { useState } from "react"
+import Ocean from "./Ocean.jsx"
+import MusicPlanet from "./planets/MusicPlanet.jsx"
 
 export default function Scene() {
   const [entered, setEntered] = useState(false)
@@ -9,9 +10,7 @@ export default function Scene() {
       {!entered ? (
         <section className="intro">
           <p className="artist">NYXTRYP</p>
-
           <h1>DON'T LISTEN. ENTER.</h1>
-
           <button
             className="enter-button"
             onClick={() => setEntered(true)}
@@ -20,7 +19,10 @@ export default function Scene() {
           </button>
         </section>
       ) : (
-        <Ocean />
+        <>
+          <Ocean />
+          <MusicPlanet />
+        </>
       )}
     </div>
   )

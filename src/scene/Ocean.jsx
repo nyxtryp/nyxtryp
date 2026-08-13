@@ -11,10 +11,13 @@ export default function Ocean() {
     // BACKGROUND IMAGE
     // =========================
 
-    const image = document.createElement('img')
+    const image = document.createElement('video')
 
-    image.src = '/nyxtryp-ocean.png'
-    image.alt = ''
+    image.src = '/video/space.mp4'
+    image.autoplay = true
+    image.loop = true
+    image.muted = true
+    image.playsInline = true
     image.draggable = false
 
     Object.assign(image.style, {

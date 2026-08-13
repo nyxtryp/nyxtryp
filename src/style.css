@@ -102,12 +102,28 @@ body {
 .ocean-scene {
   position: fixed;
   inset: 0;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   overflow: hidden;
 }
 
 .ocean-scene canvas {
+  display: block;
+}
+
+
+.music-planet {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  width: min(38vw, 320px);
+  height: min(38vw, 320px);
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  pointer-events: none;
+}
+
+.music-planet canvas {
   display: block;
   width: 100% !important;
   height: 100% !important;
