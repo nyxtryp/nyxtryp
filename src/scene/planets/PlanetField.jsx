@@ -679,6 +679,12 @@ export default function PlanetField() {
           : null
       }
 
+    let pointerMoved =
+      false
+
+    let pendingReturn =
+      false
+
     const onPointerMove =
       (event) => {
         const hit =
@@ -725,6 +731,14 @@ export default function PlanetField() {
           event.clientY -
           lastY
 
+        if (
+          Math.abs(dx) > 2 ||
+          Math.abs(dy) > 2
+        ) {
+          pointerMoved =
+            true
+        }
+
         lastX =
           event.clientX
 
@@ -766,6 +780,37 @@ export default function PlanetField() {
           return
         }
 
+        if (
+          selectedPlanet ===
+          hit
+        ) {
+          pendingReturn =
+            true
+
+          pointerMoved =
+            false
+
+          isDragging =
+            true
+
+          lastX =
+            event.clientX
+
+          lastY =
+            event.clientY
+
+          canvas.style.cursor =
+            "grabbing"
+
+          return
+        }
+
+        pendingReturn =
+          false
+
+        pointerMoved =
+          false
+
         selectedPlanet =
           hit
 
@@ -791,7 +836,25 @@ export default function PlanetField() {
 
     const onPointerUp =
       () => {
-        isDragging = false
+        isDragging =
+          false
+
+        if (
+          pendingReturn &&
+          !pointerMoved
+        ) {
+          selectedPlanet =
+            null
+
+          cameraDistance =
+            17
+        }
+
+        pendingReturn =
+          false
+
+        pointerMoved =
+          false
 
         if (
           hoveredPlanet
