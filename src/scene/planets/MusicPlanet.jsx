@@ -17,10 +17,10 @@ export default function MusicPlanet() {
     renderer.outputColorSpace = THREE.SRGBColorSpace
     el.appendChild(renderer.domElement)
 
-    const light = new THREE.DirectionalLight(0xffffff, 3)
+    const light = new THREE.DirectionalLight(0xffffff, 1.8)
     light.position.set(-3, 2, 5)
     scene.add(light)
-    scene.add(new THREE.AmbientLight(0xffffff, 0.15))
+    scene.add(new THREE.AmbientLight(0xffffff, 0.65))
 
     const texture = new THREE.TextureLoader().load("/textures/textura.jpg")
     texture.colorSpace = THREE.SRGBColorSpace
