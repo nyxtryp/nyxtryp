@@ -399,10 +399,25 @@ export default function PlanetField() {
         const material =
           new THREE.MeshStandardMaterial({
             map: texture,
-            roughness: 0.72,
+            roughness: data.atmosphere ? 0.62 : 0.72,
             metalness: 0,
-            envMapIntensity: 1.15
+            envMapIntensity: 1.15,
+            emissive:
+              data.atmosphere
+                ? new THREE.Color(0xffffff)
+                : new THREE.Color(0x000000),
+            emissiveMap:
+              data.atmosphere
+                ? texture
+                : null,
+            emissiveIntensity:
+              data.atmosphere
+                ? 0.22
+                : 0
           })
+
+        const planetMaterial =
+          material
 
         const planet =
           new THREE.Mesh(
@@ -411,7 +426,7 @@ export default function PlanetField() {
               64,
               64
             ),
-            material
+            planetMaterial
           )
 
         planet.position.set(
