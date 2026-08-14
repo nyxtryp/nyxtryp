@@ -1,6 +1,6 @@
 import { useState } from "react"
 import Ocean from "./Ocean.jsx"
-import MusicPlanet from "./planets/MusicPlanet.jsx"
+import PlanetField from "./planets/PlanetField.jsx"
 
 export default function Scene() {
   const [entered, setEntered] = useState(false)
@@ -21,7 +21,7 @@ export default function Scene() {
       ) : (
         <>
           <Ocean />
-          <MusicPlanet />
+          <PlanetField />
         </>
       )}
     </div>
