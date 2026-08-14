@@ -480,7 +480,9 @@ export default function PlanetField() {
           phaseZ:
             Math.random() *
             Math.PI *
-            2
+            2,
+          selectionOffset:
+            new THREE.Vector3()
         }
 
         objects.push(
@@ -869,20 +871,21 @@ export default function PlanetField() {
           0.001
 
         objects.forEach(
-          ({
-            mesh,
-            speed,
-            base,
-            driftX,
-            driftY,
-            driftZ,
-            ampX,
-            ampY,
-            ampZ,
-            phaseX,
-            phaseY,
-            phaseZ
-          }) => {
+          (object) => {
+            const {
+              mesh,
+              speed,
+              base,
+              driftX,
+              driftY,
+              driftZ,
+              ampX,
+              ampY,
+              ampZ,
+              phaseX,
+              phaseY,
+              phaseZ
+            } = object
             if (
               mesh !==
               selectedPlanet
@@ -891,7 +894,7 @@ export default function PlanetField() {
                 speed
             }
 
-            mesh.position.x =
+            const naturalX =
               base.x +
               Math.sin(
                 t *
@@ -900,7 +903,7 @@ export default function PlanetField() {
               ) *
                 ampX
 
-            mesh.position.y =
+            const naturalY =
               base.y +
               Math.sin(
                 t *
@@ -909,7 +912,7 @@ export default function PlanetField() {
               ) *
                 ampY
 
-            mesh.position.z =
+            const naturalZ =
               base.z +
               Math.sin(
                 t *
@@ -917,51 +920,62 @@ export default function PlanetField() {
                   phaseZ
               ) *
                 ampZ
+
+            const target =
+              new THREE.Vector3(
+                0,
+                0,
+                camera.position.z -
+                  cameraDistance
+              )
+
+            const natural =
+              new THREE.Vector3(
+                naturalX,
+                naturalY,
+                naturalZ
+              )
+
+            const targetOffset =
+              mesh ===
+              selectedPlanet
+                ? target.sub(natural)
+                : new THREE.Vector3()
+
+            object.selectionOffset.lerp(
+              targetOffset,
+              0.045
+            )
+
+            mesh.position.set(
+              naturalX +
+                object.selectionOffset.x,
+              naturalY +
+                object.selectionOffset.y,
+              naturalZ +
+                object.selectionOffset.z
+            )
           }
         )
 
-        // Camera follows selected planet.
-        if (
-          selectedPlanet
-        ) {
-          const p =
-            selectedPlanet.position
+        // Camera stays fixed. Only the selected planet moves.
+        cameraTarget.lerp(
+          new THREE.Vector3(
+            0,
+            0,
+            17
+          ),
+          0.05
+        )
 
-          const desiredCameraPosition =
-            new THREE.Vector3(
-              p.x,
-              p.y,
-              p.z + cameraDistance
-            )
-
-          cameraTarget.lerp(
-            desiredCameraPosition,
-            0.055
-          )
-
-          lookTarget.lerp(
-            p,
-            0.08
-          )
-        } else {
-          cameraTarget.lerp(
-            new THREE.Vector3(
-              0,
-              0,
-              17
-            ),
-            0.05
-          )
-
-          lookTarget.lerp(
-            new THREE.Vector3(
-              0,
-              0,
-              0
-            ),
-            0.05
-          )
-        }
+        lookTarget.lerp(
+          new THREE.Vector3(
+            0,
+            0,
+            0
+          ),
+          0.05
+        )
 
         camera.position.copy(
           cameraTarget
