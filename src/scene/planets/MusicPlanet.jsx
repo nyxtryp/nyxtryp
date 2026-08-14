@@ -9,7 +9,7 @@ export default function MusicPlanet() {
     const scene = new THREE.Scene()
 
     const camera = new THREE.PerspectiveCamera(35, el.clientWidth / el.clientHeight, 0.1, 100)
-    camera.position.z = 4.5
+    camera.position.z = 17
 
     const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -277,8 +277,157 @@ export default function MusicPlanet() {
     scene.add(atmosphere)
 
 
+    // ============================================================
+    // UNIVERSAL PLANET CONTROL
+    // ============================================================
+
+    const canvas = renderer.domElement
+
+    let isDragging = false
+    let lastX = 0
+    let lastY = 0
+    let touchDistance = null
+
+    const raycaster = new THREE.Raycaster()
+    const pointer = new THREE.Vector2()
+
+    const isPointerOverPlanet = (event) => {
+      const rect = canvas.getBoundingClientRect()
+
+      pointer.x =
+        ((event.clientX - rect.left) / rect.width) * 2 - 1
+
+      pointer.y =
+        -((event.clientY - rect.top) / rect.height) * 2 + 1
+
+      raycaster.setFromCamera(
+        pointer,
+        camera
+      )
+
+      return raycaster.intersectObject(
+        planet,
+        false
+      ).length > 0
+    }
+
+    const minZoom = 3.0
+    const maxZoom = 30.0
+
+    const clampZoom = () => {
+      camera.position.z = THREE.MathUtils.clamp(
+        camera.position.z,
+        minZoom,
+        maxZoom
+      )
+    }
+
+    const onPointerDown = (event) => {
+      if (event.button !== 0) return
+
+      isDragging = true
+      lastX = event.clientX
+      lastY = event.clientY
+
+      canvas.setPointerCapture?.(event.pointerId)
+    }
+
+    const onPointerMove = (event) => {
+      if (!isDragging) return
+
+      const dx = event.clientX - lastX
+      const dy = event.clientY - lastY
+
+      lastX = event.clientX
+      lastY = event.clientY
+
+      planet.rotation.y += dx * 0.01
+      planet.rotation.x += dy * 0.005
+
+      planet.rotation.x = THREE.MathUtils.clamp(
+        planet.rotation.x,
+        -Math.PI * 0.45,
+        Math.PI * 0.45
+      )
+    }
+
+    const onPointerUp = () => {
+      isDragging = false
+    }
+
+    const onWheel = (event) => {
+      event.preventDefault()
+
+      camera.position.z += event.deltaY * 0.004
+      clampZoom()
+    }
+
+    const getTouchDistance = (touches) => {
+      const dx =
+        touches[0].clientX -
+        touches[1].clientX
+
+      const dy =
+        touches[0].clientY -
+        touches[1].clientY
+
+      return Math.hypot(dx, dy)
+    }
+
+    const onTouchStart = (event) => {
+      if (event.touches.length === 2) {
+        touchDistance =
+          getTouchDistance(event.touches)
+      }
+    }
+
+    const onTouchMove = (event) => {
+      if (event.touches.length !== 2) return
+
+      event.preventDefault()
+
+      const distance =
+        getTouchDistance(event.touches)
+
+      if (touchDistance !== null) {
+        const delta =
+          touchDistance - distance
+
+        camera.position.z += delta * 0.012
+        clampZoom()
+      }
+
+      touchDistance = distance
+    }
+
+    const onTouchEnd = () => {
+      touchDistance = null
+    }
+
+    canvas.style.cursor = "grab"
+    canvas.style.touchAction = "none"
+
+    canvas.addEventListener("pointerdown", onPointerDown)
+    canvas.addEventListener("pointermove", onPointerMove)
+    canvas.addEventListener("pointerup", onPointerUp)
+    canvas.addEventListener("pointercancel", onPointerUp)
+    canvas.addEventListener("wheel", onWheel, { passive: false })
+
+    canvas.addEventListener("touchstart", onTouchStart, {
+      passive: false
+    })
+
+    canvas.addEventListener("touchmove", onTouchMove, {
+      passive: false
+    })
+
+    canvas.addEventListener("touchend", onTouchEnd)
+
     const animate = () => {
-      planet.rotation.y += 0.0007
+      if (!isDragging && touchDistance === null) {
+        planet.rotation.y += 0.0007
+      }
+
       renderer.render(scene, camera)
       requestAnimationFrame(animate)
     }
@@ -286,6 +435,7 @@ export default function MusicPlanet() {
     const resize = () => {
       const w = el.clientWidth
       const h = el.clientHeight
+
       camera.aspect = w / h
       camera.updateProjectionMatrix()
       renderer.setSize(w, h)
@@ -297,6 +447,17 @@ export default function MusicPlanet() {
 
     return () => {
       window.removeEventListener("resize", resize)
+
+      canvas.removeEventListener("pointerdown", onPointerDown)
+      canvas.removeEventListener("pointermove", onPointerMove)
+      canvas.removeEventListener("pointerup", onPointerUp)
+      canvas.removeEventListener("pointercancel", onPointerUp)
+      canvas.removeEventListener("wheel", onWheel)
+
+      canvas.removeEventListener("touchstart", onTouchStart)
+      canvas.removeEventListener("touchmove", onTouchMove)
+      canvas.removeEventListener("touchend", onTouchEnd)
+
       renderer.dispose()
       el.removeChild(renderer.domElement)
     }
