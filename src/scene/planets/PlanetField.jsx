@@ -737,6 +737,398 @@ export default function PlanetField() {
           )
         }
 
+        // ========================================================
+        // AUDIO_MENU_SATELLITES_V1
+        // Three real visual menu systems attached to AUDIO.
+        // Static for this stage. Movement comes later.
+        // ========================================================
+
+        if (data.atmosphere) {
+
+          const audioSatellites =
+            new THREE.Group()
+
+          audioSatellites.name =
+            "AUDIO_MENU_SATELLITES_V1"
+
+          planet.add(
+            audioSatellites
+          )
+
+          // ======================================================
+          // TRACKS
+          // ======================================================
+
+          const tracks =
+            new THREE.Group()
+
+          tracks.name =
+            "TRACKS"
+
+          const tracksPlanet =
+            new THREE.Mesh(
+              new THREE.SphereGeometry(
+                data.radius * 0.20,
+                32,
+                32
+              ),
+              new THREE.MeshStandardMaterial({
+                color: 0x15131a,
+                metalness: 0.72,
+                roughness: 0.28,
+                emissive: 0x24170b,
+                emissiveIntensity: 0.45
+              })
+            )
+
+          tracks.add(
+            tracksPlanet
+          )
+
+          const tracksRing =
+            new THREE.Mesh(
+              new THREE.TorusGeometry(
+                data.radius * 0.30,
+                data.radius * 0.018,
+                12,
+                64
+              ),
+              new THREE.MeshBasicMaterial({
+                color: 0xffc43d,
+                transparent: true,
+                opacity: 0.95
+              })
+            )
+
+          tracksRing.rotation.x =
+            Math.PI * 0.48
+
+          tracks.add(
+            tracksRing
+          )
+
+          for (
+            let i = 0;
+            i < 4;
+            i++
+          ) {
+
+            const stripe =
+              new THREE.Mesh(
+                new THREE.BoxGeometry(
+                  data.radius * 0.30,
+                  data.radius * 0.014,
+                  data.radius * 0.018
+                ),
+                new THREE.MeshBasicMaterial({
+                  color: 0xffd866,
+                  transparent: true,
+                  opacity: 0.8
+                })
+              )
+
+            stripe.position.set(
+              -data.radius * 0.05,
+              (i - 1.5) *
+                data.radius *
+                0.065,
+              data.radius * 0.20
+            )
+
+            stripe.rotation.z =
+              (i - 1.5) * 0.07
+
+            tracks.add(
+              stripe
+            )
+          }
+
+          tracks.position.set(
+            -data.radius * 2.0,
+            0,
+            0
+          )
+
+          audioSatellites.add(
+            tracks
+          )
+
+          // ======================================================
+          // MIXES
+          // ======================================================
+
+          const mixes =
+            new THREE.Group()
+
+          mixes.name =
+            "MIXES"
+
+          const mixesPlanet =
+            new THREE.Mesh(
+              new THREE.SphereGeometry(
+                data.radius * 0.22,
+                32,
+                32
+              ),
+              new THREE.MeshStandardMaterial({
+                color: 0x713dcc,
+                metalness: 0.55,
+                roughness: 0.24,
+                emissive: 0x34105e,
+                emissiveIntensity: 0.8
+              })
+            )
+
+          mixes.add(
+            mixesPlanet
+          )
+
+          const ringMaterialA =
+            new THREE.MeshBasicMaterial({
+              color: 0xd09aff,
+              transparent: true,
+              opacity: 0.9
+            })
+
+          const ringMaterialB =
+            new THREE.MeshBasicMaterial({
+              color: 0x8f5cff,
+              transparent: true,
+              opacity: 0.8
+            })
+
+          const mixRingA =
+            new THREE.Mesh(
+              new THREE.TorusGeometry(
+                data.radius * 0.34,
+                data.radius * 0.015,
+                12,
+                64
+              ),
+              ringMaterialA
+            )
+
+          mixRingA.rotation.x =
+            Math.PI * 0.42
+
+          mixRingA.rotation.z =
+            Math.PI * 0.18
+
+          mixes.add(
+            mixRingA
+          )
+
+          const mixRingB =
+            new THREE.Mesh(
+              new THREE.TorusGeometry(
+                data.radius * 0.34,
+                data.radius * 0.013,
+                12,
+                64
+              ),
+              ringMaterialB
+            )
+
+          mixRingB.rotation.x =
+            -Math.PI * 0.42
+
+          mixRingB.rotation.z =
+            -Math.PI * 0.22
+
+          mixes.add(
+            mixRingB
+          )
+
+          for (
+            let i = 0;
+            i < 3;
+            i++
+          ) {
+
+            const light =
+              new THREE.Mesh(
+                new THREE.SphereGeometry(
+                  data.radius * 0.035,
+                  16,
+                  16
+                ),
+                new THREE.MeshBasicMaterial({
+                  color: 0xe7bdff
+                })
+              )
+
+            const angle =
+              i *
+              Math.PI *
+              2 /
+              3
+
+            light.position.set(
+              Math.cos(angle) *
+                data.radius *
+                0.40,
+              Math.sin(angle) *
+                data.radius *
+                0.25,
+              Math.sin(angle) *
+                data.radius *
+                0.40
+            )
+
+            mixes.add(
+              light
+            )
+          }
+
+          mixes.position.set(
+            data.radius * 2.0,
+            0.15,
+            0
+          )
+
+          audioSatellites.add(
+            mixes
+          )
+
+          // ======================================================
+          // RADIO
+          // ======================================================
+
+          const radio =
+            new THREE.Group()
+
+          radio.name =
+            "RADIO"
+
+          const radioPlanet =
+            new THREE.Mesh(
+              new THREE.SphereGeometry(
+                data.radius * 0.21,
+                32,
+                32
+              ),
+              new THREE.MeshStandardMaterial({
+                color: 0x238ed8,
+                metalness: 0.48,
+                roughness: 0.22,
+                emissive: 0x064875,
+                emissiveIntensity: 0.8
+              })
+            )
+
+          radio.add(
+            radioPlanet
+          )
+
+          const antenna =
+            new THREE.Mesh(
+              new THREE.CylinderGeometry(
+                data.radius * 0.014,
+                data.radius * 0.022,
+                data.radius * 0.45,
+                12
+              ),
+              new THREE.MeshStandardMaterial({
+                color: 0xb8dfff,
+                metalness: 0.8,
+                roughness: 0.18
+              })
+            )
+
+          antenna.position.y =
+            data.radius * 0.32
+
+          radio.add(
+            antenna
+          )
+
+          const dish =
+            new THREE.Mesh(
+              new THREE.SphereGeometry(
+                data.radius * 0.17,
+                24,
+                12,
+                0,
+                Math.PI * 2,
+                0,
+                Math.PI * 0.5
+              ),
+              new THREE.MeshStandardMaterial({
+                color: 0x9bdcff,
+                metalness: 0.72,
+                roughness: 0.18,
+                emissive: 0x126090,
+                emissiveIntensity: 0.55,
+                side: THREE.DoubleSide
+              })
+            )
+
+          dish.position.y =
+            data.radius * 0.54
+
+          dish.rotation.x =
+            -Math.PI * 0.25
+
+          radio.add(
+            dish
+          )
+
+          const waveMaterial =
+            new THREE.MeshBasicMaterial({
+              color: 0x55d9ff,
+              transparent: true,
+              opacity: 0.48
+            })
+
+          for (
+            let i = 0;
+            i < 3;
+            i++
+          ) {
+
+            const wave =
+              new THREE.Mesh(
+                new THREE.TorusGeometry(
+                  data.radius *
+                    (0.28 + i * 0.12),
+                  data.radius * 0.012,
+                  8,
+                  48,
+                  Math.PI
+                ),
+                waveMaterial
+              )
+
+            wave.position.set(
+              data.radius *
+                (0.16 + i * 0.04),
+              data.radius *
+                (0.68 + i * 0.06),
+              0
+            )
+
+            wave.rotation.z =
+              -Math.PI * 0.5
+
+            radio.add(
+              wave
+            )
+          }
+
+          radio.position.set(
+            0,
+            data.radius * 2.0,
+            -data.radius * 0.10
+          )
+
+          audioSatellites.add(
+            radio
+          )
+
+          planet.userData.audioSatellites =
+            audioSatellites
+        }
+
         const object = {
           mesh: planet,
           speed: data.speed,
