@@ -1343,6 +1343,76 @@ export default function PlanetField() {
     )
 
     // ============================================================
+    // AUDIO MENU LABELS
+    // ============================================================
+
+    const audioMenuLabels = {}
+
+    ;["TRACKS", "MIXES", "RADIO"].forEach(
+      (name) => {
+        const menuLabel =
+          document.createElement(
+            "div"
+          )
+
+        menuLabel.style.position =
+          "absolute"
+
+        menuLabel.style.left =
+          "0"
+
+        menuLabel.style.top =
+          "0"
+
+        menuLabel.style.transform =
+          "translate(-50%, -50%)"
+
+        menuLabel.style.color =
+          "#ffffff"
+
+        menuLabel.style.fontSize =
+          "9px"
+
+        menuLabel.style.fontFamily =
+          "Arial, Helvetica, sans-serif"
+
+        menuLabel.style.fontWeight =
+          "400"
+
+        menuLabel.style.letterSpacing =
+          "0.32em"
+
+        menuLabel.style.textTransform =
+          "uppercase"
+
+        menuLabel.style.whiteSpace =
+          "nowrap"
+
+        menuLabel.style.pointerEvents =
+          "none"
+
+        menuLabel.style.opacity =
+          "0"
+
+        menuLabel.style.transition =
+          "opacity 0.25s ease"
+
+        menuLabel.style.zIndex =
+          "21"
+
+        menuLabel.textContent =
+          name
+
+        el.appendChild(
+          menuLabel
+        )
+
+        audioMenuLabels[name] =
+          menuLabel
+      }
+    )
+
+    // ============================================================
     // INTERACTION
     // ============================================================
 
@@ -1957,6 +2027,75 @@ export default function PlanetField() {
           lookTarget
         )
 
+        // ========================================================
+        // AUDIO MENU LABELS
+        // ========================================================
+
+        ;["TRACKS", "MIXES", "RADIO"].forEach(
+          (name) => {
+            const menuLabel =
+              audioMenuLabels[name]
+
+            if (
+              !menuLabel
+            )
+              return
+
+            const satellites =
+              selectedPlanet?.userData
+                ?.audioSatellites
+
+            const satellite =
+              satellites?.getObjectByName(
+                name
+              )
+
+            if (
+              audioMenuActive &&
+              satellite
+            ) {
+              const world =
+                satellite.getWorldPosition(
+                  new THREE.Vector3()
+                )
+
+              world.y +=
+                selectedPlanet.geometry
+                  .parameters
+                  .radius *
+                  0.48
+
+              const projected =
+                world.project(
+                  camera
+                )
+
+              const rect =
+                canvas.getBoundingClientRect()
+
+              menuLabel.style.left =
+                `${
+                  (projected.x + 1) *
+                  0.5 *
+                  rect.width
+                }px`
+
+              menuLabel.style.top =
+                `${
+                  (-projected.y + 1) *
+                  0.5 *
+                  rect.height
+                }px`
+
+              menuLabel.style.opacity =
+                "1"
+            } else {
+              menuLabel.style.opacity =
+                "0"
+            }
+          }
+        )
+
         // Hover label follows planet.
         if (
           hoveredPlanet &&
@@ -2202,6 +2341,14 @@ export default function PlanetField() {
       )
 
       label.remove()
+
+      Object.values(
+        audioMenuLabels
+      ).forEach(
+        (menuLabel) => {
+          menuLabel.remove()
+        }
+      )
 
       renderer.dispose()
 
