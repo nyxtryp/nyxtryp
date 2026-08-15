@@ -436,7 +436,7 @@ export default function RadioPlayer({ onClose }) {
         width:
           "min(420px, 90vw)",
         padding:
-          "26px 26px 22px",
+          "46px 26px 22px",
         borderRadius:
           "24px",
         background:
