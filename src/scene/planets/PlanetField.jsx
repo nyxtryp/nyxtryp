@@ -1125,6 +1125,39 @@ export default function PlanetField() {
             radio
           )
 
+          // ======================================================
+          // AUDIO MENU MOTION DATA
+          // ======================================================
+
+          audioSatellites.userData.menuPositions = {
+            TRACKS: new THREE.Vector3(
+              -data.radius * 2.0,
+              0,
+              0
+            ),
+            MIXES: new THREE.Vector3(
+              0,
+              data.radius * 2.0,
+              0
+            ),
+            RADIO: new THREE.Vector3(
+              data.radius * 2.0,
+              0,
+              -data.radius * 0.10
+            )
+          }
+
+          audioSatellites.userData.freePositions = {
+            TRACKS:
+              tracks.position.clone(),
+
+            MIXES:
+              mixes.position.clone(),
+
+            RADIO:
+              radio.position.clone()
+          }
+
           planet.userData.audioSatellites =
             audioSatellites
         }
@@ -1301,6 +1334,8 @@ export default function PlanetField() {
 
     let hoveredPlanet = null
     let selectedPlanet = null
+
+    let audioMenuActive = false
 
     let isDragging = false
 
@@ -1503,6 +1538,9 @@ export default function PlanetField() {
         selectedPlanet =
           hit
 
+        audioMenuActive =
+          hit.userData.name === "AUDIO"
+
         // Click = select planet and start smooth approach.
         cameraDistance =
           THREE.MathUtils.clamp(
@@ -1534,6 +1572,9 @@ export default function PlanetField() {
         ) {
           selectedPlanet =
             null
+
+          audioMenuActive =
+            false
 
           cameraDistance =
             17
@@ -1644,6 +1685,84 @@ export default function PlanetField() {
             ) {
               mesh.rotation.y +=
                 speed
+            }
+
+            // ======================================================
+            // AUDIO MENU SATELLITE MOTION
+            // ======================================================
+
+            const satellites =
+              mesh.userData.audioSatellites
+
+            if (satellites) {
+
+              const menuPositions =
+                satellites.userData.menuPositions
+
+              const freePositions =
+                satellites.userData.freePositions
+
+              if (
+                menuPositions &&
+                freePositions
+              ) {
+
+                const targets = {
+                  TRACKS:
+                    audioMenuActive &&
+                    mesh === selectedPlanet
+                      ? menuPositions.TRACKS
+                      : freePositions.TRACKS,
+
+                  MIXES:
+                    audioMenuActive &&
+                    mesh === selectedPlanet
+                      ? menuPositions.MIXES
+                      : freePositions.MIXES,
+
+                  RADIO:
+                    audioMenuActive &&
+                    mesh === selectedPlanet
+                      ? menuPositions.RADIO
+                      : freePositions.RADIO
+                }
+
+                const tracksObject =
+                  satellites.getObjectByName(
+                    "TRACKS"
+                  )
+
+                const mixesObject =
+                  satellites.getObjectByName(
+                    "MIXES"
+                  )
+
+                const radioObject =
+                  satellites.getObjectByName(
+                    "RADIO"
+                  )
+
+                if (tracksObject) {
+                  tracksObject.position.lerp(
+                    targets.TRACKS,
+                    0.08
+                  )
+                }
+
+                if (mixesObject) {
+                  mixesObject.position.lerp(
+                    targets.MIXES,
+                    0.08
+                  )
+                }
+
+                if (radioObject) {
+                  radioObject.position.lerp(
+                    targets.RADIO,
+                    0.08
+                  )
+                }
+              }
             }
 
             const naturalX =
