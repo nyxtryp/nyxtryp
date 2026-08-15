@@ -62,7 +62,7 @@ const PLANETS = [
   }
 ]
 
-export default function PlanetField() {
+export default function PlanetField({ onRadioOpen }) {
   const ref = useRef(null)
 
   useEffect(() => {
@@ -1020,6 +1020,31 @@ export default function PlanetField() {
             radioPlanet
           )
 
+          // ======================================================
+          // MOBILE TOUCH HITBOX FOR RADIO
+          // ======================================================
+
+          const radioHitbox =
+            new THREE.Mesh(
+              new THREE.SphereGeometry(
+                data.radius * 0.55,
+                16,
+                16
+              ),
+              new THREE.MeshBasicMaterial({
+                transparent: true,
+                opacity: 0,
+                depthWrite: false
+              })
+            )
+
+          radioHitbox.name =
+            "RADIO_HITBOX"
+
+          radio.add(
+            radioHitbox
+          )
+
           const antenna =
             new THREE.Mesh(
               new THREE.CylinderGeometry(
@@ -1479,18 +1504,63 @@ export default function PlanetField() {
           camera
         )
 
-        const hits =
+        const planetMeshes =
+          objects.map(
+            ({ mesh }) =>
+              mesh
+          )
+
+        const satelliteMeshes = []
+
+        for (const { mesh } of objects) {
+          if (
+            mesh.userData.name === "AUDIO" &&
+            mesh.userData.audioSatellites
+          ) {
+            mesh.userData.audioSatellites.traverse(
+              (child) => {
+                if (
+                  child.isMesh &&
+                  child.visible
+                ) {
+                  satelliteMeshes.push(child)
+                }
+              }
+            )
+          }
+        }
+
+        const planetHits =
           raycaster.intersectObjects(
-            objects.map(
-              ({ mesh }) =>
-                mesh
-            ),
+            planetMeshes,
             false
           )
 
-        return hits.length
-          ? hits[0].object
-          : null
+        const satelliteHits =
+          raycaster.intersectObjects(
+            satelliteMeshes,
+            false
+          )
+
+        if (
+          satelliteHits.length &&
+          planetHits.length
+        ) {
+          return satelliteHits[0].distance <
+            planetHits[0].distance
+            ? satelliteHits[0].object
+            : planetHits[0].object
+        }
+
+        if (satelliteHits.length) {
+          return satelliteHits[0].object
+        }
+
+        if (planetHits.length) {
+          return planetHits[0].object
+        }
+
+        return null
       }
 
     let pointerMoved =
@@ -1579,7 +1649,10 @@ export default function PlanetField() {
 
     const onPointerDown =
       (event) => {
+        // Mouse: only left button.
+        // Touch / pen: ignore the mouse-button value.
         if (
+          event.pointerType === "mouse" &&
           event.button !== 0
         )
           return
@@ -1591,6 +1664,41 @@ export default function PlanetField() {
 
         if (!hit) {
           isDragging = false
+          return
+        }
+
+        // ======================================================
+        // RADIO SATELLITE CLICK
+        // The raycaster returns a child mesh, so walk up its
+        // parent chain until the RADIO group is found.
+        // Works with mouse, touch and pen.
+        // ======================================================
+
+        let radioSatellite = null
+        let currentObject = hit
+
+        while (currentObject) {
+          if (
+            currentObject.name === "RADIO"
+          ) {
+            radioSatellite =
+              currentObject
+            break
+          }
+
+          currentObject =
+            currentObject.parent
+        }
+
+        if (radioSatellite) {
+          if (onRadioOpen) {
+            onRadioOpen()
+          }
+
+          isDragging = false
+          pointerMoved = false
+          pendingReturn = false
+
           return
         }
 

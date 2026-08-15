@@ -1,9 +1,11 @@
 import { useState } from "react"
 import Ocean from "./Ocean.jsx"
 import PlanetField from "./planets/PlanetField.jsx"
+import RadioPlayer from "../components/RadioPlayer.jsx"
 
 export default function Scene() {
   const [entered, setEntered] = useState(false)
+  const [radioOpen, setRadioOpen] = useState(false)
 
   return (
     <div className="scene">
@@ -21,7 +23,44 @@ export default function Scene() {
       ) : (
         <>
           <Ocean />
-          <PlanetField />
+          <PlanetField
+            onRadioOpen={() =>
+              setRadioOpen(true)
+            }
+          />
+
+          {radioOpen && (
+            <div
+              onPointerDown={(event) => {
+                if (event.pointerType === "mouse") {
+                  setRadioOpen(false)
+                }
+              }}
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 100,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(0,0,0,.10)",
+                backdropFilter: "blur(2px)",
+                cursor: "default"
+              }}
+            >
+              <div
+                onClick={(event) =>
+                  event.stopPropagation()
+                }
+              >
+                <RadioPlayer
+                  onClose={() =>
+                    setRadioOpen(false)
+                  }
+                />
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
