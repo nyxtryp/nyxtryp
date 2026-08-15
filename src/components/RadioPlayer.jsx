@@ -35,6 +35,33 @@ function randomIndex(except = -1) {
 }
 
 export default function RadioPlayer({ onClose }) {
+  const loriStyle =
+    document.getElementById("lori-animation")
+
+  if (!loriStyle) {
+    const style = document.createElement("style")
+    style.id = "lori-animation"
+    style.innerHTML = `
+      @keyframes loriPulse {
+        0%,100% {
+          opacity: .45;
+          transform: translateY(0);
+          text-shadow: 0 0 0 rgba(120,220,255,0);
+        }
+
+        50% {
+          opacity: 1;
+          transform: translateY(-2px);
+          text-shadow:
+            0 0 8px rgba(120,220,255,.9),
+            0 0 18px rgba(80,140,255,.7);
+        }
+      }
+    `
+    document.head.appendChild(style)
+  }
+
+
   const audioRef = useRef(null)
   const canvasRef = useRef(null)
 
@@ -223,7 +250,7 @@ export default function RadioPlayer({ onClose }) {
             2.4
           )
 
-        value *= 0.75
+        value *= 1.0
 
         const target =
           playing
@@ -235,12 +262,15 @@ export default function RadioPlayer({ onClose }) {
 
         const compressed =
           levels[i] /
-          (levels[i] + 0.8)
+          (levels[i] + 0.45)
+
+        const headroom =
+          0.05
 
         const barHeight =
           height *
           compressed *
-          0.75
+          (1 - headroom)
 
         const x =
           i *
@@ -529,10 +559,30 @@ export default function RadioPlayer({ onClose }) {
               letterSpacing:
                 "4px",
               fontWeight:
-                500
+                500,
+              display:
+                "flex",
+              gap:
+                "4px"
             }}
           >
-            RADIO
+            <span>
+              Radio&nbsp;
+            </span>
+
+            {"LORI".split("").map((char, i) => (
+              <span
+                key={i}
+                style={{
+                  animation:
+                    `loriPulse ${1.6 + i * 0.3}s ease-in-out infinite`,
+                  animationDelay:
+                    `${i * 0.35}s`
+                }}
+              >
+                {char}
+              </span>
+            ))}
           </div>
 
           <div
