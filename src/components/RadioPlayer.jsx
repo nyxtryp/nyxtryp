@@ -82,7 +82,7 @@ export default function RadioPlayer({ onClose }) {
     const analyser =
       context.createAnalyser()
 
-    analyser.fftSize = 256
+    analyser.fftSize = 2048
     analyser.smoothingTimeConstant = 0.78
 
     const source =
@@ -129,6 +129,9 @@ export default function RadioPlayer({ onClose }) {
         analyser.frequencyBinCount
       )
 
+    const bars = 64
+    const levels = new Array(bars).fill(0)
+
     const draw = () => {
       const width =
         canvas.width
@@ -147,63 +150,97 @@ export default function RadioPlayer({ onClose }) {
         frequencyData
       )
 
-      const bars = 54
-      const gap = 3
+      const minHz = 16
+      const maxHz = 25000
+
+      const sampleRate =
+        audioContextRef.current?.sampleRate || 44100
+
+      const binHz =
+        sampleRate / analyser.fftSize
+
+      const gap = 2
 
       const barWidth =
-        Math.max(
-          2,
-          (width -
-            gap *
-              (bars - 1)) /
-            bars
-        )
+        (width - gap * (bars - 1)) /
+        bars
 
       for (
         let i = 0;
         i < bars;
         i++
       ) {
-        /*
-         * Logarithmic-ish frequency mapping.
-         * This makes bass and upper frequencies
-         * visually useful instead of simply
-         * taking every FFT bin equally.
-         */
-        const normalized =
-          i /
-          bars
 
-        const index =
-          Math.min(
-            frequencyData.length - 1,
+        const freqStart =
+          minHz *
+          Math.pow(
+            maxHz / minHz,
+            i / bars
+          )
+
+        const freqEnd =
+          minHz *
+          Math.pow(
+            maxHz / minHz,
+            (i + 1) / bars
+          )
+
+        const startBin =
+          Math.floor(
+            freqStart / binHz
+          )
+
+        const endBin =
+          Math.max(
+            startBin + 1,
             Math.floor(
-              Math.pow(
-                normalized,
-                0.85
-              ) *
-                (frequencyData.length - 1)
+              freqEnd / binHz
             )
           )
 
-        const value =
-          frequencyData[index] /
-          255
+        let sum = 0
+        let count = 0
 
-        const energy =
+        for (
+          let j = startBin;
+          j < endBin &&
+          j < frequencyData.length;
+          j++
+        ) {
+          sum += frequencyData[j]
+          count++
+        }
+
+        let value =
+          (sum / Math.max(count,1)) / 255
+
+        value =
+          Math.pow(
+            Math.min(
+              value,
+              0.85
+            ),
+            2.4
+          )
+
+        value *= 0.75
+
+        const target =
           playing
-            ? Math.pow(
-                Math.min(
-                  value,
-                  0.72
-                ),
-                0.72
-              )
-            : value * 0.15
+            ? value
+            : 0.05
+
+        levels[i] +=
+          (target - levels[i]) * 0.08
+
+        const compressed =
+          levels[i] /
+          (levels[i] + 0.8)
 
         const barHeight =
           height *
-          energy
+          compressed *
+          0.75
 
         const x =
           i *
@@ -212,37 +249,6 @@ export default function RadioPlayer({ onClose }) {
         const y =
           height -
           barHeight
-
-        /*
-         * Low = cyan.
-         * Stronger spectrum = warmer color.
-         */
-        const intensity =
-          Math.min(
-            1,
-            value * 1.45
-          )
-
-        const r =
-          Math.round(
-            55 +
-              intensity *
-                200
-          )
-
-        const g =
-          Math.round(
-            205 -
-              intensity *
-                105
-          )
-
-        const b =
-          Math.round(
-            255 -
-              intensity *
-                175
-          )
 
         const gradient =
           ctx.createLinearGradient(
@@ -254,12 +260,12 @@ export default function RadioPlayer({ onClose }) {
 
         gradient.addColorStop(
           0,
-          `rgba(${r},${g},${b},0.98)`
+          "rgba(130,220,255,0.95)"
         )
 
         gradient.addColorStop(
           1,
-          `rgba(${r},${g},${b},0.10)`
+          "rgba(80,130,255,0.15)"
         )
 
         ctx.fillStyle =
@@ -274,9 +280,7 @@ export default function RadioPlayer({ onClose }) {
       }
 
       animationRef.current =
-        requestAnimationFrame(
-          draw
-        )
+        requestAnimationFrame(draw)
     }
 
     draw()
@@ -648,6 +652,8 @@ export default function RadioPlayer({ onClose }) {
             14,
           overflow:
             "hidden",
+          padding:
+            "0 22px",
           background:
             "rgba(0,0,0,.20)",
           border:
