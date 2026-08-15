@@ -1143,7 +1143,27 @@ export default function PlanetField() {
             RADIO: new THREE.Vector3(
               data.radius * 2.0,
               0,
-              -data.radius * 0.10
+              0
+            )
+          }
+
+          // Menu orientation:
+          // all three satellites face the user as one flat screen.
+          audioSatellites.userData.menuRotations = {
+            TRACKS: new THREE.Euler(
+              0,
+              0,
+              0
+            ),
+            MIXES: new THREE.Euler(
+              0,
+              0,
+              0
+            ),
+            RADIO: new THREE.Euler(
+              0,
+              0,
+              0
             )
           }
 
@@ -1707,25 +1727,67 @@ export default function PlanetField() {
                 freePositions
               ) {
 
+                const menuActiveForThisPlanet =
+                  audioMenuActive &&
+                  mesh === selectedPlanet
+
+                // AUDIO itself keeps its normal 3D rotation,
+                // but the menu counter-rotates against it.
+                // This keeps the three satellites visually
+                // aligned to the user's screen.
+                const inverseParentQuaternion =
+                  mesh.quaternion.clone().invert()
+
+                const menuWorldPositions = {
+                  TRACKS:
+                    menuPositions.TRACKS.clone(),
+
+                  MIXES:
+                    menuPositions.MIXES.clone(),
+
+                  RADIO:
+                    menuPositions.RADIO.clone()
+                }
+
+                const menuLocalPositions = {
+                  TRACKS:
+                    menuWorldPositions.TRACKS
+                      .applyQuaternion(
+                        inverseParentQuaternion
+                      ),
+
+                  MIXES:
+                    menuWorldPositions.MIXES
+                      .applyQuaternion(
+                        inverseParentQuaternion
+                      ),
+
+                  RADIO:
+                    menuWorldPositions.RADIO
+                      .applyQuaternion(
+                        inverseParentQuaternion
+                      )
+                }
+
                 const targets = {
                   TRACKS:
-                    audioMenuActive &&
-                    mesh === selectedPlanet
-                      ? menuPositions.TRACKS
+                    menuActiveForThisPlanet
+                      ? menuLocalPositions.TRACKS
                       : freePositions.TRACKS,
 
                   MIXES:
-                    audioMenuActive &&
-                    mesh === selectedPlanet
-                      ? menuPositions.MIXES
+                    menuActiveForThisPlanet
+                      ? menuLocalPositions.MIXES
                       : freePositions.MIXES,
 
                   RADIO:
-                    audioMenuActive &&
-                    mesh === selectedPlanet
-                      ? menuPositions.RADIO
+                    menuActiveForThisPlanet
+                      ? menuLocalPositions.RADIO
                       : freePositions.RADIO
                 }
+
+                const menuRotations =
+                  satellites.userData.menuRotations
 
                 const tracksObject =
                   satellites.getObjectByName(
@@ -1747,6 +1809,19 @@ export default function PlanetField() {
                     targets.TRACKS,
                     0.08
                   )
+
+                  if (menuActiveForThisPlanet) {
+                    tracksObject.quaternion.slerp(
+                      new THREE.Quaternion()
+                        .setFromEuler(
+                          menuRotations.TRACKS
+                        )
+                        .premultiply(
+                          inverseParentQuaternion
+                        ),
+                      0.08
+                    )
+                  }
                 }
 
                 if (mixesObject) {
@@ -1754,6 +1829,19 @@ export default function PlanetField() {
                     targets.MIXES,
                     0.08
                   )
+
+                  if (menuActiveForThisPlanet) {
+                    mixesObject.quaternion.slerp(
+                      new THREE.Quaternion()
+                        .setFromEuler(
+                          menuRotations.MIXES
+                        )
+                        .premultiply(
+                          inverseParentQuaternion
+                        ),
+                      0.08
+                    )
+                  }
                 }
 
                 if (radioObject) {
@@ -1761,6 +1849,19 @@ export default function PlanetField() {
                     targets.RADIO,
                     0.08
                   )
+
+                  if (menuActiveForThisPlanet) {
+                    radioObject.quaternion.slerp(
+                      new THREE.Quaternion()
+                        .setFromEuler(
+                          menuRotations.RADIO
+                        )
+                        .premultiply(
+                          inverseParentQuaternion
+                        ),
+                      0.08
+                    )
+                  }
                 }
               }
             }
