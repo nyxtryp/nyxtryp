@@ -52,6 +52,13 @@ export default function Scene() {
                 onClick={(event) =>
                   event.stopPropagation()
                 }
+                onPointerDown={(event) =>
+                  event.stopPropagation()
+                }
+                style={{
+                  position: "relative",
+                  zIndex: 101
+                }}
               >
                 <RadioPlayer
                   onClose={() =>

@@ -180,7 +180,7 @@ export default function RadioPlayer({ onClose }) {
             Math.floor(
               Math.pow(
                 normalized,
-                1.65
+                0.85
               ) *
                 (frequencyData.length - 1)
             )
@@ -192,9 +192,12 @@ export default function RadioPlayer({ onClose }) {
 
         const energy =
           playing
-            ? Math.max(
-                0.025,
-                value
+            ? Math.pow(
+                Math.min(
+                  value,
+                  0.72
+                ),
+                0.72
               )
             : value * 0.15
 
