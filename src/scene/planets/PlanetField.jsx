@@ -70,14 +70,20 @@ export default function PlanetField({ onRadioOpen }) {
 
     const scene = new THREE.Scene()
 
+    const isMobile = window.innerWidth < 768
+
     const camera = new THREE.PerspectiveCamera(
-      35,
+      isMobile ? 55 : 35,
       el.clientWidth / el.clientHeight,
       0.1,
       250
     )
 
-    camera.position.set(0, 0, 17)
+    camera.position.set(
+      0,
+      0,
+      isMobile ? 28 : 17
+    )
 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
@@ -2113,7 +2119,7 @@ export default function PlanetField({ onRadioOpen }) {
           new THREE.Vector3(
             0,
             0,
-            17
+            window.innerWidth < 768 ? 28 : 17
           ),
           0.05
         )
