@@ -1680,7 +1680,16 @@ export default function PlanetField({ onRadioOpen }) {
         }
 
         if (radioSatellite) {
-          if (onRadioOpen) {
+
+          const radioIsActive =
+            audioMenuActive &&
+            selectedPlanet &&
+            selectedPlanet.userData.name === "AUDIO"
+
+          if (
+            radioIsActive &&
+            onRadioOpen
+          ) {
             onRadioOpen()
           }
 
