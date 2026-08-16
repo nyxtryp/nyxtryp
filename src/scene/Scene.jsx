@@ -2,10 +2,12 @@ import { useState } from "react"
 import Ocean from "./Ocean.jsx"
 import PlanetField from "./planets/PlanetField.jsx"
 import RadioPlayer from "../components/RadioPlayer.jsx"
+import MixesPlayer from "../components/MixesPlayer.jsx"
 
 export default function Scene() {
   const [entered, setEntered] = useState(false)
   const [radioOpen, setRadioOpen] = useState(false)
+  const [mixesOpen, setMixesOpen] = useState(false)
 
   return (
     <div className="scene">
@@ -26,6 +28,9 @@ export default function Scene() {
           <PlanetField
             onRadioOpen={() =>
               setRadioOpen(true)
+            }
+            onMixesOpen={() =>
+              setMixesOpen(true)
             }
           />
 
@@ -63,6 +68,46 @@ export default function Scene() {
                 <RadioPlayer
                   onClose={() =>
                     setRadioOpen(false)
+                  }
+                />
+              </div>
+            </div>
+          )}
+
+          {mixesOpen && (
+            <div
+              onPointerDown={(event) => {
+                if (event.pointerType === "mouse") {
+                  setMixesOpen(false)
+                }
+              }}
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 100,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(0,0,0,.10)",
+                backdropFilter: "blur(2px)",
+                cursor: "default"
+              }}
+            >
+              <div
+                onClick={(event) =>
+                  event.stopPropagation()
+                }
+                onPointerDown={(event) =>
+                  event.stopPropagation()
+                }
+                style={{
+                  position: "relative",
+                  zIndex: 101
+                }}
+              >
+                <MixesPlayer
+                  onClose={() =>
+                    setMixesOpen(false)
                   }
                 />
               </div>

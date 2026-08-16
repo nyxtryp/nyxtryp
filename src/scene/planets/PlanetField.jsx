@@ -62,7 +62,7 @@ const PLANETS = [
   }
 ]
 
-export default function PlanetField({ onRadioOpen }) {
+export default function PlanetField({ onRadioOpen, onMixesOpen }) {
   const ref = useRef(null)
 
   useEffect(() => {
@@ -1691,6 +1691,49 @@ export default function PlanetField({ onRadioOpen }) {
             onRadioOpen
           ) {
             onRadioOpen()
+          }
+
+          isDragging = false
+          pointerMoved = false
+          pendingReturn = false
+
+          return
+        }
+
+        // ======================================================
+        // MIXES SATELLITE CLICK
+        // Same interaction as RADIO.
+        // Does not affect planet arrival or satellite labels.
+        // ======================================================
+
+        let mixesSatellite = null
+        currentObject = hit
+
+        while (currentObject) {
+          if (
+            currentObject.name === "MIXES"
+          ) {
+            mixesSatellite =
+              currentObject
+            break
+          }
+
+          currentObject =
+            currentObject.parent
+        }
+
+        if (mixesSatellite) {
+
+          const mixesIsActive =
+            audioMenuActive &&
+            selectedPlanet &&
+            selectedPlanet.userData.name === "AUDIO"
+
+          if (
+            mixesIsActive &&
+            onMixesOpen
+          ) {
+            onMixesOpen()
           }
 
           isDragging = false
