@@ -1263,6 +1263,58 @@ export default function PlanetField({ onRadioOpen }) {
         )
 
         // ========================================================
+        // PERMANENT PLANET NAME
+        // ========================================================
+
+        const permanentLabel =
+          document.createElement(
+            "div"
+          )
+
+        permanentLabel.className =
+          "planet-name"
+
+        permanentLabel.textContent =
+          data.name
+
+        permanentLabel.style.position =
+          "absolute"
+
+        permanentLabel.style.color =
+          "#ffffff"
+
+        permanentLabel.style.fontSize =
+          "8px"
+
+        permanentLabel.style.letterSpacing =
+          "0.28em"
+
+        permanentLabel.style.fontFamily =
+          "Arial, Helvetica, sans-serif"
+
+        permanentLabel.style.pointerEvents =
+          "none"
+
+        permanentLabel.style.whiteSpace =
+          "nowrap"
+
+        permanentLabel.style.transform =
+          "translate(-50%, -50%)"
+
+        permanentLabel.style.opacity =
+          "0.8"
+
+        permanentLabel.style.zIndex =
+          "20"
+
+        el.appendChild(
+          permanentLabel
+        )
+
+        object.nameLabel =
+          permanentLabel
+
+        // ========================================================
         // SATURN RINGS
         // ========================================================
 
@@ -1305,73 +1357,9 @@ export default function PlanetField({ onRadioOpen }) {
     )
 
     // ============================================================
-    // PLANET LABEL
+    // HOVER LABEL DISABLED
+    // Permanent planet names use permanentLabel only.
     // ============================================================
-
-    const label =
-      document.createElement(
-        "div"
-      )
-
-    label.style.position =
-      "absolute"
-
-    label.style.left = "0"
-    label.style.top = "0"
-
-    label.style.transform =
-      "translate(-50%, -50%)"
-
-    label.style.padding =
-      "0"
-
-    label.style.border =
-      "none"
-
-    label.style.borderRadius =
-      "0"
-
-    label.style.background =
-      "transparent"
-
-    label.style.backdropFilter =
-      "none"
-
-    label.style.color =
-      "#ffffff"
-
-    label.style.fontSize =
-      "8px"
-
-    label.style.letterSpacing =
-      "0.28em"
-
-    label.style.fontFamily =
-      "Arial, Helvetica, sans-serif"
-
-    label.style.pointerEvents =
-      "none"
-
-    label.style.whiteSpace =
-      "nowrap"
-
-    label.style.opacity =
-      "0"
-
-    label.style.transition =
-      "opacity 0.18s ease"
-
-    label.style.zIndex =
-      "20"
-
-    label.textContent = ""
-
-    el.style.position =
-      "relative"
-
-    el.appendChild(
-      label
-    )
 
     // ============================================================
     // AUDIO MENU LABELS
@@ -1589,11 +1577,7 @@ export default function PlanetField({ onRadioOpen }) {
           hoveredPlanet =
             hit
 
-          label.textContent =
-            hit.userData.name
-
-          label.style.opacity =
-            "1"
+          // hover labels disabled
 
           canvas.style.cursor =
             "pointer"
@@ -1603,8 +1587,7 @@ export default function PlanetField({ onRadioOpen }) {
           hoveredPlanet =
             null
 
-          label.style.opacity =
-            "0"
+          // hover labels disabled
 
           canvas.style.cursor =
             "default"
@@ -1883,6 +1866,71 @@ export default function PlanetField({ onRadioOpen }) {
               phaseY,
               phaseZ
             } = object
+
+            // ======================================================
+            // MOVE PLANET NAME WITH PLANET
+            // ======================================================
+
+            if (object.nameLabel) {
+
+              const labelPosition =
+                new THREE.Vector3()
+
+              mesh.getWorldPosition(
+                labelPosition
+              )
+
+              labelPosition.y +=
+                mesh.geometry.parameters.radius * 1.6
+
+              labelPosition.project(
+                camera
+              )
+
+              const rect =
+                canvas.getBoundingClientRect()
+
+              object.nameLabel.style.left =
+                ((labelPosition.x + 1) / 2 * rect.width) + "px"
+
+              object.nameLabel.style.top =
+                ((-labelPosition.y + 1) / 2 * rect.height) + "px"
+
+
+              const direction =
+                mesh.position.clone()
+                  .sub(camera.position)
+                  .normalize()
+
+              const raycaster =
+                new THREE.Raycaster(
+                  camera.position,
+                  direction
+                )
+
+              const blockers =
+                objects
+                  .filter(
+                    (obj) =>
+                      obj.mesh !== mesh
+                  )
+                  .map(
+                    (obj) =>
+                      obj.mesh
+                  )
+
+              const hits =
+                raycaster.intersectObjects(
+                  blockers,
+                  false
+                )
+
+              object.nameLabel.style.opacity =
+                hits.length
+                  ? "0"
+                  : "0.8"
+            }
+
             if (
               mesh !==
               selectedPlanet
@@ -2210,44 +2258,6 @@ export default function PlanetField({ onRadioOpen }) {
           }
         )
 
-        // Hover label follows planet.
-        if (
-          hoveredPlanet &&
-          !isDragging
-        ) {
-          const world =
-            hoveredPlanet.position
-              .clone()
-
-          world.y +=
-            hoveredPlanet.geometry
-              .parameters
-              .radius *
-              1.35
-
-          const projected =
-            world.project(
-              camera
-            )
-
-          const rect =
-            canvas.getBoundingClientRect()
-
-          label.style.left =
-            `${
-              (projected.x + 1) *
-              0.5 *
-              rect.width
-            }px`
-
-          label.style.top =
-            `${
-              (-projected.y + 1) *
-              0.5 *
-              rect.height
-            }px`
-        }
-
         // Star parallax.
         starLayers.forEach(
           ({
@@ -2454,8 +2464,7 @@ export default function PlanetField({ onRadioOpen }) {
         }
       )
 
-      label.remove()
-
+ 
       Object.values(
         audioMenuLabels
       ).forEach(
@@ -2463,6 +2472,14 @@ export default function PlanetField({ onRadioOpen }) {
           menuLabel.remove()
         }
       )
+
+      document
+        .querySelectorAll(".planet-name")
+        .forEach(
+          (label) => {
+            label.remove()
+          }
+        )
 
       renderer.dispose()
 
