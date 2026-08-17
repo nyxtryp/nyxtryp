@@ -62,7 +62,7 @@ const PLANETS = [
   }
 ]
 
-export default function PlanetField({ onRadioOpen, onMixesOpen }) {
+export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) {
   const ref = useRef(null)
 
   useEffect(() => {
@@ -1536,16 +1536,9 @@ export default function PlanetField({ onRadioOpen, onMixesOpen }) {
             false
           )
 
-        if (
-          satelliteHits.length &&
-          planetHits.length
-        ) {
-          return satelliteHits[0].distance <
-            planetHits[0].distance
-            ? satelliteHits[0].object
-            : planetHits[0].object
-        }
-
+        // AUDIO satellites always have priority over the planet.
+        // This prevents clicking TRACKS/RADIO/MIXES from
+        // accidentally selecting AUDIO and triggering return logic.
         if (satelliteHits.length) {
           return satelliteHits[0].object
         }
@@ -1691,6 +1684,41 @@ export default function PlanetField({ onRadioOpen, onMixesOpen }) {
             onRadioOpen
           ) {
             onRadioOpen()
+          }
+
+          isDragging = false
+          pointerMoved = false
+          pendingReturn = false
+
+          return
+        }
+
+        // ======================================================
+        // TRACKS SATELLITE CLICK
+        // Exact same interaction logic as MIXES.
+        // TRACKS is handled before normal planet selection.
+        // ======================================================
+
+        let tracksSatellite = null
+        currentObject = hit
+
+        while (currentObject) {
+          if (
+            currentObject.name === "TRACKS"
+          ) {
+            tracksSatellite =
+              currentObject
+            break
+          }
+
+          currentObject =
+            currentObject.parent
+        }
+
+        if (tracksSatellite) {
+
+          if (onTracksOpen) {
+            onTracksOpen()
           }
 
           isDragging = false
