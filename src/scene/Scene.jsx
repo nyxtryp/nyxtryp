@@ -3,11 +3,13 @@ import Ocean from "./Ocean.jsx"
 import PlanetField from "./planets/PlanetField.jsx"
 import RadioPlayer from "../components/RadioPlayer.jsx"
 import MixesPlayer from "../components/MixesPlayer.jsx"
+import TracksPlayer from "../components/TracksPlayer.jsx"
 
 export default function Scene() {
   const [entered, setEntered] = useState(false)
   const [radioOpen, setRadioOpen] = useState(false)
   const [mixesOpen, setMixesOpen] = useState(false)
+  const [tracksOpen, setTracksOpen] = useState(false)
 
   return (
     <div className="scene">
@@ -31,6 +33,9 @@ export default function Scene() {
             }
             onMixesOpen={() =>
               setMixesOpen(true)
+            }
+            onTracksOpen={() =>
+              setTracksOpen(true)
             }
           />
 
@@ -68,6 +73,46 @@ export default function Scene() {
                 <RadioPlayer
                   onClose={() =>
                     setRadioOpen(false)
+                  }
+                />
+              </div>
+            </div>
+          )}
+
+          {tracksOpen && (
+            <div
+              onPointerDown={(event) => {
+                if (event.pointerType === "mouse") {
+                  setTracksOpen(false)
+                }
+              }}
+              style={{
+                position: "fixed",
+                inset: 0,
+                zIndex: 100,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                background: "rgba(0,0,0,.10)",
+                backdropFilter: "blur(2px)",
+                cursor: "default"
+              }}
+            >
+              <div
+                onClick={(event) =>
+                  event.stopPropagation()
+                }
+                onPointerDown={(event) =>
+                  event.stopPropagation()
+                }
+                style={{
+                  position: "relative",
+                  zIndex: 101
+                }}
+              >
+                <TracksPlayer
+                  onClose={() =>
+                    setTracksOpen(false)
                   }
                 />
               </div>
