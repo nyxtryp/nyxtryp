@@ -791,6 +791,28 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
             tracksPlanet
           )
 
+          // Invisible mobile-friendly hit area.
+          // Visual TRACKS geometry remains unchanged.
+          const tracksHitArea =
+            new THREE.Mesh(
+              new THREE.SphereGeometry(
+                data.radius * 0.42,
+                16,
+                16
+              ),
+              new THREE.MeshBasicMaterial({
+                transparent: true,
+                opacity: 0,
+                depthWrite: false
+              })
+            )
+
+          tracksHitArea.userData.isTracksHitArea = true
+
+          tracks.add(
+            tracksHitArea
+          )
+
           const tracksRing =
             new THREE.Mesh(
               new THREE.TorusGeometry(
