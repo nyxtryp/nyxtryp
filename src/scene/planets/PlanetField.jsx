@@ -1739,7 +1739,15 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
 
         if (tracksSatellite) {
 
-          if (onTracksOpen) {
+          const tracksIsActive =
+            audioMenuActive &&
+            selectedPlanet &&
+            selectedPlanet.userData.name === "AUDIO"
+
+          if (
+            tracksIsActive &&
+            onTracksOpen
+          ) {
             onTracksOpen()
           }
 

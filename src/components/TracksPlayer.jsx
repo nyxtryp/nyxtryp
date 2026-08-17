@@ -516,7 +516,7 @@ export default function TracksPlayer({ onClose }) {
 
         .tracks-window {
           width: 17cm;
-          height: 14cm;
+          height: 17cm;
           max-width: calc(100vw - 24px);
           max-height: calc(100vh - 24px);
           box-sizing: border-box;
