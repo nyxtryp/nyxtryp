@@ -203,8 +203,8 @@ export default function TracksPlayer({ onClose }) {
           <audio ref={audioRef} onEnded={()=>changeTrack(1)} />
           <button className="tracks-close" onClick={onClose}>×</button>
           <div className="tracks-title">{track.title}</div>
-          <canvas ref={canvasRef} className="tracks-visualizer" width={1200} height={240}/>
           <div className="nyx-vu"><div className="nyx-meter"><Meter channel="L" value={leftVU}/></div><div className="nyx-meter"><Meter channel="R" value={rightVU}/></div></div>
+          <canvas ref={canvasRef} className="tracks-visualizer" width={1200} height={240}/>
           <div className="tracks-controls"><button className="tracks-button" onClick={()=>changeTrack(-1)}>‹</button><button className="tracks-button main" onClick={togglePlay}>{playing?"Ⅱ":"▶"}</button><button className="tracks-button" onClick={()=>changeTrack(1)}>›</button></div>
           <div className="tracks-progress"><span>{formatTime(currentTime)}</span><input type="range" min="0" max={duration||0} step=".1" value={Math.min(currentTime,duration||0)} onChange={seek}/><span>{formatTime(duration)}</span></div>
           <div className="tracks-volume"><button className="tracks-button" onClick={()=>setMuted(v=>!v)}>{muted?"🔇":"🔊"}</button><input type="range" min="0" max="1" step=".01" value={volume} onChange={e=>setVolume(Number(e.target.value))}/></div>
