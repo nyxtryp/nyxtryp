@@ -901,6 +901,8 @@ export default function TracksPlayer({ onClose }) {
             />
           </div>
 
+          <div style={{color:"white",fontSize:"24px",fontWeight:"bold",padding:"8px 0"}}>ПРИВЕТ</div>
+
           <div className="tracks-playlist">
             {TRACKS.map((item, index) => (
               <button
