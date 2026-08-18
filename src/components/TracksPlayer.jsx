@@ -146,16 +146,44 @@ export default function TracksPlayer({ onClose }) {
   useEffect(() => {
     const audio = audioRef.current
     if (!audio) return
+
+    const wasPlaying = playing
+    let cancelled = false
+
     audio.src = track.file
     audio.volume = volume
     audio.muted = muted
     audio.load()
-    setPlaying(false)
     setCurrentTime(0)
     setDuration(0)
     meterRef.current = { left: -60, right: -60 }
     setLeftVU(-60)
     setRightVU(-60)
+
+    const startPlayback = async () => {
+      if (cancelled) return
+      try {
+        const ctx = await setupAudio()
+        if (ctx?.state === "suspended") await ctx.resume()
+        await audio.play()
+        if (!cancelled) setPlaying(true)
+      } catch {
+        if (!cancelled) setPlaying(false)
+      }
+    }
+
+    if (wasPlaying) {
+      if (audio.readyState >= 3) startPlayback()
+      else audio.addEventListener("canplay", startPlayback, { once: true })
+    } else {
+      audio.pause()
+      setPlaying(false)
+    }
+
+    return () => {
+      cancelled = true
+      audio.removeEventListener("canplay", startPlayback)
+    }
   }, [trackIndex])
 
   useEffect(() => {
