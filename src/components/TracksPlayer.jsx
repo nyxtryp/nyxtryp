@@ -255,16 +255,37 @@ export default function TracksPlayer({ onClose }) {
         setLeftVU(ml)
         setRightVU(mr)
 
-        // Spectrum remains FFT-based and independent from the VU RMS measurement.
+        // Spectrum: use logarithmic frequency bands so the whole audible range is visible.
+        // This keeps real FFT data but avoids wasting most bars on ultrasonic/high bins.
         split.left.getByteFrequencyData(ld)
         split.right.getByteFrequencyData(rd)
         const bars = 64
-        const w = canvas.width / bars
+        const minHz = 30
+        const maxHz = Math.min(16000, (ctxRef.current?.sampleRate || 44100) / 2)
+        const binHz = maxHz / ld.length
+        const logMin = Math.log(minHz)
+        const logMax = Math.log(maxHz)
+        const innerPadding = 8
+        const gap = 2
+        const barWidth = (canvas.width - innerPadding * 2 - gap * (bars - 1)) / bars
         for (let i = 0; i < bars; i++) {
-          const v = ((ld[Math.floor(i * ld.length / bars)] + rd[Math.floor(i * rd.length / bars)]) / 2) / 255
-          const h = Math.max(2, canvas.height * Math.pow(v, 2) * (playing ? .95 : .08))
+          const f1 = Math.exp(logMin + (logMax - logMin) * (i / bars))
+          const f2 = Math.exp(logMin + (logMax - logMin) * ((i + 1) / bars))
+          const b1 = Math.max(0, Math.floor(f1 / binHz))
+          const b2 = Math.min(ld.length - 1, Math.max(b1, Math.ceil(f2 / binHz)))
+          let sum = 0
+          let count = 0
+          for (let b = b1; b <= b2; b++) {
+            const v = (ld[b] + rd[b]) / 510
+            sum += v
+            count++
+          }
+          const avg = count ? sum / count : 0
+          const v = Math.pow(avg, .62)
+          const h = Math.max(2, canvas.height * v * (playing ? .9 : .08))
+          const x = innerPadding + i * (barWidth + gap)
           c.fillStyle = "rgba(100,190,255,.75)"
-          c.fillRect(i * w, canvas.height - h, w - 2, h)
+          c.fillRect(x, canvas.height - h, barWidth, h)
         }
       } else {
         meterRef.current = { left: -60, right: -60 }
