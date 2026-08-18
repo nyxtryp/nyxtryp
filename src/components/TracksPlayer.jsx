@@ -193,16 +193,21 @@ export default function TracksPlayer({ onClose }) {
   return (
     <>
       <style>{`
+        @keyframes loriPulse {
+          0%,100% { opacity:.45; transform:translateY(0); text-shadow:0 0 0 rgba(120,220,255,0); }
+          50% { opacity:1; transform:translateY(-2px); text-shadow:0 0 8px rgba(120,220,255,.9),0 0 18px rgba(80,140,255,.7); }
+        }
         .tracks-overlay{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.1);backdrop-filter:blur(2px)}
         .tracks-window{width:17cm;height:17cm;max-width:calc(100vw - 24px);max-height:calc(100vh - 24px);box-sizing:border-box;padding:18px;border-radius:24px;background:linear-gradient(145deg,rgba(9,15,27,.96),rgba(3,7,15,.98));border:1px solid rgba(125,190,255,.2);box-shadow:0 20px 70px rgba(0,0,0,.55),inset 0 0 40px rgba(70,150,255,.035);color:#eaf4ff;font-family:Inter,system-ui,sans-serif;position:relative;display:flex;flex-direction:column;gap:10px}
-        .tracks-close{position:absolute;top:10px;right:14px;border:0;background:transparent;color:rgba(220,240,255,.62);font-size:22px;cursor:pointer;z-index:5}.tracks-title{text-align:center;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 28px}.tracks-visualizer{width:100%;height:3cm;min-height:90px;display:block;border-radius:10px;background:rgba(0,0,0,.22)}
+        .tracks-close{position:absolute;top:10px;right:14px;border:0;background:transparent;color:rgba(220,240,255,.62);font-size:22px;cursor:pointer;z-index:5}.tracks-title{text-align:center;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 28px}.tracks-brand{display:flex;align-items:center;justify-content:center;gap:6px;font-size:16px;font-weight:900;letter-spacing:1px;white-space:nowrap;padding:0 28px}.tracks-brand-pulse{animation:loriPulse 2.8s ease-in-out infinite}
+        .tracks-visualizer{width:100%;height:3cm;min-height:90px;display:block;border-radius:10px;background:rgba(0,0,0,.22)}
         .nyx-vu{display:flex;gap:10px;width:100%;justify-content:center}.nyx-meter{flex:1;min-width:0;background:#ffeea9;border-radius:4px;overflow:hidden}.nyx-meter-svg{display:block;width:100%;height:auto}.tracks-controls,.tracks-progress,.tracks-volume{display:flex;align-items:center;justify-content:center;gap:8px}.tracks-progress,.tracks-volume{font-size:9px;opacity:.75}.tracks-progress input,.tracks-volume input{flex:1}.tracks-button{border:1px solid rgba(150,210,255,.18);background:rgba(255,255,255,.045);color:#eaf4ff;border-radius:10px;min-width:36px;height:34px;cursor:pointer}.tracks-button.main{min-width:48px;font-size:16px}.tracks-playlist{flex:1;min-height:0;overflow-y:auto;border-top:1px solid rgba(150,210,255,.12);padding-top:7px}.tracks-item{width:100%;box-sizing:border-box;display:flex;align-items:center;gap:8px;border:0;background:transparent;color:rgba(235,245,255,.72);padding:6px 7px;border-radius:7px;cursor:pointer;text-align:left;font-size:10px}.tracks-item.active{background:rgba(100,190,255,.1);color:#fff}.tracks-number{width:20px;opacity:.45}.tracks-item-title{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}@media(max-width:600px){.tracks-window{width:min(420px,90vw);height:auto;max-height:88vh;padding:46px 20px 16px}.nyx-vu{display:none}.tracks-playlist{max-height:145px;flex:none}}
       `}</style>
       <div className="tracks-overlay" onPointerDown={e=>e.pointerType==="mouse"&&onClose()}>
         <div className="tracks-window" onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}>
           <audio ref={audioRef} onEnded={()=>changeTrack(1)} />
           <button className="tracks-close" onClick={onClose}>×</button>
-          <div className="tracks-title">{track.title}</div>
+          <div className="tracks-brand"><span>NYXTRYP</span><span className="tracks-brand-pulse">TRACK</span></div>
           <div className="nyx-vu"><div className="nyx-meter"><Meter channel="L" value={leftVU}/></div><div className="nyx-meter"><Meter channel="R" value={rightVU}/></div></div>
           <canvas ref={canvasRef} className="tracks-visualizer" width={1200} height={240}/>
           <div className="tracks-controls"><button className="tracks-button" onClick={()=>changeTrack(-1)}>‹</button><button className="tracks-button main" onClick={togglePlay}>{playing?"Ⅱ":"▶"}</button><button className="tracks-button" onClick={()=>changeTrack(1)}>›</button></div>
