@@ -1,39 +1,60 @@
 from pathlib import Path
-import re
 
 p = Path("src/components/TracksPlayer.jsx")
 s = p.read_text()
 
-# Remove the temporary test label wherever it was inserted.
-s = re.sub(r'<div[^>]*>\s*ПРИВЕТ\s*</div>\s*', '', s)
+# Remove only the temporary test label.
+s = s.replace('<div className="nyxtryp-auto-test">ПРИВЕТ</div>', '')
+s = s.replace('ПРИВЕТ', '')
 
-# Locate the actual VU wrapper and replace the complete balanced JSX div.
-marker = '<div className="tracks-vu-wrap">'
-start = s.find(marker)
-if start < 0:
-    raise SystemExit("tracks-vu-wrap not found")
+old = '''          {!isMobile && (
+            <div className="tracks-vu-wrap">
+              <div className="tracks-vu-row">
+              <div className="tracks-vu-label">
+                L
+              </div>
 
-pos = start
-balance = 0
-pattern = re.compile(r'<div(?:\s[^>]*)?>|</div>')
-end = None
-for m in pattern.finditer(s, start):
-    token = m.group(0)
-    if token.startswith('<div'):
-        balance += 1
-    else:
-        balance -= 1
-        if balance == 0:
-            end = m.end()
-            break
+              <div className="tracks-vu">
+                <div
+                  className="tracks-vu-fill"
+                  style={{
+                    width: vuWidth(leftVU)
+                  }}
+                />
+              </div>
 
-if end is None:
-    raise SystemExit("could not find end of VU wrapper")
+              <div className="tracks-vu-db">
+                {leftVU.toFixed(1)} dB
+              </div>
+            </div>
 
-replacement = '''<div className="tracks-mc-vu">
+            <div className="tracks-vu-row">
+              <div className="tracks-vu-label">
+                R
+              </div>
+
+              <div className="tracks-vu">
+                <div
+                  className="tracks-vu-fill"
+                  style={{
+                    width: vuWidth(rightVU)
+                  }}
+                />
+              </div>
+
+              <div className="tracks-vu-db">
+                {rightVU.toFixed(1)} dB
+              </div>
+            </div>
+            </div>
+          )}'''
+
+new = '''          {!isMobile && (
+            <div className="tracks-mc-vu">
               {[['L', leftVU], ['R', rightVU]].map(([channel, value]) => {
                 const displayValue = Math.max(-40, Math.min(20, value))
                 const angle = -68 + ((displayValue + 40) / 60) * 136
+
                 return (
                   <div className="tracks-mc-meter" key={channel}>
                     <div className="tracks-mc-label">{channel}</div>
@@ -59,22 +80,46 @@ replacement = '''<div className="tracks-mc-vu">
                   </div>
                 )
               })}
-            </div>'''
+            </div>
+          )}'''
 
-s = s[:start] + replacement + s[end:]
+if old not in s:
+    raise SystemExit("expected VU block not found; file was not changed")
 
-# Replace the old VU wrapper styling with the analog meter styling.
-s = re.sub(
-    r'\.tracks-vu-wrap\s*\{.*?\}\s*',
-    '''.tracks-mc-vu { display: flex; gap: 10px; width: 100%; justify-content: center; align-items: center; }
-        .tracks-mc-meter { flex: 1; min-width: 0; text-align: center; }
-        .tracks-mc-label { font-size: 11px; letter-spacing: 2px; color: rgba(220,235,248,.72); margin-bottom: -2px; }
-        .tracks-mc-gauge { width: 100%; height: 92px; display: block; overflow: visible; }
-        ''',
-    s,
-    count=1,
-    flags=re.S,
-)
+s = s.replace(old, new, 1)
+
+css = '''
+        .tracks-mc-vu {
+          display: flex;
+          gap: 10px;
+          width: 100%;
+          justify-content: center;
+          align-items: center;
+        }
+
+        .tracks-mc-meter {
+          flex: 1;
+          min-width: 0;
+          text-align: center;
+        }
+
+        .tracks-mc-label {
+          font-size: 11px;
+          letter-spacing: 2px;
+          color: rgba(220,235,248,.72);
+          margin-bottom: -2px;
+        }
+
+        .tracks-mc-gauge {
+          width: 100%;
+          height: 92px;
+          display: block;
+          overflow: visible;
+        }
+'''
+
+if '.tracks-mc-vu {' not in s:
+    s = s.replace('</style>', css + '      </style>', 1)
 
 p.write_text(s)
-print("NYXTRYP: restored analog L/R VU arrows and removed test text")
+print("NYXTRYP: exact VU replacement prepared; temporary test text removed")
