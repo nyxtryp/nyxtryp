@@ -11,9 +11,36 @@ const formatTime = value => {
 }
 
 function Meter({ channel, value }) {
-  // Keep the original #3 scale geometry. value is real channel dBFS.
-  // -20 dBFS is the left 20 mark; 0 dBFS is the 0 mark.
-  const angle = 1.04 + clamp((value + 20) / 20, 0, 1) * (52.23 - 1.04)
+  // Keep the original #3 scale geometry. The physical scale is -30..+10 VU.
+  // The incoming value is already calibrated VU, independent from the volume slider.
+  // Piecewise mapping follows the existing printed scale: compressed below 0,
+  // expanded above 0. The SVG artwork itself is untouched.
+  const scale = [
+    [-30, -7.24],
+    [-20, 1.04],
+    [-10, 9.53],
+    [-7, 18.90],
+    [-5, 28.35],
+    [-3, 38.11],
+    [-1, 46.89],
+    [0, 52.23],
+    [3, 63.81],
+    [5, 76.40],
+    [10, 81.69]
+  ]
+  const toAngle = v => {
+    const x = clamp(v, -30, 10)
+    for (let i = 1; i < scale.length; i++) {
+      const [v2, a2] = scale[i]
+      const [v1, a1] = scale[i - 1]
+      if (x <= v2) {
+        const t = (x - v1) / (v2 - v1)
+        return a1 + (a2 - a1) * t
+      }
+    }
+    return scale[scale.length - 1][1]
+  }
+  const angle = toAngle(value)
   const suffix = channel.toLowerCase()
   return (
     <svg className="nyx-meter-svg" viewBox="0 0 1080 600" role="img" aria-label={`${channel} VU meter`}>
@@ -178,9 +205,11 @@ export default function TracksPlayer({ onClose }) {
           }
           return Math.sqrt(sum / data.length)
         }
+        // 0 VU is calibrated to -12 dBFS RMS, which matches the working range of mastered tracks.
         const toDb = x => x <= 0.000001 ? -60 : clamp(20 * Math.log10(x), -60, 0)
-        const targetL = toDb(rms(lt))
-        const targetR = toDb(rms(rt))
+        const toVU = db => clamp(db + 12, -30, 10)
+        const targetL = toVU(toDb(rms(lt)))
+        const targetR = toVU(toDb(rms(rt)))
 
         // VU-style ballistics: quick attack, slower release. No artificial motion.
         const updateMeter = (current, target, dt) => {
