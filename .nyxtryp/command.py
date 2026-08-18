@@ -89,6 +89,7 @@ if old not in s:
 s = s.replace(old, new, 1)
 
 css = '''
+
         .tracks-mc-vu {
           display: flex;
           gap: 10px;
@@ -118,8 +119,11 @@ css = '''
         }
 '''
 
+marker = '      `}</style>'
 if '.tracks-mc-vu {' not in s:
-    s = s.replace('</style>', css + '      </style>', 1)
+    if marker not in s:
+        raise SystemExit("style template marker not found; file was not changed")
+    s = s.replace(marker, css + marker, 1)
 
 p.write_text(s)
-print("NYXTRYP: exact VU replacement prepared; temporary test text removed")
+print("NYXTRYP: VU replacement prepared, CSS inserted inside style template, test text removed")
