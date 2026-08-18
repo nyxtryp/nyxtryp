@@ -19,9 +19,24 @@ function Meter({ channel, value }) {
         <filter id={`shadow-${suffix}`}>
           <feDropShadow dx="3" dy="3" stdDeviation="8" floodOpacity=".5" />
         </filter>
+        <radialGradient id={`meterBlue-${suffix}`} cx="50%" cy="55%" r="72%">
+          <stop offset="0%" stopColor="#5edbff" />
+          <stop offset="42%" stopColor="#159fe8" />
+          <stop offset="78%" stopColor="#0875c4" />
+          <stop offset="100%" stopColor="#043d73" />
+        </radialGradient>
+        <filter id={`blueGlow-${suffix}`} x="-20%" y="-30%" width="140%" height="160%">
+          <feGaussianBlur stdDeviation="9" result="blur" />
+          <feFlood floodColor="#38cfff" floodOpacity=".72" result="glowColor" />
+          <feComposite in="glowColor" in2="blur" operator="in" result="glow" />
+          <feMerge>
+            <feMergeNode in="glow" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
       </defs>
-      <rect x="0" y="0" width="1077" height="598" fill="#ffeea9" filter={`url(#shadow-${suffix})`} />
-      <path d="m537.18074,590.23438 a150.76556,150.76556 0 0 0 -107.3086,45.05078 l214.73829,0 a150.76556,150.76556 0 0 0 -107.42969,-45.05078 z" fill="#000" />
+      <rect x="0" y="0" width="1077" height="598" fill={`url(#meterBlue-${suffix})`} filter={`url(#blueGlow-${suffix})`} />
+      <path d="m537.18074,590.23438 a150.76556 150.76556 0 0 0 -107.3086,45.05078 l214.73829,0 a150.76556 150.76556 0 0 0 -107.42969,-45.05078 z" fill="#000" />
       <g>
         <path d="m82,292 45.3061,0" fill="none" stroke="#000" strokeWidth="5" />
         <path d="m948.30743,285.82189 45.3061,0" fill="none" stroke="#000" strokeWidth="5" />
@@ -201,7 +216,7 @@ export default function TracksPlayer({ onClose }) {
         .tracks-window{width:17cm;height:17cm;max-width:calc(100vw - 24px);max-height:calc(100vh - 24px);box-sizing:border-box;padding:18px;border-radius:24px;background:linear-gradient(145deg,rgba(9,15,27,.96),rgba(3,7,15,.98));border:1px solid rgba(125,190,255,.2);box-shadow:0 20px 70px rgba(0,0,0,.55),inset 0 0 40px rgba(70,150,255,.035);color:#eaf4ff;font-family:Inter,system-ui,sans-serif;position:relative;display:flex;flex-direction:column;gap:10px}
         .tracks-close{position:absolute;top:10px;right:14px;border:0;background:transparent;color:rgba(220,240,255,.62);font-size:22px;cursor:pointer;z-index:5}.tracks-title{text-align:center;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 28px}.tracks-brand{display:flex;align-items:center;justify-content:center;gap:6px;font-size:16px;font-weight:900;letter-spacing:1px;white-space:nowrap;padding:0 28px}.tracks-brand-pulse{animation:loriPulse 2.8s ease-in-out infinite}
         .tracks-visualizer{width:100%;height:3cm;min-height:90px;display:block;border-radius:10px;background:rgba(0,0,0,.22)}
-        .nyx-vu{display:flex;gap:10px;width:100%;justify-content:center}.nyx-meter{flex:1;min-width:0;background:#ffeea9;border-radius:4px;overflow:hidden}.nyx-meter-svg{display:block;width:100%;height:auto}.tracks-controls,.tracks-progress,.tracks-volume{display:flex;align-items:center;justify-content:center;gap:8px}.tracks-progress,.tracks-volume{font-size:9px;opacity:.75}.tracks-progress input,.tracks-volume input{flex:1}.tracks-button{border:1px solid rgba(150,210,255,.18);background:rgba(255,255,255,.045);color:#eaf4ff;border-radius:10px;min-width:36px;height:34px;cursor:pointer}.tracks-button.main{min-width:48px;font-size:16px}.tracks-playlist{flex:1;min-height:0;overflow-y:auto;border-top:1px solid rgba(150,210,255,.12);padding-top:7px}.tracks-item{width:100%;box-sizing:border-box;display:flex;align-items:center;gap:8px;border:0;background:transparent;color:rgba(235,245,255,.72);padding:6px 7px;border-radius:7px;cursor:pointer;text-align:left;font-size:10px}.tracks-item.active{background:rgba(100,190,255,.1);color:#fff}.tracks-number{width:20px;opacity:.45}.tracks-item-title{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}@media(max-width:600px){.tracks-window{width:min(420px,90vw);height:auto;max-height:88vh;padding:46px 20px 16px}.nyx-vu{display:none}.tracks-playlist{max-height:145px;flex:none}}
+        .nyx-vu{display:flex;gap:10px;width:100%;justify-content:center}.nyx-meter{flex:1;min-width:0;background:transparent;border-radius:4px;overflow:hidden;box-shadow:0 0 18px rgba(40,190,255,.28)}.nyx-meter-svg{display:block;width:100%;height:auto}.tracks-controls,.tracks-progress,.tracks-volume{display:flex;align-items:center;justify-content:center;gap:8px}.tracks-progress,.tracks-volume{font-size:9px;opacity:.75}.tracks-progress input,.tracks-volume input{flex:1}.tracks-button{border:1px solid rgba(150,210,255,.18);background:rgba(255,255,255,.045);color:#eaf4ff;border-radius:10px;min-width:36px;height:34px;cursor:pointer}.tracks-button.main{min-width:48px;font-size:16px}.tracks-playlist{flex:1;min-height:0;overflow-y:auto;border-top:1px solid rgba(150,210,255,.12);padding-top:7px}.tracks-item{width:100%;box-sizing:border-box;display:flex;align-items:center;gap:8px;border:0;background:transparent;color:rgba(235,245,255,.72);padding:6px 7px;border-radius:7px;cursor:pointer;text-align:left;font-size:10px}.tracks-item.active{background:rgba(100,190,255,.1);color:#fff}.tracks-number{width:20px;opacity:.45}.tracks-item-title{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}@media(max-width:600px){.tracks-window{width:min(420px,90vw);height:auto;max-height:88vh;padding:46px 20px 16px}.nyx-vu{display:none}.tracks-playlist{max-height:145px;flex:none}}
       `}</style>
       <div className="tracks-overlay" onPointerDown={e=>e.pointerType==="mouse"&&onClose()}>
         <div className="tracks-window" onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}>
