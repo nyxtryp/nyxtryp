@@ -3,8 +3,8 @@ name: NYXTRYP Auto Edit
 on:
   workflow_dispatch:
     inputs:
-      script:
-        description: "Python code"
+      command:
+        description: "One-line shell command"
         required: true
         type: string
 
@@ -19,17 +19,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.x"
-
-      - name: Run Python edit
+      - name: Run edit command
         env:
-          EDIT_SCRIPT: ${{ inputs.script }}
+          EDIT_COMMAND: ${{ inputs.command }}
         run: |
-          printf '%s' "$EDIT_SCRIPT" > /tmp/edit.py
-          python3 /tmp/edit.py
+          bash -lc "$EDIT_COMMAND"
 
       - name: Build
         run: |
@@ -40,13 +34,10 @@ jobs:
         run: |
           git config user.name "NYXTRYP Auto"
           git config user.email "actions@github.com"
-
           git add -A
-
           if git diff --cached --quiet; then
             echo "No changes."
             exit 0
           fi
-
           git commit -m "auto: update NYXTRYP"
           git push
