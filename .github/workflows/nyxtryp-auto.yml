@@ -1,12 +1,9 @@
 name: NYXTRYP Auto Edit
 
 on:
-  workflow_dispatch:
-    inputs:
-      command:
-        description: "One-line shell command"
-        required: true
-        type: string
+  push:
+    paths:
+      - '.nyxtryp/command.py'
 
 permissions:
   contents: write
@@ -19,11 +16,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run edit command
-        env:
-          EDIT_COMMAND: ${{ inputs.command }}
-        run: |
-          bash -lc "$EDIT_COMMAND"
+      - name: Run Python edit
+        run: python3 .nyxtryp/command.py
 
       - name: Build
         run: |
