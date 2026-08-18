@@ -4607,29 +4607,62 @@ void main() {
 
         .tracks-mc-vu {
           display: flex;
-          gap: 10px;
+          gap: 12px;
           width: 100%;
           justify-content: center;
-          align-items: center;
+          align-items: stretch;
+          padding: 2px 0 4px;
         }
 
         .tracks-mc-meter {
           flex: 1;
           min-width: 0;
-          text-align: center;
         }
 
-        .tracks-mc-label {
-          font-size: 11px;
-          letter-spacing: 2px;
-          color: rgba(220,235,248,.72);
-          margin-bottom: -2px;
+        .tracks-mc-window {
+          position: relative;
+          overflow: hidden;
+          border-radius: 7px;
+          padding: 0;
+          background: #03070b;
+          border: 1px solid rgba(190,215,230,.34);
+          box-shadow: inset 0 0 0 1px rgba(0,0,0,.9), 0 4px 14px rgba(0,0,0,.28);
+        }
+
+        .tracks-mc-window-glow {
+          position: absolute;
+          inset: 10px;
+          pointer-events: none;
+          background: radial-gradient(circle at 50% 45%, rgba(110,220,255,.16), transparent 65%);
+          filter: blur(10px);
+          z-index: 0;
+        }
+
+        .tracks-mc-window-top {
+          position: absolute;
+          left: 14px;
+          right: 14px;
+          top: 9px;
+          z-index: 2;
+          display: flex;
+          justify-content: space-between;
+          color: rgba(3,25,42,.86);
+          font: 700 8px/1 Arial, sans-serif;
+          letter-spacing: 1.4px;
+          pointer-events: none;
         }
 
         .tracks-mc-gauge {
+          position: relative;
+          z-index: 1;
           width: 100%;
-          height: 92px;
+          height: 116px;
           display: block;
-          overflow: visible;
         }
-      `}),(0,$.jsx)(`div`,{className:`tracks-overlay`,onPointerDown:t=>{t.pointerType===`mouse`&&e()},children:(0,$.jsxs)(`div`,{className:`tracks-window`,onPointerDown:e=>e.stopPropagation(),onClick:e=>e.stopPropagation(),children:[(0,$.jsx)(`audio`,{ref:t,onEnded:()=>{l(e=>(e+1)%Gl.length)}}),(0,$.jsx)(`button`,{className:`tracks-close`,onClick:e,"aria-label":`Close tracks`,children:`×`}),(0,$.jsx)(`div`,{className:`tracks-title`,children:D.title}),(0,$.jsx)(`canvas`,{ref:r,className:`tracks-visualizer`,width:1200,height:240}),!T&&(0,$.jsx)(`div`,{className:`tracks-mc-vu`,children:[[`L`,x],[`R`,C]].map(([e,t])=>{let n=-68+(Math.max(-40,Math.min(20,t))+40)/60*136;return(0,$.jsxs)(`div`,{className:`tracks-mc-meter`,children:[(0,$.jsx)(`div`,{className:`tracks-mc-label`,children:e}),(0,$.jsxs)(`svg`,{className:`tracks-mc-gauge`,viewBox:`0 0 360 155`,preserveAspectRatio:`xMidYMid meet`,children:[(0,$.jsx)(`path`,{d:`M55 127 A125 125 0 0 1 305 127`,fill:`none`,stroke:`rgba(190,210,225,.22)`,strokeWidth:`2`}),(0,$.jsx)(`path`,{d:`M55 127 A125 125 0 0 1 305 127`,fill:`none`,stroke:`rgba(255,55,55,.5)`,strokeWidth:`10`,strokeDasharray:`24 9`,strokeDashoffset:`-100`}),[-40,-30,-20,-10,0,10,20].map(e=>{let t=(-68+(e+40)/60*136)*Math.PI/180,n=180+Math.sin(t)*105,r=127-Math.cos(t)*105,i=180+Math.sin(t)*116,a=127-Math.cos(t)*116,o=180+Math.sin(t)*88,s=132-Math.cos(t)*88;return(0,$.jsxs)(`g`,{children:[(0,$.jsx)(`line`,{x1:n,y1:r,x2:i,y2:a,stroke:`rgba(225,238,248,.7)`,strokeWidth:`1.5`}),(0,$.jsx)(`text`,{x:o,y:s,textAnchor:`middle`,fill:`rgba(225,238,248,.72)`,fontSize:`10`,children:e})]},e)}),(0,$.jsxs)(`g`,{transform:`rotate(${n} 180 127)`,children:[(0,$.jsx)(`line`,{x1:`180`,y1:`127`,x2:`180`,y2:`55`,stroke:`rgba(245,250,255,.95)`,strokeWidth:`3`,strokeLinecap:`round`}),(0,$.jsx)(`circle`,{cx:`180`,cy:`127`,r:`5`,fill:`rgba(230,240,250,.95)`})]}),(0,$.jsx)(`text`,{x:`180`,y:`150`,textAnchor:`middle`,fill:`rgba(220,235,248,.62)`,fontSize:`9`,children:`POWER OUTPUT`})]})]},e)})}),(0,$.jsxs)(`div`,{className:`tracks-controls`,children:[(0,$.jsx)(`button`,{className:`tracks-button`,onClick:()=>j(-1),children:`‹`}),(0,$.jsx)(`button`,{className:`tracks-button main`,onClick:A,children:u?`Ⅱ`:`▶`}),(0,$.jsx)(`button`,{className:`tracks-button`,onClick:()=>j(1),children:`›`})]}),(0,$.jsxs)(`div`,{className:`tracks-progress`,children:[(0,$.jsx)(`span`,{children:Kl(g)}),(0,$.jsx)(`input`,{type:`range`,min:`0`,max:y||0,step:`0.1`,value:Math.min(g,y||0),onChange:e=>{let n=t.current;if(!n||!y)return;let r=Number(e.target.value);n.currentTime=r,v(r)}}),(0,$.jsx)(`span`,{children:Kl(y)})]}),(0,$.jsxs)(`div`,{className:`tracks-volume`,children:[(0,$.jsx)(`button`,{className:`tracks-button`,onClick:()=>h(e=>!e),children:m?`🔇`:`🔊`}),(0,$.jsx)(`input`,{type:`range`,min:`0`,max:`1`,step:`0.01`,value:f,onChange:e=>p(Number(e.target.value))})]}),(0,$.jsx)(`div`,{style:{color:`white`,fontSize:`24px`,fontWeight:`bold`,padding:`8px 0`}}),(0,$.jsx)(`div`,{className:`tracks-playlist`,children:Gl.map((e,t)=>(0,$.jsxs)(`button`,{className:`tracks-item`+(t===c?` active`:``),onClick:()=>k(t),children:[(0,$.jsx)(`span`,{className:`tracks-number`,children:String(t+1).padStart(2,`0`)}),(0,$.jsx)(`span`,{className:`tracks-item-title`,children:e.title})]},e.file))})]})})]})}function Jl(){let[e,t]=(0,_.useState)(!1),[n,r]=(0,_.useState)(!1),[i,a]=(0,_.useState)(!1),[o,s]=(0,_.useState)(!1);return(0,$.jsx)(`div`,{className:`scene`,children:e?(0,$.jsxs)($.Fragment,{children:[(0,$.jsx)(Il,{}),(0,$.jsx)(Rl,{onRadioOpen:()=>r(!0),onMixesOpen:()=>a(!0),onTracksOpen:()=>s(!0)}),n&&(0,$.jsx)(`div`,{onPointerDown:e=>{e.pointerType===`mouse`&&r(!1)},style:{position:`fixed`,inset:0,zIndex:100,display:`flex`,alignItems:`center`,justifyContent:`center`,background:`rgba(0,0,0,.10)`,backdropFilter:`blur(2px)`,cursor:`default`},children:(0,$.jsx)(`div`,{onClick:e=>e.stopPropagation(),onPointerDown:e=>e.stopPropagation(),style:{position:`relative`,zIndex:101},children:(0,$.jsx)(Vl,{onClose:()=>r(!1)})})}),o&&(0,$.jsx)(`div`,{onPointerDown:e=>{e.pointerType===`mouse`&&s(!1)},style:{position:`fixed`,inset:0,zIndex:100,display:`flex`,alignItems:`center`,justifyContent:`center`,background:`rgba(0,0,0,.10)`,backdropFilter:`blur(2px)`,cursor:`default`},children:(0,$.jsx)(`div`,{onClick:e=>e.stopPropagation(),onPointerDown:e=>e.stopPropagation(),style:{position:`relative`,zIndex:101},children:(0,$.jsx)(ql,{onClose:()=>s(!1)})})}),i&&(0,$.jsx)(`div`,{onPointerDown:e=>{e.pointerType===`mouse`&&a(!1)},style:{position:`fixed`,inset:0,zIndex:100,display:`flex`,alignItems:`center`,justifyContent:`center`,background:`rgba(0,0,0,.10)`,backdropFilter:`blur(2px)`,cursor:`default`},children:(0,$.jsx)(`div`,{onClick:e=>e.stopPropagation(),onPointerDown:e=>e.stopPropagation(),style:{position:`relative`,zIndex:101},children:(0,$.jsx)(Wl,{onClose:()=>a(!1)})})})]}):(0,$.jsxs)(`section`,{className:`intro`,children:[(0,$.jsx)(`p`,{className:`artist`,children:`NYXTRYP`}),(0,$.jsx)(`h1`,{children:`DON'T LISTEN. ENTER.`}),(0,$.jsx)(`button`,{className:`enter-button`,onClick:()=>t(!0),children:`ENTER`})]})})}function Yl(){return(0,$.jsx)(`main`,{className:`nyxtryp`,children:(0,$.jsx)(Jl,{})})}v.createRoot(document.getElementById(`root`)).render((0,$.jsx)(_.StrictMode,{children:(0,$.jsx)(Yl,{})}));
+
+        @media (max-width: 900px) and (min-width: 601px) {
+          .tracks-mc-gauge {
+            height: 105px;
+          }
+        }
+      `}),(0,$.jsx)(`div`,{className:`tracks-overlay`,onPointerDown:t=>{t.pointerType===`mouse`&&e()},children:(0,$.jsxs)(`div`,{className:`tracks-window`,onPointerDown:e=>e.stopPropagation(),onClick:e=>e.stopPropagation(),children:[(0,$.jsx)(`audio`,{ref:t,onEnded:()=>{l(e=>(e+1)%Gl.length)}}),(0,$.jsx)(`button`,{className:`tracks-close`,onClick:e,"aria-label":`Close tracks`,children:`×`}),(0,$.jsx)(`div`,{className:`tracks-title`,children:D.title}),(0,$.jsx)(`canvas`,{ref:r,className:`tracks-visualizer`,width:1200,height:240}),!T&&(0,$.jsx)(`div`,{className:`tracks-mc-vu`,children:[[`L`,x],[`R`,C]].map(([e,t])=>{let n=-66+(Math.max(-40,Math.min(0,t))+40)/40*132;return(0,$.jsx)(`div`,{className:`tracks-mc-meter`,children:(0,$.jsxs)(`div`,{className:`tracks-mc-window`,children:[(0,$.jsx)(`div`,{className:`tracks-mc-window-glow`}),(0,$.jsxs)(`div`,{className:`tracks-mc-window-top`,children:[(0,$.jsx)(`span`,{children:e}),(0,$.jsx)(`span`,{children:`POWER OUTPUT`})]}),(0,$.jsxs)(`svg`,{className:`tracks-mc-gauge`,viewBox:`0 0 360 170`,preserveAspectRatio:`xMidYMid meet`,"aria-label":`${e} power meter`,children:[(0,$.jsxs)(`defs`,{children:[(0,$.jsxs)(`linearGradient`,{id:`mc-blue-${e}`,x1:`0`,y1:`0`,x2:`0`,y2:`1`,children:[(0,$.jsx)(`stop`,{offset:`0`,stopColor:`#64d9ff`}),(0,$.jsx)(`stop`,{offset:`0.55`,stopColor:`#188fd3`}),(0,$.jsx)(`stop`,{offset:`1`,stopColor:`#07538b`})]}),(0,$.jsx)(`filter`,{id:`mc-soft-${e}`,children:(0,$.jsx)(`feGaussianBlur`,{stdDeviation:`3`})})]}),(0,$.jsx)(`rect`,{x:`3`,y:`3`,width:`354`,height:`164`,rx:`5`,fill:`#07111a`,stroke:`rgba(190,220,240,.34)`,strokeWidth:`2`}),(0,$.jsx)(`rect`,{x:`8`,y:`8`,width:`344`,height:`154`,rx:`3`,fill:`url(#mc-blue-${e})`,opacity:`.92`}),(0,$.jsx)(`rect`,{x:`8`,y:`8`,width:`344`,height:`154`,rx:`3`,fill:`none`,stroke:`rgba(255,255,255,.18)`,strokeWidth:`1`}),(0,$.jsx)(`path`,{d:`M48 138 A132 132 0 0 1 312 138`,fill:`none`,stroke:`rgba(0,20,35,.42)`,strokeWidth:`2`}),[0,1,2,3,4,5,6,7,8,9,10].map(e=>{let t=(-66+e*13.2)*Math.PI/180,n=e%2==0?96:103,r=180+Math.sin(t)*n,i=138-Math.cos(t)*n,a=180+Math.sin(t)*112,o=138-Math.cos(t)*112;return(0,$.jsx)(`line`,{x1:r,y1:i,x2:a,y2:o,stroke:`rgba(8,30,48,.78)`,strokeWidth:e%2==0?2:1},e)}),[`0.2`,`2`,`20`,`200`].map((e,t)=>{let n=(-62+t*41.3)*Math.PI/180,r=180+Math.sin(n)*78,i=138-Math.cos(n)*78;return(0,$.jsx)(`text`,{x:r,y:i,textAnchor:`middle`,fill:`rgba(4,24,40,.9)`,fontSize:`11`,fontFamily:`Arial, sans-serif`,children:e},e)}),(0,$.jsx)(`text`,{x:`180`,y:`37`,textAnchor:`middle`,fill:`rgba(2,25,43,.9)`,fontSize:`10`,fontFamily:`Arial, sans-serif`,letterSpacing:`1.5`,children:`WATTS`}),(0,$.jsx)(`text`,{x:`180`,y:`151`,textAnchor:`middle`,fill:`rgba(2,25,43,.9)`,fontSize:`9`,fontFamily:`Arial, sans-serif`,letterSpacing:`1.2`,children:`McINTOSH STYLE`}),(0,$.jsx)(`path`,{d:`M62 138 A118 118 0 0 1 298 138`,fill:`none`,stroke:`rgba(255,255,255,.12)`,strokeWidth:`1`}),(0,$.jsx)(`line`,{x1:`180`,y1:`138`,x2:`180`,y2:`56`,stroke:`rgba(255,255,255,.98)`,strokeWidth:`3`,strokeLinecap:`round`,filter:`url(#mc-soft-${e})`}),(0,$.jsxs)(`g`,{transform:`rotate(${n} 180 138)`,children:[(0,$.jsx)(`line`,{x1:`180`,y1:`138`,x2:`180`,y2:`56`,stroke:`#f7fbff`,strokeWidth:`2.5`,strokeLinecap:`round`}),(0,$.jsx)(`line`,{x1:`180`,y1:`138`,x2:`180`,y2:`61`,stroke:`rgba(25,65,92,.9)`,strokeWidth:`1`,strokeLinecap:`round`})]}),(0,$.jsx)(`circle`,{cx:`180`,cy:`138`,r:`6`,fill:`#d9e9f3`,stroke:`#17364b`,strokeWidth:`2`}),(0,$.jsx)(`circle`,{cx:`180`,cy:`138`,r:`2`,fill:`#08141e`})]})]})},e)})}),(0,$.jsxs)(`div`,{className:`tracks-controls`,children:[(0,$.jsx)(`button`,{className:`tracks-button`,onClick:()=>j(-1),children:`‹`}),(0,$.jsx)(`button`,{className:`tracks-button main`,onClick:A,children:u?`Ⅱ`:`▶`}),(0,$.jsx)(`button`,{className:`tracks-button`,onClick:()=>j(1),children:`›`})]}),(0,$.jsxs)(`div`,{className:`tracks-progress`,children:[(0,$.jsx)(`span`,{children:Kl(g)}),(0,$.jsx)(`input`,{type:`range`,min:`0`,max:y||0,step:`0.1`,value:Math.min(g,y||0),onChange:e=>{let n=t.current;if(!n||!y)return;let r=Number(e.target.value);n.currentTime=r,v(r)}}),(0,$.jsx)(`span`,{children:Kl(y)})]}),(0,$.jsxs)(`div`,{className:`tracks-volume`,children:[(0,$.jsx)(`button`,{className:`tracks-button`,onClick:()=>h(e=>!e),children:m?`🔇`:`🔊`}),(0,$.jsx)(`input`,{type:`range`,min:`0`,max:`1`,step:`0.01`,value:f,onChange:e=>p(Number(e.target.value))})]}),(0,$.jsx)(`div`,{style:{color:`white`,fontSize:`24px`,fontWeight:`bold`,padding:`8px 0`}}),(0,$.jsx)(`div`,{className:`tracks-playlist`,children:Gl.map((e,t)=>(0,$.jsxs)(`button`,{className:`tracks-item`+(t===c?` active`:``),onClick:()=>k(t),children:[(0,$.jsx)(`span`,{className:`tracks-number`,children:String(t+1).padStart(2,`0`)}),(0,$.jsx)(`span`,{className:`tracks-item-title`,children:e.title})]},e.file))})]})})]})}function Jl(){let[e,t]=(0,_.useState)(!1),[n,r]=(0,_.useState)(!1),[i,a]=(0,_.useState)(!1),[o,s]=(0,_.useState)(!1);return(0,$.jsx)(`div`,{className:`scene`,children:e?(0,$.jsxs)($.Fragment,{children:[(0,$.jsx)(Il,{}),(0,$.jsx)(Rl,{onRadioOpen:()=>r(!0),onMixesOpen:()=>a(!0),onTracksOpen:()=>s(!0)}),n&&(0,$.jsx)(`div`,{onPointerDown:e=>{e.pointerType===`mouse`&&r(!1)},style:{position:`fixed`,inset:0,zIndex:100,display:`flex`,alignItems:`center`,justifyContent:`center`,background:`rgba(0,0,0,.10)`,backdropFilter:`blur(2px)`,cursor:`default`},children:(0,$.jsx)(`div`,{onClick:e=>e.stopPropagation(),onPointerDown:e=>e.stopPropagation(),style:{position:`relative`,zIndex:101},children:(0,$.jsx)(Vl,{onClose:()=>r(!1)})})}),o&&(0,$.jsx)(`div`,{onPointerDown:e=>{e.pointerType===`mouse`&&s(!1)},style:{position:`fixed`,inset:0,zIndex:100,display:`flex`,alignItems:`center`,justifyContent:`center`,background:`rgba(0,0,0,.10)`,backdropFilter:`blur(2px)`,cursor:`default`},children:(0,$.jsx)(`div`,{onClick:e=>e.stopPropagation(),onPointerDown:e=>e.stopPropagation(),style:{position:`relative`,zIndex:101},children:(0,$.jsx)(ql,{onClose:()=>s(!1)})})}),i&&(0,$.jsx)(`div`,{onPointerDown:e=>{e.pointerType===`mouse`&&a(!1)},style:{position:`fixed`,inset:0,zIndex:100,display:`flex`,alignItems:`center`,justifyContent:`center`,background:`rgba(0,0,0,.10)`,backdropFilter:`blur(2px)`,cursor:`default`},children:(0,$.jsx)(`div`,{onClick:e=>e.stopPropagation(),onPointerDown:e=>e.stopPropagation(),style:{position:`relative`,zIndex:101},children:(0,$.jsx)(Wl,{onClose:()=>a(!1)})})})]}):(0,$.jsxs)(`section`,{className:`intro`,children:[(0,$.jsx)(`p`,{className:`artist`,children:`NYXTRYP`}),(0,$.jsx)(`h1`,{children:`DON'T LISTEN. ENTER.`}),(0,$.jsx)(`button`,{className:`enter-button`,onClick:()=>t(!0),children:`ENTER`})]})})}function Yl(){return(0,$.jsx)(`main`,{className:`nyxtryp`,children:(0,$.jsx)(Jl,{})})}v.createRoot(document.getElementById(`root`)).render((0,$.jsx)(_.StrictMode,{children:(0,$.jsx)(Yl,{})}));
