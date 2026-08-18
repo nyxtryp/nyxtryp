@@ -1,0 +1,56 @@
+name: NYXTRYP Auto Edit
+
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: "Python script to modify the repository"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  auto-edit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Run edit script
+        env:
+          EDIT_SCRIPT: ${{ inputs.script }}
+        run: |
+          python3 - <<'PY'
+          import os
+
+          script = os.environ["EDIT_SCRIPT"]
+          exec(script)
+          PY
+
+      - name: Build
+        run: |
+          npm install
+          npm run build
+
+      - name: Commit changes
+        run: |
+          git config user.name "NYXTRYP Auto"
+          git config user.email "actions@github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "auto: update NYXTRYP"
+          git push
