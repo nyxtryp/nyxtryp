@@ -11,7 +11,9 @@ const formatTime = value => {
 }
 
 function Meter({ channel, value }) {
-  const angle = -28 + clamp((value + 20) / 40, 0, 1) * 68
+  // Keep the original #3 scale geometry. value is real channel dBFS.
+  // -20 dBFS is the left 20 mark; 0 dBFS is the 0 mark.
+  const angle = 1.04 + clamp((value + 20) / 20, 0, 1) * (52.23 - 1.04)
   const suffix = channel.toLowerCase()
   return (
     <svg className="nyx-meter-svg" viewBox="0 0 1080 600" role="img" aria-label={`${channel} VU meter`}>
@@ -36,22 +38,22 @@ function Meter({ channel, value }) {
         </filter>
       </defs>
       <rect x="0" y="0" width="1077" height="598" fill={`url(#meterBlue-${suffix})`} filter={`url(#blueGlow-${suffix})`} />
-      <path d="m537.18074,590.23438 a150.76556 150.76556 0 0 0 -107.3086,45.05078 l214.73829,0 a150.76556 150.76556 0 0 0 -107.42969,-45.05078 z" fill="#000" />
+      <path d="m537.18074,590.23438 a150.76556 150.76556 0 0 0 -107.3086 45.05078 l214.73829,0 a150.76556 150.76556 0 0 0 -107.42969,-45.05078 z" fill="#000" />
       <g>
         <path d="m82,292 45.3061,0" fill="none" stroke="#000" strokeWidth="5" />
         <path d="m948.30743,285.82189 45.3061,0" fill="none" stroke="#000" strokeWidth="5" />
         <path d="m970.96048,263.16884 0,45.3061" fill="none" stroke="#000" strokeWidth="5" />
         <path d="m657,277.24518 c85.60879,8.87328 173.21481,25.29511 295.97922,75.9692" fill="none" stroke="#f00" strokeWidth="15" />
         <path d="m126.01626,357.7731 c161.49448,-60.14366 315.01211,-98.096 531.2366,-81.4418" fill="none" stroke="#000" strokeWidth="15" />
-        <path d="m210.72277,271.30126 34.37058,47.77511" fill="none" stroke="#000" strokeWidth="8" />
-        <path d="m285.65064,249.6478 27.49646,52.24328" fill="none" stroke="#000" strokeWidth="8" />
-        <path d="m365.73409,233.49363 18.56011,52.93069" fill="none" stroke="#000" strokeWidth="8" />
-        <path d="m451.66054,221.12022 8.93635,53.96181" fill="none" stroke="#000" strokeWidth="8" />
-        <path d="m544.1174,217.33945 -0.68741,53.96181" fill="none" stroke="#000" strokeWidth="8" />
-        <path d="m620.76379,220.0891 -8.59264,53.2744" fill="none" stroke="#000" strokeWidth="8" />
-        <path d="m669.22631,226.96322 -14.43565,56.36775" fill="none" stroke="#f00" strokeWidth="8" />
-        <path d="m777.83734,243.8048 -24.40311,48.80622" fill="none" stroke="#f00" strokeWidth="8" />
-        <path d="m864.4512,318.73266 34.37058,-43.65063" fill="none" stroke="#f00" strokeWidth="8" />
+        <path d="m210.72277,271.30126 34.37058 47.77511" fill="none" stroke="#000" strokeWidth="8" />
+        <path d="m285.65064,249.6478 27.49646 52.24328" fill="none" stroke="#000" strokeWidth="8" />
+        <path d="m365.73409,233.49363 18.56011 52.93069" fill="none" stroke="#000" strokeWidth="8" />
+        <path d="m451.66054,221.12022 8.93635 53.96181" fill="none" stroke="#000" strokeWidth="8" />
+        <path d="m544.1174,217.33945 -0.68741 53.96181" fill="none" stroke="#000" strokeWidth="8" />
+        <path d="m620.76379,220.0891 -8.59264 53.2744" fill="none" stroke="#000" strokeWidth="8" />
+        <path d="m669.22631,226.96322 -14.43565 56.36775" fill="none" stroke="#f00" strokeWidth="8" />
+        <path d="m777.83734,243.8048 -24.40311 48.80622" fill="none" stroke="#f00" strokeWidth="8" />
+        <path d="m864.4512,318.73266 34.37058 -43.65063" fill="none" stroke="#f00" strokeWidth="8" />
         <g transform={`rotate(${angle} 537.57412 730.481)`}>
           <path d="M184.04706,291.70923 537.57412,730.481" fill="none" stroke="#000" strokeWidth="6.7" strokeLinecap="butt" />
         </g>
@@ -76,6 +78,7 @@ export default function TracksPlayer({ onClose }) {
   const ctxRef = useRef(null)
   const splitRef = useRef(null)
   const animRef = useRef(null)
+  const meterRef = useRef({ left: -60, right: -60 })
   const [trackIndex, setTrackIndex] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [volume, setVolume] = useState(.68)
@@ -102,7 +105,8 @@ export default function TracksPlayer({ onClose }) {
     const left = ctx.createAnalyser()
     const right = ctx.createAnalyser()
     left.fftSize = right.fftSize = 1024
-    left.smoothingTimeConstant = right.smoothingTimeConstant = .72
+    // FFT smoothing is only used by the spectrum. VU uses its own ballistics below.
+    left.smoothingTimeConstant = right.smoothingTimeConstant = 0
     source.connect(split)
     split.connect(left, 0)
     split.connect(right, 1)
@@ -122,6 +126,9 @@ export default function TracksPlayer({ onClose }) {
     setPlaying(false)
     setCurrentTime(0)
     setDuration(0)
+    meterRef.current = { left: -60, right: -60 }
+    setLeftVU(-60)
+    setRightVU(-60)
   }, [trackIndex])
 
   useEffect(() => {
@@ -153,30 +160,59 @@ export default function TracksPlayer({ onClose }) {
       const c = canvas.getContext("2d")
       c.clearRect(0, 0, canvas.width, canvas.height)
       const split = splitRef.current
+      const now = performance.now()
       if (split) {
         const ld = new Uint8Array(split.left.frequencyBinCount)
         const rd = new Uint8Array(split.right.frequencyBinCount)
+        const lt = new Uint8Array(split.left.fftSize)
+        const rt = new Uint8Array(split.right.fftSize)
+
+        // Real VU measurement: time-domain RMS for each physical channel.
+        split.left.getByteTimeDomainData(lt)
+        split.right.getByteTimeDomainData(rt)
+        const rms = data => {
+          let sum = 0
+          for (let i = 0; i < data.length; i++) {
+            const sample = (data[i] - 128) / 128
+            sum += sample * sample
+          }
+          return Math.sqrt(sum / data.length)
+        }
+        const toDb = x => x <= 0.000001 ? -60 : clamp(20 * Math.log10(x), -60, 0)
+        const targetL = toDb(rms(lt))
+        const targetR = toDb(rms(rt))
+
+        // VU-style ballistics: quick attack, slower release. No artificial motion.
+        const updateMeter = (current, target, dt) => {
+          const attack = 0.045
+          const release = 0.32
+          const tc = target > current ? attack : release
+          return current + (target - current) * (1 - Math.exp(-dt / (tc * 1000)))
+        }
+        const last = draw.lastTime || now
+        const dt = clamp(now - last, 1, 80)
+        draw.lastTime = now
+        const ml = updateMeter(meterRef.current.left, targetL, dt)
+        const mr = updateMeter(meterRef.current.right, targetR, dt)
+        meterRef.current = { left: ml, right: mr }
+        setLeftVU(ml)
+        setRightVU(mr)
+
+        // Spectrum remains FFT-based and independent from the VU RMS measurement.
         split.left.getByteFrequencyData(ld)
         split.right.getByteFrequencyData(rd)
-        const level = data => {
-          let sum = 0
-          for (let i = 0; i < Math.min(100, data.length); i++) sum += data[i]
-          return sum / Math.min(100, data.length)
-        }
-        const l = level(ld), r = level(rd)
-        const db = x => x <= 0 ? -60 : clamp(20 * Math.log10(x / 255), -60, 0)
-        setLeftVU(db(l))
-        setRightVU(db(r))
         const bars = 64
         const w = canvas.width / bars
         for (let i = 0; i < bars; i++) {
-          const v = ((ld[i % ld.length] + rd[i % rd.length]) / 2) / 255
+          const v = ((ld[Math.floor(i * ld.length / bars)] + rd[Math.floor(i * rd.length / bars)]) / 2) / 255
           const h = Math.max(2, canvas.height * Math.pow(v, 2) * (playing ? .95 : .08))
           c.fillStyle = "rgba(100,190,255,.75)"
           c.fillRect(i * w, canvas.height - h, w - 2, h)
         }
       } else {
-        setLeftVU(-60); setRightVU(-60)
+        meterRef.current = { left: -60, right: -60 }
+        setLeftVU(-60)
+        setRightVU(-60)
       }
       animRef.current = requestAnimationFrame(draw)
     }
