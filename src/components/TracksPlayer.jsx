@@ -94,11 +94,12 @@ export default function TracksPlayer({ onClose }) {
           let sum=0,count=0,max=0
           for(let b=b1;b<=b2;b++){const v=(ld[b]+rd[b])/510;sum+=v;count++;if(v>max)max=v}
           const avg=count?sum/count:0
-          // Blend average energy with the local peak so quiet bands still show musical detail.
-          const raw=Math.pow(avg*.65+max*.35,.55)
-          const attack=raw>smoothed[i] ? .55 : .16
+          // Keep the real spectrum but compress small FFT values so bars rise visibly from the bottom instead of sitting at the ceiling.
+          const raw=Math.pow(avg*.82+max*.18,1.28)
+          // Smooth attack and release independently so each bar visibly travels upward and falls back down.
+          const attack=raw>smoothed[i] ? .24 : .09
           smoothed[i]+= (raw-smoothed[i])*attack
-          const floor=playing ? .045 : .008
+          const floor=playing ? .008 : .003
           const v=Math.max(floor,smoothed[i])
           const h=Math.max(2,canvas.height*v*(playing?.92:.08))
           const x=pad+i*(barWidth+gap)
