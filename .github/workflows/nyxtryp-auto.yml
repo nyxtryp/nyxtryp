@@ -2,8 +2,8 @@ name: NYXTRYP Auto Edit
 
 on:
   push:
-    paths:
-      - '.nyxtryp/command.py'
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -33,5 +33,5 @@ jobs:
             echo "No changes."
             exit 0
           fi
-          git commit -m "auto: update NYXTRYP"
+          git commit -m "auto: apply NYXTRYP edit"
           git push
