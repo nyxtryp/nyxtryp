@@ -3,27 +3,28 @@ from pathlib import Path
 p = Path("src/components/TracksPlayer.jsx")
 s = p.read_text()
 
-# Remove temporary test text.
+# Remove temporary test text if it ever reappears.
 s = s.replace('<div className="nyxtryp-auto-test">ПРИВЕТ</div>', '')
 s = s.replace('ПРИВЕТ', '')
 
-# Reference #3 (Uchardon XMBoYZ): replace the whole old VU markup.
-start_marker = '          {!isMobile && (\n            <div className="tracks-mc-vu">'
-end_marker = '          <div className="tracks-controls">'
-start = s.find(start_marker)
-end = s.find(end_marker, start)
-if start < 0 or end < 0:
-    raise SystemExit("VU markup boundaries not found")
+# Current layout: move the existing L/R VU windows above the existing bar spectrum.
+canvas_marker = '          <canvas ref={canvasRef} className="tracks-visualizer" width={1200} height={240}/>'
+vu_marker = '          <div className="nyx-vu"><div className="nyx-meter"><Meter channel="L" value={leftVU}/></div><div className="nyx-meter"><Meter channel="R" value={rightVU}/></div></div>'
 
-new_block = '''          {!isMobile && (\n            <div className="tracks-mc-vu">\n              {[['L', leftVU], ['R', rightVU]].map(([channel, value]) => {\n                const normalized = Math.max(0, Math.min(1, (value + 60) / 60))\n                const angle = 15 + normalized * 60\n\n                return (\n                  <div className="tracks-mc-meter" key={channel}>\n                    <div className="tracks-mc-window">\n                      <svg className="tracks-mc-gauge" viewBox="0 0 1080 600" preserveAspectRatio="xMidYMid meet" aria-label={`${channel} VU meter`}>\n                        <defs>\n                          <filter id={`vu-shadow-${channel}`} colorInterpolationFilters="sRGB" x="-30%" y="-30%" width="160%" height="160%">\n                            <feFlood floodOpacity="0.498" floodColor="#000" result="flood" />\n                            <feComposite in="flood" in2="SourceGraphic" operator="out" result="composite" />\n                            <feGaussianBlur in="composite" stdDeviation="8" result="blur" />\n                            <feOffset dx="3" dy="3" result="offset" />\n                            <feComposite in="offset" in2="SourceGraphic" operator="atop" />\n                          </filter>\n                          <filter id={`vu-needle-${channel}`} colorInterpolationFilters="sRGB" x="-30%" y="-30%" width="160%" height="160%">\n                            <feGaussianBlur stdDeviation="4" />\n                          </filter>\n                        </defs>\n\n                        <rect x="0" y="0" width="1077" height="600" fill="#ffeea9" filter={`url(#vu-shadow-${channel})`} />\n                        <path d="m 537.18074,590.23438 a 150.76556,150.76556 0 0 0 -107.3086,45.05078 l 214.73829,0 A 150.76556,150.76556 0 0 0 537.18074,590.23438 Z" fill="#000" />\n\n                        <g fill="none" stroke="#000" strokeWidth="5" strokeLinecap="butt">\n                          <path d="M82 292h45.3061" />\n                          <path d="M948.30743 285.82189h45.3061" />\n                          <path d="M970.96048 263.16884v45.3061" />\n                        </g>\n\n                        <path d="m 126.01626,357.7731 c 161.49448,-60.14366 315.01211,-98.096 531.2366,-81.4418" fill="none" stroke="#000" strokeWidth="15" strokeLinecap="butt" />\n                        <path d="m 657,277.24518 c 85.60879,8.87328 173.21481,25.29511 295.97922,75.9692" fill="none" stroke="#ff0000" strokeWidth="15" strokeLinecap="butt" />\n\n                        <g fill="none" stroke="#000" strokeWidth="8" strokeLinecap="butt">\n                          <path d="m 210.72277,271.30126 34.37058,47.77511" />\n                          <path d="m 285.65064,249.6478 27.49646,52.24328" />\n                          <path d="m 365.73409,233.49363 18.56011,52.93069" />\n                          <path d="m 451.66054,221.12022 8.93635,53.96181" />\n                          <path d="m 544.1174,217.33945 -0.68741,53.96181" />\n                          <path d="m 620.76379,220.0891 -8.59264,53.2744" />\n                        </g>\n                        <g fill="none" stroke="#ff0000" strokeWidth="8" strokeLinecap="butt">\n                          <path d="m 669.22631,226.96322 -14.43565,56.36775" />\n                          <path d="m 777.83734,243.8048 -24.40311,48.80622" />\n                          <path d="m 864.4512,318.73266 34.37058,-43.65063" />\n                        </g>\n\n                        <g fill="#000" fontFamily="Arial, sans-serif" fontSize="40" textAnchor="middle">\n                          <text x="160.43" y="244">20</text>\n                          <text x="251.89" y="222">10</text>\n                          <text x="348.78" y="210">7</text>\n                          <text x="439.59" y="202">5</text>\n                          <text x="530.55" y="195">3</text>\n                          <text x="612.89" y="196">1</text>\n                          <text x="663.14" y="203">0</text>\n                          <text x="775.55" y="219">3</text>\n                          <text x="902.59" y="255">5</text>\n                        </g>\n\n                        <text x="540" y="394" fill="#000" fontFamily="sans-serif" fontSize="60" fontWeight="700" textAnchor="middle">VU</text>\n                        <text x="540" y="430" fill="#000" fontFamily="sans-serif" fontSize="22" fontWeight="700" textAnchor="middle">{channel}</text>\n\n                        <path d="M184.04706 291.70923L537.57412 730.481" fill="none" stroke="#000" strokeWidth="6.7" strokeLinecap="butt" filter={`url(#vu-needle-${channel})`} opacity=".35" />\n                        <path\n                          d="M184.04706 291.70923L537.57412 730.481"\n                          fill="none"\n                          stroke="#000"\n                          strokeWidth="6.7"\n                          strokeLinecap="butt"\n                          style={{ transformBox: "fill-box", transformOrigin: "right bottom", transform: `rotate(${angle}deg)` }}\n                        />\n                        <circle cx="537.66882" cy="730.48907" r="3.8" fill="#fff" stroke="#0000ff" strokeWidth="0.61" />\n                      </svg>\n                    </div>\n                  </div>\n                )\n              })}\n            </div>\n          )}\n\n'''
-s = s[:start] + new_block + s[end:]
+if canvas_marker not in s:
+    raise SystemExit("tracks-visualizer not found")
+if vu_marker not in s:
+    raise SystemExit("nyx-vu not found")
 
-css_start = s.find('        .tracks-mc-vu {')
-css_end = s.find('        @media (max-width: 600px) {', css_start)
-if css_start < 0 or css_end < 0:
-    raise SystemExit("VU CSS boundaries not found")
+# Idempotent reorder: VU first, spectrum second.
+old = canvas_marker + '\n' + vu_marker
+new = vu_marker + '\n' + canvas_marker
+if old in s:
+    s = s.replace(old, new, 1)
+else:
+    # If already in the requested order, leave the file unchanged.
+    if new not in s:
+        raise SystemExit("VU/spectrum layout pattern not found")
 
-new_css = '''        .tracks-mc-vu {\n          display: flex;\n          gap: 14px;\n          width: 100%;\n          justify-content: center;\n          align-items: stretch;\n          padding: 2px 0 4px;\n        }\n\n        .tracks-mc-meter {\n          flex: 1 1 0;\n          min-width: 0;\n        }\n\n        .tracks-mc-window {\n          position: relative;\n          overflow: hidden;\n          border-radius: 3px;\n          padding: 0;\n          background: #ffeea9;\n          border: 1px solid rgba(190,215,230,.34);\n          box-shadow: inset 0 0 0 1px rgba(0,0,0,.9), 0 4px 14px rgba(0,0,0,.28);\n        }\n\n        .tracks-mc-gauge {\n          position: relative;\n          width: 100%;\n          height: auto;\n          display: block;\n          aspect-ratio: 1080 / 600;\n        }\n\n'''
-s = s[:css_start] + new_css + s[css_end:]
 p.write_text(s)
-print("NYXTRYP: installed reference #3 XMBoYZ SVG meter")
+print("NYXTRYP: moved L/R VU above spectrum")
