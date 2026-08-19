@@ -34,6 +34,59 @@ export default function Ocean() {
     mount.appendChild(image)
 
     // =========================
+    // BACKGROUND VIDEO WATCHDOG
+    // =========================
+
+    let lastVideoTime = image.currentTime
+    let lastVideoCheck = performance.now()
+    let lastRecovery = 0
+
+    const recoverVideo = () => {
+      const now = performance.now()
+
+      // Prevent repeated reloads while the browser is recovering.
+      if (now - lastRecovery < 5000) return
+
+      lastRecovery = now
+      lastVideoTime = image.currentTime
+      lastVideoCheck = now
+
+      image.load()
+      image.play().catch(() => {})
+    }
+
+    const onVideoProblem = () => {
+      recoverVideo()
+    }
+
+    image.addEventListener('error', onVideoProblem)
+    image.addEventListener('stalled', onVideoProblem)
+    image.addEventListener('waiting', onVideoProblem)
+    image.addEventListener('emptied', onVideoProblem)
+
+    const videoWatchdog = window.setInterval(() => {
+      if (document.visibilityState === 'hidden') return
+
+      const now = performance.now()
+      const elapsed = now - lastVideoCheck
+      const advanced = image.currentTime - lastVideoTime
+
+      if (
+        !image.paused &&
+        image.readyState >= 2 &&
+        elapsed >= 3000 &&
+        advanced < 0.05
+      ) {
+        recoverVideo()
+      }
+
+      lastVideoTime = image.currentTime
+      lastVideoCheck = now
+    }, 3000)
+
+    image.play().catch(() => {})
+
+    // =========================
     // THREE.JS STAR FIELD
     // =========================
 
@@ -203,6 +256,32 @@ export default function Ocean() {
       cancelAnimationFrame(
         animationId
       )
+
+      window.clearInterval(
+        videoWatchdog
+      )
+
+      image.removeEventListener(
+        'error',
+        onVideoProblem
+      )
+
+      image.removeEventListener(
+        'stalled',
+        onVideoProblem
+      )
+
+      image.removeEventListener(
+        'waiting',
+        onVideoProblem
+      )
+
+      image.removeEventListener(
+        'emptied',
+        onVideoProblem
+      )
+
+      image.pause()
 
       renderer.dispose()
       starGeometry.dispose()
