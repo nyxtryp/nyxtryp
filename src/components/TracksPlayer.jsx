@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react"
+import ThreeDSpectrum from "./ThreeDSpectrum"
 
 const TRACKS = [
   "After Midnight","Awaken The Machine","Beyond Reality","Beyond The Signal","Crystal Memory","Digital Paradise","Echoes Of Tomorrow","Electric Dreams","Electric Soul","Final Horizon","Future Is Calling","Gravity Of Light","Hidden Dimension","Higher State","Infinite Desire","Infinite Motion","Into The Unknown","Lost In Frequency","Neon Awakening","Night Protocol","Parallel Hearts","Silent Velocity","Synthetic Emotion","The Last Transmission","Zero Gravity"
@@ -41,9 +42,8 @@ function Meter({ channel, value }) {
 }
 
 export default function TracksPlayer({ onClose }) {
-  const audioRef = useRef(null), canvasRef = useRef(null), ctxRef = useRef(null), splitRef = useRef(null), animRef = useRef(null)
+  const audioRef = useRef(null), ctxRef = useRef(null), splitRef = useRef(null)
   const meterRef = useRef({ left:-60, right:-60 })
-  const spectrumRef = useRef(new Float32Array(64))
   const [trackIndex,setTrackIndex] = useState(0), [playing,setPlaying] = useState(false), [volume,setVolume] = useState(.68), [muted,setMuted] = useState(false), [currentTime,setCurrentTime] = useState(0), [duration,setDuration] = useState(0), [leftVU,setLeftVU] = useState(-60), [rightVU,setRightVU] = useState(-60)
   const track = TRACKS[trackIndex]
 
@@ -70,46 +70,7 @@ export default function TracksPlayer({ onClose }) {
   },[trackIndex])
   useEffect(()=>{const audio=audioRef.current;if(!audio)return;audio.volume=volume;audio.muted=muted},[volume,muted])
   useEffect(()=>{const audio=audioRef.current;if(!audio)return;const time=()=>setCurrentTime(audio.currentTime||0),meta=()=>Number.isFinite(audio.duration)&&setDuration(audio.duration);audio.addEventListener("timeupdate",time);audio.addEventListener("loadedmetadata",meta);audio.addEventListener("durationchange",meta);return()=>{audio.removeEventListener("timeupdate",time);audio.removeEventListener("loadedmetadata",meta);audio.removeEventListener("durationchange",meta)}},[trackIndex])
-
-  useEffect(()=>{
-    const canvas=canvasRef.current;if(!canvas)return
-    const draw=()=>{
-      const c=canvas.getContext("2d"), split=splitRef.current, now=performance.now(); c.clearRect(0,0,canvas.width,canvas.height)
-      if(split){
-        const ld=new Uint8Array(split.left.frequencyBinCount),rd=new Uint8Array(split.right.frequencyBinCount),lt=new Uint8Array(split.left.fftSize),rt=new Uint8Array(split.right.fftSize)
-        split.left.getByteTimeDomainData(lt);split.right.getByteTimeDomainData(rt)
-        const rms=data=>{let sum=0;for(let i=0;i<data.length;i++){const sample=(data[i]-128)/128;sum+=sample*sample}return Math.sqrt(sum/data.length)}
-        const toDb=x=>x<=.000001?-60:clamp(20*Math.log10(x),-60,0),toVU=db=>clamp(db+12,-30,10)
-        const targetL=toVU(toDb(rms(lt))),targetR=toVU(toDb(rms(rt)))
-        const updateMeter=(current,target,dt)=>{const tc=target>current?.045:.32;return current+(target-current)*(1-Math.exp(-dt/(tc*1000)))}
-        const last=draw.lastTime||now,dt=clamp(now-last,1,80);draw.lastTime=now
-        const ml=updateMeter(meterRef.current.left,targetL,dt),mr=updateMeter(meterRef.current.right,targetR,dt);meterRef.current={left:ml,right:mr};setLeftVU(ml);setRightVU(mr)
-
-        split.left.getByteFrequencyData(ld);split.right.getByteFrequencyData(rd)
-        const bars=64,minHz=30,maxHz=Math.min(16000,(ctxRef.current?.sampleRate||44100)/2),binHz=maxHz/ld.length,logMin=Math.log(minHz),logMax=Math.log(maxHz)
-        const gap=2,pad=8,barWidth=(canvas.width-pad*2-gap*(bars-1))/bars,smoothed=spectrumRef.current
-        for(let i=0;i<bars;i++){
-          const f1=Math.exp(logMin+(logMax-logMin)*(i/bars)),f2=Math.exp(logMin+(logMax-logMin)*((i+1)/bars))
-          const b1=Math.max(0,Math.floor(f1/binHz)),b2=Math.min(ld.length-1,Math.max(b1,Math.ceil(f2/binHz)))
-          let sum=0,count=0,max=0
-          for(let b=b1;b<=b2;b++){const v=(ld[b]+rd[b])/510;sum+=v;count++;if(v>max)max=v}
-          const avg=count?sum/count:0
-          // Keep the real spectrum but compress small FFT values so bars rise visibly from the bottom instead of sitting at the ceiling.
-          const raw=Math.pow(avg*.82+max*.18,1.28)
-          // Smooth attack and release independently so each bar visibly travels upward and falls back down.
-          const attack=raw>smoothed[i] ? .24 : .09
-          smoothed[i]+= (raw-smoothed[i])*attack
-          const floor=playing ? .008 : .003
-          const v=Math.max(floor,smoothed[i])
-          const h=Math.max(2,canvas.height*v*(playing?.92:.08))
-          const x=pad+i*(barWidth+gap)
-          c.fillStyle="rgba(100,190,255,.75)";c.fillRect(x,canvas.height-h,barWidth,h)
-        }
-      }else{meterRef.current={left:-60,right:-60};setLeftVU(-60);setRightVU(-60)}
-      animRef.current=requestAnimationFrame(draw)
-    }
-    draw();return()=>cancelAnimationFrame(animRef.current)
-  },[playing])
+  useEffect(()=>{let raf=0;let last=performance.now();const tick=()=>{raf=requestAnimationFrame(tick);const split=splitRef.current;if(!split){meterRef.current={left:-60,right:-60};setLeftVU(-60);setRightVU(-60);return}const lt=new Uint8Array(split.left.fftSize),rt=new Uint8Array(split.right.fftSize);split.left.getByteTimeDomainData(lt);split.right.getByteTimeDomainData(rt);const rms=data=>{let sum=0;for(let i=0;i<data.length;i++){const sample=(data[i]-128)/128;sum+=sample*sample}return Math.sqrt(sum/data.length)};const toDb=x=>x<=.000001?-60:clamp(20*Math.log10(x),-60,0),toVU=db=>clamp(db+12,-30,10);const targetL=toVU(toDb(rms(lt))),targetR=toVU(toDb(rms(rt)));const now=performance.now(),dt=clamp(now-last,1,80);last=now;const update=(cur,target)=>{const tc=target>cur?.045:.32;return cur+(target-cur)*(1-Math.exp(-dt/(tc*1000)))};const ml=update(meterRef.current.left,targetL),mr=update(meterRef.current.right,targetR);meterRef.current={left:ml,right:mr};setLeftVU(ml);setRightVU(mr)};tick();return()=>cancelAnimationFrame(raf)},[])
 
   const play=async()=>{const audio=audioRef.current;if(!audio)return;try{const ctx=await setupAudio();if(ctx?.state==="suspended")await ctx.resume();await audio.play();setPlaying(true)}catch{setPlaying(false)}}
   const togglePlay=()=>{if(playing){audioRef.current?.pause();setPlaying(false)}else play()}
@@ -117,17 +78,15 @@ export default function TracksPlayer({ onClose }) {
   const seek=e=>{const v=Number(e.target.value);if(audioRef.current)audioRef.current.currentTime=v;setCurrentTime(v)}
 
   return <>
-    <style>{`
-      @keyframes loriPulse{0%,100%{opacity:.45;transform:translateY(0);text-shadow:0 0 0 rgba(120,220,255,0)}50%{opacity:1;transform:translateY(-2px);text-shadow:0 0 8px rgba(120,220,255,.9),0 0 18px rgba(80,140,255,.7)}}
+    <style>{`@keyframes loriPulse{0%,100%{opacity:.45;transform:translateY(0);text-shadow:0 0 0 rgba(120,220,255,0)}50%{opacity:1;transform:translateY(-2px);text-shadow:0 0 8px rgba(120,220,255,.9),0 0 18px rgba(80,140,255,.7)}}
       .tracks-overlay{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.1);backdrop-filter:blur(2px)}
       .tracks-window{width:17cm;height:17cm;max-width:calc(100vw - 24px);max-height:calc(100vh - 24px);box-sizing:border-box;padding:18px;border-radius:24px;background:linear-gradient(145deg,rgba(9,15,27,.96),rgba(3,7,15,.98));border:1px solid rgba(125,190,255,.2);box-shadow:0 20px 70px rgba(0,0,0,.55),inset 0 0 40px rgba(70,150,255,.035);color:#eaf4ff;font-family:Inter,system-ui,sans-serif;position:relative;display:flex;flex-direction:column;gap:10px}
       .tracks-close{position:absolute;top:10px;right:14px;border:0;background:transparent;color:rgba(220,240,255,.62);font-size:22px;cursor:pointer;z-index:5}.tracks-title{text-align:center;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 28px}.tracks-brand{display:flex;align-items:center;justify-content:center;gap:6px;font-size:16px;font-weight:900;letter-spacing:1px;white-space:nowrap;padding:0 28px}.tracks-brand-pulse{animation:loriPulse 2.8s ease-in-out infinite}
-      .tracks-visualizer{width:100%;height:3cm;min-height:90px;display:block;border-radius:10px;background:rgba(0,0,0,.22)}
-      .nyx-vu{display:flex;gap:10px;width:100%;justify-content:center}.nyx-meter{flex:1;min-width:0;background:transparent;border-radius:4px;overflow:hidden;box-shadow:0 0 18px rgba(40,190,255,.28)}.nyx-meter-svg{display:block;width:100%;height:auto}.tracks-controls,.tracks-progress,.tracks-volume{display:flex;align-items:center;justify-content:center;gap:8px}.tracks-progress,.tracks-volume{font-size:9px;opacity:.75}.tracks-progress input,.tracks-volume input{flex:1}.tracks-button{border:1px solid rgba(150,210,255,.18);background:rgba(255,255,255,.045);color:#eaf4ff;border-radius:10px;min-width:36px;height:34px;cursor:pointer}.tracks-button.main{min-width:48px;font-size:16px}.tracks-playlist{flex:1;min-height:0;overflow-y:auto;border-top:1px solid rgba(150,210,255,.12);padding-top:7px}.tracks-item{width:100%;box-sizing:border-box;display:flex;align-items:center;gap:8px;border:0;background:transparent;color:rgba(235,245,255,.72);padding:6px 7px;border-radius:7px;cursor:pointer;text-align:left;font-size:10px}.tracks-item.active{background:rgba(100,190,255,.1);color:#fff}.tracks-number{width:20px;opacity:.45}.tracks-item-title{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}@media(max-width:600px){.tracks-window{width:min(420px,90vw);height:auto;max-height:88vh;padding:46px 20px 16px}.nyx-vu{display:none}.tracks-playlist{max-height:145px;flex:none}}
-    `}</style>
+      .tracks-3d-visualizer{width:100%;height:3cm;min-height:90px;display:block;border-radius:10px;background:radial-gradient(circle at 50% 65%,rgba(82,44,180,.18),rgba(0,0,0,.28) 62%,rgba(0,0,0,.5));overflow:hidden}.tracks-3d-visualizer canvas{width:100%;height:100%;display:block}
+      .nyx-vu{display:flex;gap:10px;width:100%;justify-content:center}.nyx-meter{flex:1;min-width:0;background:transparent;border-radius:4px;overflow:hidden;box-shadow:0 0 18px rgba(40,190,255,.28)}.nyx-meter-svg{display:block;width:100%;height:auto}.tracks-controls,.tracks-progress,.tracks-volume{display:flex;align-items:center;justify-content:center;gap:8px}.tracks-progress,.tracks-volume{font-size:9px;opacity:.75}.tracks-progress input,.tracks-volume input{flex:1}.tracks-button{border:1px solid rgba(150,210,255,.18);background:rgba(255,255,255,.045);color:#eaf4ff;border-radius:10px;min-width:36px;height:34px;cursor:pointer}.tracks-button.main{min-width:48px;font-size:16px}.tracks-playlist{flex:1;min-height:0;overflow-y:auto;border-top:1px solid rgba(150,210,255,.12);padding-top:7px}.tracks-item{width:100%;box-sizing:border-box;display:flex;align-items:center;gap:8px;border:0;background:transparent;color:rgba(235,245,255,.72);padding:6px 7px;border-radius:7px;cursor:pointer;text-align:left;font-size:10px}.tracks-item.active{background:rgba(100,190,255,.1);color:#fff}.tracks-number{width:20px;opacity:.45}.tracks-item-title{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}@media(max-width:600px){.tracks-window{width:min(420px,90vw);height:auto;max-height:88vh;padding:46px 20px 16px}.nyx-vu{display:none}.tracks-playlist{max-height:145px;flex:none}}`}</style>
     <div className="tracks-overlay" onPointerDown={e=>e.pointerType==="mouse"&&onClose()}><div className="tracks-window" onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}>
       <audio ref={audioRef} onEnded={()=>changeTrack(1)} /><button className="tracks-close" onClick={onClose}>×</button><div className="tracks-brand"><span>NYXTRYP</span><span className="tracks-brand-pulse">TRACK</span></div>
-      <div className="nyx-vu"><div className="nyx-meter"><Meter channel="L" value={leftVU}/></div><div className="nyx-meter"><Meter channel="R" value={rightVU}/></div></div><canvas ref={canvasRef} className="tracks-visualizer" width="1200" height="240" />
+      <div className="nyx-vu"><div className="nyx-meter"><Meter channel="L" value={leftVU}/></div><div className="nyx-meter"><Meter channel="R" value={rightVU}/></div></div><ThreeDSpectrum splitRef={splitRef} playing={playing}/>
       <div className="tracks-controls"><button className="tracks-button" onClick={()=>changeTrack(-1)}>‹</button><button className="tracks-button main" onClick={togglePlay}>{playing?"Ⅱ":"▶"}</button><button className="tracks-button" onClick={()=>changeTrack(1)}>›</button></div>
       <div className="tracks-progress"><span>{formatTime(currentTime)}</span><input type="range" min="0" max={duration||0} step=".1" value={Math.min(currentTime,duration||0)} onChange={seek}/><span>{formatTime(duration)}</span></div><div className="tracks-volume"><button className="tracks-button" onClick={()=>setMuted(v=>!v)}>{muted?"🔇":"🔊"}</button><input type="range" min="0" max="1" step=".01" value={volume} onChange={e=>setVolume(Number(e.target.value))}/></div>
       <div className="tracks-playlist">{TRACKS.map((item,index)=><button key={item.file} className={`tracks-item${index===trackIndex?" active":""}`} onClick={()=>{setTrackIndex(index);setTimeout(play,100)}}><span className="tracks-number">{String(index+1).padStart(2,"0")}</span><span className="tracks-item-title">{item.title}</span></button>)}</div>
