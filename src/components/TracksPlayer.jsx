@@ -33,7 +33,7 @@ function Meter({ channel, value }) {
     <g>
       <path d="m82,292 45.3061,0" fill="none" stroke="#000" strokeWidth="5" /><path d="m948.30743,285.82189 45.3061,0" fill="none" stroke="#000" strokeWidth="5" /><path d="m970.96048,263.16884 0,45.3061" fill="none" stroke="#000" strokeWidth="5" />
       <path d="m657,277.24518 c85.60879,8.87328 173.21481,25.29511 295.97922,75.9692" fill="none" stroke="#f00" strokeWidth="15" /><path d="m126.01626,357.7731 c161.49448,-60.14366 315.01211,-98.096 531.2366,-81.4418" fill="none" stroke="#000" strokeWidth="15" />
-      <path d="m210.72277,271.30126 34.37058 47.77511" fill="none" stroke="#000" strokeWidth="8" /><path d="m285.65064,249.6478 27.49646 52.24328" fill="none" stroke="#000" strokeWidth="8" /><path d="m365.73409,233.49363 18.56011 52.93069" fill="none" stroke="#000" strokeWidth="8" /><path d="m451.66054,221.12022 8.93635 53.96181" fill="none" stroke="#000" strokeWidth="8" /><path d="m544.1174,217.33945 -0.68741 53.96181" fill="none" stroke="#000" strokeWidth="8" /><path d="m620.76379,220.0891 -8.59264 53.2744" fill="none" stroke="#000" strokeWidth="8" /><path d="m669.22631,226.96322 -14.43565 56.36775" fill="none" stroke="#f00" strokeWidth="8" /><path d="m777.83734,243.8048 -24.40311 48.80622" fill="none" stroke="#f00" strokeWidth="8" /><path d="m864.4512,318.73266 34.37058 -43.65063" fill="none" stroke="#f00" strokeWidth="8" />
+      <path d="m210.72277,271.30126 34.37058 47.77511" fill="none" stroke="#000" strokeWidth="8" /><path d="m285.65064,249.6478 27.49646 52.24328" fill="none" stroke="#000" strokeWidth="8" /><path d="m365.73409,233.49363 18.56011 52.93069" fill="none" stroke="#000" strokeWidth="8" /><path d="m451.66054,221.12022 8.93635 53.96181" fill="none" stroke="#000" strokeWidth="8" /><path d="m544.1174,217.33945 -0.68741 53.96181" fill="none" stroke="#000" strokeWidth="8" /><path d="m620.76379,220.0891 -8.59264,53.2744" fill="none" stroke="#000" strokeWidth="8" /><path d="m669.22631,226.96322 -14.43565,56.36775" fill="none" stroke="#f00" strokeWidth="8" /><path d="m777.83734,243.8048 -24.40311,48.80622" fill="none" stroke="#f00" strokeWidth="8" /><path d="m864.4512,318.73266 34.37058 -43.65063" fill="none" stroke="#f00" strokeWidth="8" />
       <g transform={`rotate(${angle} 537.57412 730.481)`}><path d="M184.04706,291.70923 537.57412,730.481" fill="none" stroke="#000" strokeWidth="6.7" strokeLinecap="butt" /></g>
       <text x="492.73926" y="393.86093" fontFamily="Roboto,Arial,sans-serif" fontSize="60" fontWeight="900">VU</text><text x="902.58594" y="255.49496" fontSize="40">5</text><text x="775.54688" y="218.96762" fontSize="40">3</text><text x="663.13672" y="202.96762" fontSize="40">0</text><text x="612.89453" y="196.49496" fontSize="40">1</text><text x="530.54688" y="194.96762" fontSize="40">3</text><text x="439.58594" y="202.49496" fontSize="40">5</text><text x="348.78125" y="210.49496" fontSize="40">7</text><text x="251.89453" y="221.96762" fontSize="40">10</text><text x="160.42969" y="243.96762" fontSize="40">20</text>
     </g>
@@ -44,6 +44,7 @@ export default function TracksPlayer({ onClose }) {
   const audioRef = useRef(null), canvasRef = useRef(null), ctxRef = useRef(null), splitRef = useRef(null), animRef = useRef(null)
   const meterRef = useRef({ left:-60, right:-60 })
   const spectrumRef = useRef(new Float32Array(64))
+  const peakRef = useRef(new Float32Array(64))
   const [trackIndex,setTrackIndex] = useState(0), [playing,setPlaying] = useState(false), [volume,setVolume] = useState(.68), [muted,setMuted] = useState(false), [currentTime,setCurrentTime] = useState(0), [duration,setDuration] = useState(0), [leftVU,setLeftVU] = useState(-60), [rightVU,setRightVU] = useState(-60)
   const track = TRACKS[trackIndex]
 
@@ -87,24 +88,31 @@ export default function TracksPlayer({ onClose }) {
 
         split.left.getByteFrequencyData(ld);split.right.getByteFrequencyData(rd)
         const bars=64,minHz=30,maxHz=Math.min(16000,(ctxRef.current?.sampleRate||44100)/2),binHz=maxHz/ld.length,logMin=Math.log(minHz),logMax=Math.log(maxHz)
-        const gap=2,pad=8,barWidth=(canvas.width-pad*2-gap*(bars-1))/bars,smoothed=spectrumRef.current
+        const gap=2.2,pad=12,barWidth=(canvas.width-pad*2-gap*(bars-1))/bars,smoothed=spectrumRef.current,peaks=peakRef.current
+        const baseY=canvas.height-8, maxBarHeight=canvas.height*.86, depth=Math.max(3,Math.min(8,canvas.width/150))
         for(let i=0;i<bars;i++){
           const f1=Math.exp(logMin+(logMax-logMin)*(i/bars)),f2=Math.exp(logMin+(logMax-logMin)*((i+1)/bars))
           const b1=Math.max(0,Math.floor(f1/binHz)),b2=Math.min(ld.length-1,Math.max(b1,Math.ceil(f2/binHz)))
           let sum=0,count=0,max=0
           for(let b=b1;b<=b2;b++){const v=(ld[b]+rd[b])/510;sum+=v;count++;if(v>max)max=v}
-          const avg=count?sum/count:0
-          // Keep the real spectrum but compress small FFT values so bars rise visibly from the bottom instead of sitting at the ceiling.
-          const raw=Math.pow(avg*.82+max*.18,1.28)
-          // Smooth attack and release independently so each bar visibly travels upward and falls back down.
-          const attack=raw>smoothed[i] ? .24 : .09
-          smoothed[i]+= (raw-smoothed[i])*attack
-          const floor=playing ? .008 : .003
-          const v=Math.max(floor,smoothed[i])
-          const h=Math.max(2,canvas.height*v*(playing?.92:.08))
-          const x=pad+i*(barWidth+gap)
-          c.fillStyle="rgba(100,190,255,.75)";c.fillRect(x,canvas.height-h,barWidth,h)
+          const avg=count?sum/count:0,raw=Math.pow(avg*.82+max*.18,1.22),attack=raw>smoothed[i] ? .25:.085
+          smoothed[i]+=(raw-smoothed[i])*attack
+          if(smoothed[i]>peaks[i]) peaks[i]=smoothed[i]
+          else peaks[i]=Math.max(smoothed[i],peaks[i]-.0028)
+          const v=Math.max(playing?.006:.002,smoothed[i]),h=Math.max(3,maxBarHeight*v),x=pad+i*(barWidth+gap),y=baseY-h
+          const hue=190+i*1.65
+          const front=c.createLinearGradient(0,y,0,baseY);front.addColorStop(0,`hsla(${hue},100%,78%,.98)`);front.addColorStop(.28,`hsla(${hue},100%,58%,.94)`);front.addColorStop(1,`hsla(${hue},92%,35%,.86)`)
+          c.save();c.shadowBlur=10;c.shadowColor=`hsla(${hue},100%,60%,.55)`
+          c.fillStyle=front;c.fillRect(x,y,barWidth,h)
+          c.shadowBlur=0
+          c.beginPath();c.moveTo(x,y);c.lineTo(x+depth,y-depth*.7);c.lineTo(x+barWidth+depth,y-depth*.7);c.lineTo(x+barWidth,y);c.closePath();c.fillStyle=`hsla(${hue},100%,82%,.88)`;c.fill()
+          c.beginPath();c.moveTo(x+barWidth,y);c.lineTo(x+barWidth+depth,y-depth*.7);c.lineTo(x+barWidth+depth,baseY-depth*.7);c.lineTo(x+barWidth,baseY);c.closePath();c.fillStyle=`hsla(${hue},90%,30%,.9)`;c.fill()
+          c.fillStyle=`hsla(${hue},100%,92%,.7)`;c.fillRect(x+1,y+1,Math.max(1,barWidth-2),Math.min(2,h))
+          const peakY=baseY-Math.max(3,maxBarHeight*peaks[i])-5
+          c.shadowBlur=8;c.shadowColor=`hsla(${hue},100%,72%,.9)`;c.fillStyle=`hsla(${hue},100%,88%,.98)`;c.fillRect(x-1,peakY,barWidth+2,2.2);c.restore()
         }
+        c.save();c.globalAlpha=.18;c.strokeStyle="#8adfff";c.lineWidth=1
+        for(let j=1;j<5;j++){const gy=baseY-(canvas.height*.86)*(j/5);c.beginPath();c.moveTo(8,gy);c.lineTo(canvas.width-8,gy);c.stroke()}c.restore()
       }else{meterRef.current={left:-60,right:-60};setLeftVU(-60);setRightVU(-60)}
       animRef.current=requestAnimationFrame(draw)
     }
