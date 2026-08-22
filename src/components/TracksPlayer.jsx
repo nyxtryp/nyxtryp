@@ -33,7 +33,7 @@ function Meter({ channel, value }) {
     <g>
       <path d="m82,292 45.3061,0" fill="none" stroke="#000" strokeWidth="5" /><path d="m948.30743,285.82189 45.3061,0" fill="none" stroke="#000" strokeWidth="5" /><path d="m970.96048,263.16884 0,45.3061" fill="none" stroke="#000" strokeWidth="5" />
       <path d="m657,277.24518 c85.60879,8.87328 173.21481,25.29511 295.97922,75.9692" fill="none" stroke="#f00" strokeWidth="15" /><path d="m126.01626,357.7731 c161.49448,-60.14366 315.01211,-98.096 531.2366,-81.4418" fill="none" stroke="#000" strokeWidth="15" />
-      <path d="m210.72277,271.30126 34.37058 47.77511" fill="none" stroke="#000" strokeWidth="8" /><path d="m285.65064,249.6478 27.49646 52.24328" fill="none" stroke="#000" strokeWidth="8" /><path d="m365.73409,233.49363 18.56011 52.93069" fill="none" stroke="#000" strokeWidth="8" /><path d="m451.66054,221.12022 8.93635 53.96181" fill="none" stroke="#000" strokeWidth="8" /><path d="m544.1174,217.33945 -0.68741 53.96181" fill="none" stroke="#000" strokeWidth="8" /><path d="m620.76379,220.0891 -8.59264,53.2744" fill="none" stroke="#000" strokeWidth="8" /><path d="m669.22631,226.96322 -14.43565,56.36775" fill="none" stroke="#f00" strokeWidth="8" /><path d="m777.83734,243.8048 -24.40311,48.80622" fill="none" stroke="#f00" strokeWidth="8" /><path d="m864.4512,318.73266 34.37058 -43.65063" fill="none" stroke="#f00" strokeWidth="8" />
+      <path d="m210.72277,271.30126 34.37058 47.77511" fill="none" stroke="#000" strokeWidth="8" /><path d="m285.65064,249.6478 27.49646 52.24328" fill="none" stroke="#000" strokeWidth="8" /><path d="m365.73409,233.49363 18.56011 52.93069" fill="none" stroke="#000" strokeWidth="8" /><path d="m451.66054,221.12022 8.93635 53.96181" fill="none" stroke="#000" strokeWidth="8" /><path d="m544.1174,217.33945 -0.68741 53.96181" fill="none" stroke="#000" strokeWidth="8" /><path d="m620.76379,220.0891 -8.59264 53.2744" fill="none" stroke="#000" strokeWidth="8" /><path d="m669.22631,226.96322 -14.43565 56.36775" fill="none" stroke="#f00" strokeWidth="8" /><path d="m777.83734,243.8048 -24.40311 48.80622" fill="none" stroke="#f00" strokeWidth="8" /><path d="m864.4512,318.73266 34.37058 -43.65063" fill="none" stroke="#f00" strokeWidth="8" />
       <g transform={`rotate(${angle} 537.57412 730.481)`}><path d="M184.04706,291.70923 537.57412,730.481" fill="none" stroke="#000" strokeWidth="6.7" strokeLinecap="butt" /></g>
       <text x="492.73926" y="393.86093" fontFamily="Roboto,Arial,sans-serif" fontSize="60" fontWeight="900">VU</text><text x="902.58594" y="255.49496" fontSize="40">5</text><text x="775.54688" y="218.96762" fontSize="40">3</text><text x="663.13672" y="202.96762" fontSize="40">0</text><text x="612.89453" y="196.49496" fontSize="40">1</text><text x="530.54688" y="194.96762" fontSize="40">3</text><text x="439.58594" y="202.49496" fontSize="40">5</text><text x="348.78125" y="210.49496" fontSize="40">7</text><text x="251.89453" y="221.96762" fontSize="40">10</text><text x="160.42969" y="243.96762" fontSize="40">20</text>
     </g>
@@ -44,6 +44,7 @@ export default function TracksPlayer({ onClose }) {
   const audioRef = useRef(null), canvasRef = useRef(null), ctxRef = useRef(null), splitRef = useRef(null), animRef = useRef(null)
   const meterRef = useRef({ left:-60, right:-60 })
   const spectrumRef = useRef(new Float32Array(64))
+  const velocityRef = useRef(new Float32Array(64))
   const peakRef = useRef(new Float32Array(64))
   const [trackIndex,setTrackIndex] = useState(0), [playing,setPlaying] = useState(false), [volume,setVolume] = useState(.68), [muted,setMuted] = useState(false), [currentTime,setCurrentTime] = useState(0), [duration,setDuration] = useState(0), [leftVU,setLeftVU] = useState(-60), [rightVU,setRightVU] = useState(-60)
   const track = TRACKS[trackIndex]
@@ -80,26 +81,36 @@ export default function TracksPlayer({ onClose }) {
         const ld=new Uint8Array(split.left.frequencyBinCount),rd=new Uint8Array(split.right.frequencyBinCount),lt=new Uint8Array(split.left.fftSize),rt=new Uint8Array(split.right.fftSize)
         split.left.getByteTimeDomainData(lt);split.right.getByteTimeDomainData(rt)
         const rms=data=>{let sum=0;for(let i=0;i<data.length;i++){const sample=(data[i]-128)/128;sum+=sample*sample}return Math.sqrt(sum/data.length)}
+        const signalL=rms(lt),signalR=rms(rt),signalStrength=(signalL+signalR)*.5
         const toDb=x=>x<=.000001?-60:clamp(20*Math.log10(x),-60,0),toVU=db=>clamp(db+12,-30,10)
-        const targetL=toVU(toDb(rms(lt))),targetR=toVU(toDb(rms(rt)))
+        const targetL=toVU(toDb(signalL)),targetR=toVU(toDb(signalR))
         const updateMeter=(current,target,dt)=>{const tc=target>current?.045:.32;return current+(target-current)*(1-Math.exp(-dt/(tc*1000)))}
         const last=draw.lastTime||now,dt=clamp(now-last,1,80);draw.lastTime=now
         const ml=updateMeter(meterRef.current.left,targetL,dt),mr=updateMeter(meterRef.current.right,targetR,dt);meterRef.current={left:ml,right:mr};setLeftVU(ml);setRightVU(mr)
 
         split.left.getByteFrequencyData(ld);split.right.getByteFrequencyData(rd)
         const bars=64,minHz=30,maxHz=Math.min(16000,(ctxRef.current?.sampleRate||44100)/2),binHz=maxHz/ld.length,logMin=Math.log(minHz),logMax=Math.log(maxHz)
-        const gap=2.2,pad=12,barWidth=(canvas.width-pad*2-gap*(bars-1))/bars,smoothed=spectrumRef.current,peaks=peakRef.current
+        const gap=2.2,pad=12,barWidth=(canvas.width-pad*2-gap*(bars-1))/bars,smoothed=spectrumRef.current,velocity=velocityRef.current,peaks=peakRef.current
         const baseY=canvas.height-8, maxBarHeight=canvas.height*.86, depth=Math.max(3,Math.min(8,canvas.width/150))
         for(let i=0;i<bars;i++){
           const f1=Math.exp(logMin+(logMax-logMin)*(i/bars)),f2=Math.exp(logMin+(logMax-logMin)*((i+1)/bars))
           const b1=Math.max(0,Math.floor(f1/binHz)),b2=Math.min(ld.length-1,Math.max(b1,Math.ceil(f2/binHz)))
           let sum=0,count=0,max=0
           for(let b=b1;b<=b2;b++){const v=(ld[b]+rd[b])/510;sum+=v;count++;if(v>max)max=v}
-          const avg=count?sum/count:0,raw=Math.pow(avg*.82+max*.18,1.22),attack=raw>smoothed[i] ? .25:.085
-          smoothed[i]+=(raw-smoothed[i])*attack
+          const avg=count?sum/count:0
+          const raw=Math.pow(avg*.74+max*.26,.78)
+          const bandEnergy=clamp(raw*(.72+signalStrength*2.1),0,1)
+          const target=bandEnergy*(.82+Math.sin(i*.73)*.045)
+          const position=smoothed[i],deltaTarget=target-position
+          const force=deltaTarget>0?.19:.095
+          velocity[i]+=deltaTarget*force*(dt/16.67)
+          const bandDamping=i<12?.84:i<28?.78:i<46?.72:.66
+          velocity[i]*=Math.pow(bandDamping,dt/16.67)
+          smoothed[i]=clamp(position+velocity[i]*(dt/16.67),0,1)
+          if(smoothed[i]<.0015)smoothed[i]=0
           if(smoothed[i]>peaks[i]) peaks[i]=smoothed[i]
-          else peaks[i]=Math.max(smoothed[i],peaks[i]-.0028)
-          const v=Math.max(playing?.006:.002,smoothed[i]),h=Math.max(3,maxBarHeight*v),x=pad+i*(barWidth+gap),y=baseY-h
+          else peaks[i]=Math.max(smoothed[i],peaks[i]-(.0045*(dt/16.67)))
+          const v=Math.max(playing?.002:.001,smoothed[i]),h=Math.max(3,maxBarHeight*v),x=pad+i*(barWidth+gap),y=baseY-h
           const hue=190+i*1.65
           const front=c.createLinearGradient(0,y,0,baseY);front.addColorStop(0,`hsla(${hue},100%,78%,.98)`);front.addColorStop(.28,`hsla(${hue},100%,58%,.94)`);front.addColorStop(1,`hsla(${hue},92%,35%,.86)`)
           c.save();c.shadowBlur=10;c.shadowColor=`hsla(${hue},100%,60%,.55)`
