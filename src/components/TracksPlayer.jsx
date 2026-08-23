@@ -119,9 +119,41 @@ export default function TracksPlayer({ onClose }) {
 
         for(let i=0;i<bars;i++){
           const f1=i===0?0:14*Math.pow(ratio,i-1),f2=i===0?14:14*Math.pow(ratio,i)
-          const b1=Math.max(0,Math.floor(f1/binHz)),b2=Math.min(ld.length-1,Math.max(b1,Math.ceil(f2/binHz)))
+
+          // Frequency-band sampling adapted from audioMotion:
+          // convert exact Hz boundaries to fractional FFT-bin positions
+          // and interpolate the boundary values instead of blindly
+          // including neighbouring bins.
+          const p1=f1/binHz,p2=f2/binHz
+          const lo=Math.max(0,p1),hi=Math.min(ld.length-1,p2)
+
+          const sampleAt=pos=>{
+            const a=Math.max(0,Math.min(ld.length-1,Math.floor(pos)))
+            const b=Math.min(ld.length-1,a+1)
+            const t=pos-a
+            return (ld[a]+(ld[b]-ld[a])*t)/255
+          }
+
           let sum=0,count=0,max=0
-          for(let b=b1;b<=b2;b++){const v=ld[b]/255;sum+=v;count++;if(v>max)max=v}
+          if(hi<=lo){
+            const v=sampleAt((lo+hi)*.5)
+            sum=v;count=1;max=v
+          }else{
+            const first=Math.ceil(lo),last=Math.floor(hi)
+            const left=sampleAt(lo),right=sampleAt(hi)
+            sum+=left;count++;max=Math.max(max,left)
+
+            for(let b=first;b<=last;b++){
+              if(b<lo||b>hi)continue
+              const v=ld[b]/255
+              sum+=v;count++;if(v>max)max=v
+            }
+
+            if(hi>first){
+              sum+=right;count++;max=Math.max(max,right)
+            }
+          }
+
           const avg=count?sum/count:0
           const raw=Math.pow(avg*.74+max*.26,.78)
           const signalStrength=0
