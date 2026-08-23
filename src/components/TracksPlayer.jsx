@@ -73,25 +73,47 @@ export default function TracksPlayer({ onClose }) {
   useEffect(()=>{const audio=audioRef.current;if(!audio)return;audio.volume=volume;audio.muted=muted},[volume,muted])
   useEffect(()=>{const audio=audioRef.current;if(!audio)return;const time=()=>setCurrentTime(audio.currentTime||0),meta=()=>Number.isFinite(audio.duration)&&setDuration(audio.duration);audio.addEventListener("timeupdate",time);audio.addEventListener("loadedmetadata",meta);audio.addEventListener("durationchange",meta);return()=>{audio.removeEventListener("timeupdate",time);audio.removeEventListener("loadedmetadata",meta);audio.removeEventListener("durationchange",meta)}},[trackIndex])
 
+  // VU — отдельный animation loop. Формулы VU НЕ меняем.
   useEffect(()=>{
-    const canvas=canvasRef.current;if(!canvas)return
-    const draw=()=>{
-      const c=canvas.getContext("2d"), split=splitRef.current, now=performance.now(); c.clearRect(0,0,canvas.width,canvas.height)
+    let raf
+    const drawVU=()=>{
+      const split=splitRef.current, now=performance.now()
       if(split){
-        const ld=new Uint8Array(split.left.frequencyBinCount),rd=new Uint8Array(split.right.frequencyBinCount),lt=new Uint8Array(split.left.fftSize),rt=new Uint8Array(split.right.fftSize)
+        const lt=new Uint8Array(split.left.fftSize),rt=new Uint8Array(split.right.fftSize)
         split.left.getByteTimeDomainData(lt);split.right.getByteTimeDomainData(rt)
         const rms=data=>{let sum=0;for(let i=0;i<data.length;i++){const sample=(data[i]-128)/128;sum+=sample*sample}return Math.sqrt(sum/data.length)}
-        const signalL=rms(lt),signalR=rms(rt),signalStrength=(signalL+signalR)*.5
+        const signalL=rms(lt),signalR=rms(rt)
         const toDb=x=>x<=.000001?-60:clamp(20*Math.log10(x),-60,0),toVU=db=>clamp(db+12,-30,10)
         const targetL=toVU(toDb(signalL)),targetR=toVU(toDb(signalR))
         const updateMeter=(current,target,dt)=>{const tc=target>current?.045:.32;return current+(target-current)*(1-Math.exp(-dt/(tc*1000)))}
-        const last=draw.lastTime||now,dt=clamp(now-last,1,80);draw.lastTime=now
-        const ml=updateMeter(meterRef.current.left,targetL,dt),mr=updateMeter(meterRef.current.right,targetR,dt);meterRef.current={left:ml,right:mr};setLeftVU(ml);setRightVU(mr)
+        const last=drawVU.lastTime||now,dt=clamp(now-last,1,80);drawVU.lastTime=now
+        const ml=updateMeter(meterRef.current.left,targetL,dt),mr=updateMeter(meterRef.current.right,targetR,dt)
+        meterRef.current={left:ml,right:mr};setLeftVU(ml);setRightVU(mr)
+      }else{
+        meterRef.current={left:-60,right:-60};setLeftVU(-60);setRightVU(-60)
+      }
+      raf=requestAnimationFrame(drawVU)
+    }
+    drawVU()
+    return()=>cancelAnimationFrame(raf)
+  },[playing])
 
+  // 64-bar spectrum — completely separate animation loop.
+  useEffect(()=>{
+    const canvas=canvasRef.current;if(!canvas)return
+    let raf
+    const drawSpectrum=()=>{
+      const c=canvas.getContext("2d"),split=splitRef.current,now=performance.now()
+      c.clearRect(0,0,canvas.width,canvas.height)
+      if(split){
+        const ld=new Uint8Array(split.left.frequencyBinCount),rd=new Uint8Array(split.right.frequencyBinCount)
         split.left.getByteFrequencyData(ld);split.right.getByteFrequencyData(rd)
+
         const bars=64,minHz=30,maxHz=Math.min(16000,(ctxRef.current?.sampleRate||44100)/2),binHz=maxHz/ld.length,logMin=Math.log(minHz),logMax=Math.log(maxHz)
+        const last=drawSpectrum.lastTime||now,dt=clamp(now-last,1,80);drawSpectrum.lastTime=now
         const gap=2.2,pad=12,barWidth=(canvas.width-pad*2-gap*(bars-1))/bars,smoothed=spectrumRef.current,velocity=velocityRef.current,peaks=peakRef.current
-        const baseY=canvas.height-8, maxBarHeight=canvas.height*.86, depth=Math.max(3,Math.min(8,canvas.width/150))
+        const baseY=canvas.height-8,maxBarHeight=canvas.height*.86,depth=Math.max(3,Math.min(8,canvas.width/150))
+
         for(let i=0;i<bars;i++){
           const f1=Math.exp(logMin+(logMax-logMin)*(i/bars)),f2=Math.exp(logMin+(logMax-logMin)*((i+1)/bars))
           const b1=Math.max(0,Math.floor(f1/binHz)),b2=Math.min(ld.length-1,Math.max(b1,Math.ceil(f2/binHz)))
@@ -99,6 +121,7 @@ export default function TracksPlayer({ onClose }) {
           for(let b=b1;b<=b2;b++){const v=(ld[b]+rd[b])/510;sum+=v;count++;if(v>max)max=v}
           const avg=count?sum/count:0
           const raw=Math.pow(avg*.74+max*.26,.78)
+          const signalStrength=0
           const bandEnergy=clamp(raw*(.72+signalStrength*2.1),0,1)
           const target=bandEnergy*(.82+Math.sin(i*.73)*.045)
           const position=smoothed[i],deltaTarget=target-position
@@ -108,11 +131,14 @@ export default function TracksPlayer({ onClose }) {
           velocity[i]*=Math.pow(bandDamping,dt/16.67)
           smoothed[i]=clamp(position+velocity[i]*(dt/16.67),0,1)
           if(smoothed[i]<.0015)smoothed[i]=0
-          if(smoothed[i]>peaks[i]) peaks[i]=smoothed[i]
+          if(smoothed[i]>peaks[i])peaks[i]=smoothed[i]
           else peaks[i]=Math.max(smoothed[i],peaks[i]-(.0045*(dt/16.67)))
           const v=Math.max(playing?.002:.001,smoothed[i]),h=Math.max(3,maxBarHeight*v),x=pad+i*(barWidth+gap),y=baseY-h
           const hue=190+i*1.65
-          const front=c.createLinearGradient(0,y,0,baseY);front.addColorStop(0,`hsla(${hue},100%,78%,.98)`);front.addColorStop(.28,`hsla(${hue},100%,58%,.94)`);front.addColorStop(1,`hsla(${hue},92%,35%,.86)`)
+          const front=c.createLinearGradient(0,y,0,baseY)
+          front.addColorStop(0,`hsla(${hue},100%,78%,.98)`)
+          front.addColorStop(.28,`hsla(${hue},100%,58%,.94)`)
+          front.addColorStop(1,`hsla(${hue},92%,35%,.86)`)
           c.save();c.shadowBlur=10;c.shadowColor=`hsla(${hue},100%,60%,.55)`
           c.fillStyle=front;c.fillRect(x,y,barWidth,h)
           c.shadowBlur=0
@@ -122,12 +148,15 @@ export default function TracksPlayer({ onClose }) {
           const peakY=baseY-Math.max(3,maxBarHeight*peaks[i])-5
           c.shadowBlur=8;c.shadowColor=`hsla(${hue},100%,72%,.9)`;c.fillStyle=`hsla(${hue},100%,88%,.98)`;c.fillRect(x-1,peakY,barWidth+2,2.2);c.restore()
         }
+
         c.save();c.globalAlpha=.18;c.strokeStyle="#8adfff";c.lineWidth=1
-        for(let j=1;j<5;j++){const gy=baseY-(canvas.height*.86)*(j/5);c.beginPath();c.moveTo(8,gy);c.lineTo(canvas.width-8,gy);c.stroke()}c.restore()
-      }else{meterRef.current={left:-60,right:-60};setLeftVU(-60);setRightVU(-60)}
-      animRef.current=requestAnimationFrame(draw)
+        for(let j=1;j<5;j++){const gy=baseY-(canvas.height*.86)*(j/5);c.beginPath();c.moveTo(8,gy);c.lineTo(canvas.width-8,gy);c.stroke()}
+        c.restore()
+      }
+      raf=requestAnimationFrame(drawSpectrum)
     }
-    draw();return()=>cancelAnimationFrame(animRef.current)
+    drawSpectrum()
+    return()=>cancelAnimationFrame(raf)
   },[playing])
 
   const play=async()=>{const audio=audioRef.current;if(!audio)return;try{const ctx=await setupAudio();if(ctx?.state==="suspended")await ctx.resume();await audio.play();setPlaying(true)}catch{setPlaying(false)}}
