@@ -119,27 +119,6 @@ export default function TracksPlayer({ onClose }) {
 
         for(let i=0;i<bars;i++){
           const f1=i===0?0:14*Math.pow(ratio,i-1),f2=i===0?14:14*Math.pow(ratio,i)
-          if(i===0){
-            const hz=binHz
-            const rangeMax=(a,b)=>{
-              const x=Math.max(0,Math.floor(a/hz)),y=Math.min(ld.length-1,Math.ceil(b/hz))
-              let m=0
-              for(let k=x;k<=y;k++)m=Math.max(m,ld[k])
-              return m
-            }
-            c.save()
-            c.fillStyle="#fff"
-            c.font="11px monospace"
-            c.fillText(
-              "FFT  0-14:"+rangeMax(0,14)+
-              "   14-25:"+rangeMax(14,25)+
-              "   25-500:"+rangeMax(25,500)+
-              "   500-2000:"+rangeMax(500,2000),
-              12,18
-            )
-            c.restore()
-          }
-
           // Frequency-band sampling adapted from audioMotion:
           // convert exact Hz boundaries to fractional FFT-bin positions
           // and interpolate the boundary values instead of blindly
@@ -154,28 +133,21 @@ export default function TracksPlayer({ onClose }) {
             return (ld[a]+(ld[b]-ld[a])*t)/255
           }
 
-          let sum=0,count=0,max=0
-          if(hi<=lo){
-            const v=sampleAt((lo+hi)*.5)
-            sum=v;count=1;max=v
-          }else{
-            const first=Math.ceil(lo),last=Math.floor(hi)
-            const left=sampleAt(lo),right=sampleAt(hi)
-            sum+=left;count++;max=Math.max(max,left)
+          let sum=0,weight=0,max=0
+          const first=Math.max(0,Math.floor(lo))
+          const last=Math.min(ld.length-1,Math.ceil(hi))
 
-            for(let b=first;b<=last;b++){
-              if(b<lo||b>hi)continue
-              const v=ld[b]/255
-              sum+=v;count++;if(v>max)max=v
-            }
-
-            if(hi>first){
-              sum+=right;count++;max=Math.max(max,right)
-            }
+          for(let b=first;b<=last;b++){
+            const overlap=Math.max(0,Math.min(hi,b+1)-Math.max(lo,b))
+            if(overlap<=0)continue
+            const v=ld[b]/255
+            sum+=v*overlap
+            weight+=overlap
+            if(v>max)max=v
           }
 
-          const avg=count?sum/count:0
-          const raw=Math.pow(avg*.74+max*.26,.78)
+          const avg=weight?sum/weight:0
+          const raw=Math.pow(avg*.92+max*.08,.82)
           const signalStrength=0
           const bandEnergy=clamp(raw*(.72+signalStrength*2.1),0,1)
           const target=bandEnergy*(.82+Math.sin(i*.73)*.045)
