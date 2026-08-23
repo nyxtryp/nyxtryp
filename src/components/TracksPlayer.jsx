@@ -120,10 +120,23 @@ export default function TracksPlayer({ onClose }) {
         for(let i=0;i<bars;i++){
           const f1=i===0?0:14*Math.pow(ratio,i-1),f2=i===0?14:14*Math.pow(ratio,i)
           if(i===0){
+            const hz=binHz
+            const rangeMax=(a,b)=>{
+              const x=Math.max(0,Math.floor(a/hz)),y=Math.min(ld.length-1,Math.ceil(b/hz))
+              let m=0
+              for(let k=x;k<=y;k++)m=Math.max(m,ld[k])
+              return m
+            }
             c.save()
             c.fillStyle="#fff"
-            c.font="10px monospace"
-            c.fillText("FFT: "+Array.from(ld.slice(0,16)).map((v,n)=>n+":"+v).join(" "),12,18)
+            c.font="11px monospace"
+            c.fillText(
+              "FFT  0-14:"+rangeMax(0,14)+
+              "   14-25:"+rangeMax(14,25)+
+              "   25-500:"+rangeMax(25,500)+
+              "   500-2000:"+rangeMax(500,2000),
+              12,18
+            )
             c.restore()
           }
 
