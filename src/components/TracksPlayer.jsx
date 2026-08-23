@@ -110,8 +110,9 @@ export default function TracksPlayer({ onClose }) {
         const ld=new Uint8Array(spectrum.frequencyBinCount)
         spectrum.getByteFrequencyData(ld)
 
-        const bars=64,minHz=14,maxHz=Math.min(25000,(ctxRef.current?.sampleRate||44100)/2),binHz=maxHz/ld.length
-        const ratio=Math.pow(25000/14,1/63)
+        const bars=64,minHz=14,maxHz=Math.min(25000,(ctxRef.current?.sampleRate||44100)/2)
+        const nyquist=(ctxRef.current?.sampleRate||44100)/2,binHz=nyquist/ld.length
+        const ratio=Math.pow(maxHz/minHz,1/63)
         const last=drawSpectrum.lastTime||now,dt=clamp(now-last,1,80);drawSpectrum.lastTime=now
         const gap=2.2,pad=12,barWidth=(canvas.width-pad*2-gap*(bars-1))/bars,smoothed=spectrumRef.current,velocity=velocityRef.current,peaks=peakRef.current
         const baseY=canvas.height-8,maxBarHeight=canvas.height*.86,depth=Math.max(3,Math.min(8,canvas.width/150))
