@@ -56,7 +56,7 @@ export default function TracksPlayer({ onClose }) {
     const AC = window.AudioContext || window.webkitAudioContext
     if (!AC) return null
     const ctx = new AC(), source = ctx.createMediaElementSource(audio), split = ctx.createChannelSplitter(2), left = ctx.createAnalyser(), right = ctx.createAnalyser(), spectrum = ctx.createAnalyser()
-    left.fftSize = right.fftSize = 1024; spectrum.fftSize = 1024
+    left.fftSize = right.fftSize = 1024; spectrum.fftSize = 32768
     left.smoothingTimeConstant = right.smoothingTimeConstant = 0; spectrum.smoothingTimeConstant = 0
     source.connect(split); split.connect(left,0); split.connect(right,1); split.connect(spectrum,0); source.connect(ctx.destination)
     ctxRef.current = ctx; splitRef.current = {left,right,spectrum}; return ctx
@@ -110,13 +110,14 @@ export default function TracksPlayer({ onClose }) {
         const ld=new Uint8Array(spectrum.frequencyBinCount)
         spectrum.getByteFrequencyData(ld)
 
-        const bars=64,minHz=30,maxHz=Math.min(16000,(ctxRef.current?.sampleRate||44100)/2),binHz=maxHz/ld.length,logMin=Math.log(minHz),logMax=Math.log(maxHz)
+        const bars=64,minHz=14,maxHz=Math.min(25000,(ctxRef.current?.sampleRate||44100)/2),binHz=maxHz/ld.length
+        const ratio=Math.pow(25000/14,1/63)
         const last=drawSpectrum.lastTime||now,dt=clamp(now-last,1,80);drawSpectrum.lastTime=now
         const gap=2.2,pad=12,barWidth=(canvas.width-pad*2-gap*(bars-1))/bars,smoothed=spectrumRef.current,velocity=velocityRef.current,peaks=peakRef.current
         const baseY=canvas.height-8,maxBarHeight=canvas.height*.86,depth=Math.max(3,Math.min(8,canvas.width/150))
 
         for(let i=0;i<bars;i++){
-          const f1=Math.exp(logMin+(logMax-logMin)*(i/bars)),f2=Math.exp(logMin+(logMax-logMin)*((i+1)/bars))
+          const f1=i===0?0:14*Math.pow(ratio,i-1),f2=i===0?14:14*Math.pow(ratio,i)
           const b1=Math.max(0,Math.floor(f1/binHz)),b2=Math.min(ld.length-1,Math.max(b1,Math.ceil(f2/binHz)))
           let sum=0,count=0,max=0
           for(let b=b1;b<=b2;b++){const v=ld[b]/255;sum+=v;count++;if(v>max)max=v}
