@@ -55,11 +55,11 @@ export default function TracksPlayer({ onClose }) {
     if (ctxRef.current) { if (ctxRef.current.state === "suspended") await ctxRef.current.resume(); return ctxRef.current }
     const AC = window.AudioContext || window.webkitAudioContext
     if (!AC) return null
-    const ctx = new AC(), source = ctx.createMediaElementSource(audio), split = ctx.createChannelSplitter(2), left = ctx.createAnalyser(), right = ctx.createAnalyser()
-    left.fftSize = right.fftSize = 1024
-    left.smoothingTimeConstant = right.smoothingTimeConstant = 0
-    source.connect(split); split.connect(left,0); split.connect(right,1); source.connect(ctx.destination)
-    ctxRef.current = ctx; splitRef.current = {left,right}; return ctx
+    const ctx = new AC(), source = ctx.createMediaElementSource(audio), split = ctx.createChannelSplitter(2), left = ctx.createAnalyser(), right = ctx.createAnalyser(), spectrum = ctx.createAnalyser()
+    left.fftSize = right.fftSize = 1024; spectrum.fftSize = 1024
+    left.smoothingTimeConstant = right.smoothingTimeConstant = 0; spectrum.smoothingTimeConstant = 0
+    source.connect(split); split.connect(left,0); split.connect(right,1); split.connect(spectrum,0); source.connect(ctx.destination)
+    ctxRef.current = ctx; splitRef.current = {left,right,spectrum}; return ctx
   }
 
   useEffect(() => {
@@ -106,8 +106,9 @@ export default function TracksPlayer({ onClose }) {
       const c=canvas.getContext("2d"),split=splitRef.current,now=performance.now()
       c.clearRect(0,0,canvas.width,canvas.height)
       if(split){
-        const ld=new Uint8Array(split.left.frequencyBinCount),rd=new Uint8Array(split.right.frequencyBinCount)
-        split.left.getByteFrequencyData(ld);split.right.getByteFrequencyData(rd)
+        const spectrum=split.spectrum
+        const ld=new Uint8Array(spectrum.frequencyBinCount)
+        spectrum.getByteFrequencyData(ld)
 
         const bars=64,minHz=30,maxHz=Math.min(16000,(ctxRef.current?.sampleRate||44100)/2),binHz=maxHz/ld.length,logMin=Math.log(minHz),logMax=Math.log(maxHz)
         const last=drawSpectrum.lastTime||now,dt=clamp(now-last,1,80);drawSpectrum.lastTime=now
@@ -118,7 +119,7 @@ export default function TracksPlayer({ onClose }) {
           const f1=Math.exp(logMin+(logMax-logMin)*(i/bars)),f2=Math.exp(logMin+(logMax-logMin)*((i+1)/bars))
           const b1=Math.max(0,Math.floor(f1/binHz)),b2=Math.min(ld.length-1,Math.max(b1,Math.ceil(f2/binHz)))
           let sum=0,count=0,max=0
-          for(let b=b1;b<=b2;b++){const v=(ld[b]+rd[b])/510;sum+=v;count++;if(v>max)max=v}
+          for(let b=b1;b<=b2;b++){const v=ld[b]/255;sum+=v;count++;if(v>max)max=v}
           const avg=count?sum/count:0
           const raw=Math.pow(avg*.74+max*.26,.78)
           const signalStrength=0
