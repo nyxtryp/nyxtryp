@@ -119,6 +119,9 @@ export default function TracksPlayer({ onClose }) {
 
         for(let i=0;i<bars;i++){
           const f1=i===0?0:14*Math.pow(ratio,i-1),f2=i===0?14:14*Math.pow(ratio,i)
+          if(i===0 && Math.random()<0.01){
+            console.log("FFT LOW BINS",Array.from(ld.slice(0,31)).map((v,n)=>n+":"+v))
+          }
 
           // Frequency-band sampling adapted from audioMotion:
           // convert exact Hz boundaries to fractional FFT-bin positions
