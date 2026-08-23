@@ -133,21 +133,20 @@ export default function TracksPlayer({ onClose }) {
             return (ld[a]+(ld[b]-ld[a])*t)/255
           }
 
-          let sum=0,weight=0,max=0
           const first=Math.max(0,Math.floor(lo))
           const last=Math.min(ld.length-1,Math.ceil(hi))
+          let energy=0,count=0
 
           for(let b=first;b<=last;b++){
             const overlap=Math.max(0,Math.min(hi,b+1)-Math.max(lo,b))
             if(overlap<=0)continue
             const v=ld[b]/255
-            sum+=v*overlap
-            weight+=overlap
-            if(v>max)max=v
+            energy+=v*v*overlap
+            count+=overlap
           }
 
-          const avg=weight?sum/weight:0
-          const raw=Math.pow(avg*.92+max*.08,.82)
+          const rms=count?Math.sqrt(energy/count):0
+          const raw=Math.pow(rms,.72)
           const signalStrength=0
           const bandEnergy=clamp(raw*(.72+signalStrength*2.1),0,1)
           const target=bandEnergy*(.82+Math.sin(i*.73)*.045)
