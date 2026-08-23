@@ -110,43 +110,31 @@ export default function TracksPlayer({ onClose }) {
         const ld=new Uint8Array(spectrum.frequencyBinCount)
         spectrum.getByteFrequencyData(ld)
 
-        const bars=64,minHz=14,maxHz=Math.min(25000,(ctxRef.current?.sampleRate||44100)/2)
-        const nyquist=(ctxRef.current?.sampleRate||44100)/2,binHz=nyquist/ld.length
-        const ratio=Math.pow(maxHz/minHz,1/63)
+        const bars=64
+        const minHz=20
+        const maxHz=Math.min(25000,(ctxRef.current?.sampleRate||44100)/2)
+        const nyquist=(ctxRef.current?.sampleRate||44100)/2
         const last=drawSpectrum.lastTime||now,dt=clamp(now-last,1,80);drawSpectrum.lastTime=now
         const gap=2.2,pad=12,barWidth=(canvas.width-pad*2-gap*(bars-1))/bars,smoothed=spectrumRef.current,velocity=velocityRef.current,peaks=peakRef.current
         const baseY=canvas.height-8,maxBarHeight=canvas.height*.86,depth=Math.max(3,Math.min(8,canvas.width/150))
 
         for(let i=0;i<bars;i++){
-          const f1=i===0?0:14*Math.pow(ratio,i-1),f2=i===0?14:14*Math.pow(ratio,i)
-          // Frequency-band sampling adapted from audioMotion:
-          // convert exact Hz boundaries to fractional FFT-bin positions
-          // and interpolate the boundary values instead of blindly
-          // including neighbouring bins.
-          const p1=f1/binHz,p2=f2/binHz
-          const lo=Math.max(0,p1),hi=Math.min(ld.length-1,p2)
+          // 64 независимых столбика по логарифмической шкале частот.
+          const t=i/(bars-1)
+          const freq=minHz*Math.pow(maxHz/minHz,t)
 
-          const sampleAt=pos=>{
-            const a=Math.max(0,Math.min(ld.length-1,Math.floor(pos)))
-            const b=Math.min(ld.length-1,a+1)
-            const t=pos-a
-            return (ld[a]+(ld[b]-ld[a])*t)/255
-          }
+          // FFT bins идут линейно по частоте.
+          const bin=Math.max(
+            0,
+            Math.min(
+              ld.length-1,
+              Math.floor((freq/nyquist)*ld.length)
+            )
+          )
 
-          const first=Math.max(0,Math.floor(lo))
-          const last=Math.min(ld.length-1,Math.ceil(hi))
-          let energy=0,count=0
+          // Каждый столбик получает только своё FFT-значение.
+          const raw=Math.pow(ld[bin]/255,.72)
 
-          for(let b=first;b<=last;b++){
-            const overlap=Math.max(0,Math.min(hi,b+1)-Math.max(lo,b))
-            if(overlap<=0)continue
-            const v=ld[b]/255
-            energy+=v*v*overlap
-            count+=overlap
-          }
-
-          const rms=count?Math.sqrt(energy/count):0
-          const raw=Math.pow(rms,.72)
           const signalStrength=0
           const bandEnergy=clamp(raw*(.72+signalStrength*2.1),0,1)
           const target=bandEnergy*(.82+Math.sin(i*.73)*.045)
