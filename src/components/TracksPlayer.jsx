@@ -119,8 +119,12 @@ export default function TracksPlayer({ onClose }) {
 
         for(let i=0;i<bars;i++){
           const f1=i===0?0:14*Math.pow(ratio,i-1),f2=i===0?14:14*Math.pow(ratio,i)
-          if(i===0 && Math.random()<0.01){
-            console.log("FFT LOW BINS",Array.from(ld.slice(0,31)).map((v,n)=>n+":"+v))
+          if(i===0){
+            c.save()
+            c.fillStyle="#fff"
+            c.font="10px monospace"
+            c.fillText("FFT: "+Array.from(ld.slice(0,16)).map((v,n)=>n+":"+v).join(" "),12,18)
+            c.restore()
           }
 
           // Frequency-band sampling adapted from audioMotion:
