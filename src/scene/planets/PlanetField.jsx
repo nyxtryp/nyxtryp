@@ -2212,8 +2212,13 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
               mesh !==
               selectedPlanet
             ) {
-              mesh.rotation.y +=
-                speed
+              if (mesh.userData.name === "VIDEOS") {
+                mesh.rotation.y -=
+                  speed
+              } else {
+                mesh.rotation.y +=
+                  speed
+              }
             }
 
             // ======================================================
