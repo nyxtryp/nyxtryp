@@ -2129,19 +2129,43 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
 
             if (youtube) {
 
-              const orbitAngle =
-                performance.now() * 0.0005
-
               const orbitRadius =
                 mesh.geometry.parameters.radius * 1.9
 
-              youtube.position.set(
-                Math.cos(orbitAngle) * orbitRadius,
-                Math.sin(orbitAngle * 0.7) *
-                  mesh.geometry.parameters.radius * 0.45,
-                Math.sin(orbitAngle) * orbitRadius
-              )
+              if (
+                mesh === selectedPlanet &&
+                cameraDistance < 10
+              ) {
 
+                // When VIDEOS approaches the camera,
+                // YOUTUBE settles permanently to the left.
+                youtube.position.lerp(
+                  new THREE.Vector3(
+                    -orbitRadius,
+                    0,
+                    0
+                  ),
+                  0.08
+                )
+
+              } else {
+
+                // Normal space orbit around VIDEOS.
+                const orbitAngle =
+                  performance.now() * 0.0005
+
+                youtube.position.set(
+                  Math.cos(orbitAngle) *
+                    orbitRadius,
+                  Math.sin(orbitAngle * 0.7) *
+                    mesh.geometry.parameters.radius *
+                    0.45,
+                  Math.sin(orbitAngle) *
+                    orbitRadius
+                )
+              }
+
+              // YOUTUBE rotates opposite to VIDEOS.
               youtube.rotation.y -=
                 0.002
             }
