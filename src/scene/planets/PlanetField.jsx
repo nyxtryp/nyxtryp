@@ -2270,8 +2270,8 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
 
                 // Horizontal orbit around VIDEOS.
                 // Opposite direction to VIDEOS rotation.
-                videosSatellites.userData.orbitAngle +=
-                  speed
+                videosSatellites.userData.orbitAngle -=
+                  speed * 6.0
 
                 const angle =
                   videosSatellites.userData.orbitAngle
@@ -2318,6 +2318,22 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
                 videosActive
                   ? "0.8"
                   : "0"
+
+              if (
+                videosActive &&
+                object.nameLabel
+              ) {
+                object.nameLabel.style.opacity =
+                  "0.8"
+              }
+
+              if (
+                videosActive &&
+                object.nameLabel
+              ) {
+                object.nameLabel.style.opacity =
+                  "0.8"
+              }
 
               // VIDEOS label keeps its normal visibility logic.
               // YOUTUBE label is shown on arrival together with it.
