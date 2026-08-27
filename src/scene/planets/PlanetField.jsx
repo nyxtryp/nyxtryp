@@ -2121,6 +2121,32 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
             }
 
             // ======================================================
+            // VIDEOS / YOUTUBE SATELLITE MOTION
+            // ======================================================
+
+            const youtube =
+              mesh.userData.youtube
+
+            if (youtube) {
+
+              const orbitAngle =
+                performance.now() * 0.0005
+
+              const orbitRadius =
+                mesh.geometry.parameters.radius * 1.9
+
+              youtube.position.set(
+                Math.cos(orbitAngle) * orbitRadius,
+                Math.sin(orbitAngle * 0.7) *
+                  mesh.geometry.parameters.radius * 0.45,
+                Math.sin(orbitAngle) * orbitRadius
+              )
+
+              youtube.rotation.y -=
+                0.002
+            }
+
+            // ======================================================
             // AUDIO MENU SATELLITE MOTION
             // ======================================================
 
