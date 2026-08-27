@@ -1877,10 +1877,282 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
 
         if (youtubeSatellite) {
 
-          window.open(
-            "https://www.youtube.com/@EvgeniyValion",
-            "_blank",
-            "noopener,noreferrer"
+          // YOUTUBE is clickable ONLY when VIDEOS
+          // has arrived at the camera.
+          const youtubeIsActive =
+            selectedPlanet &&
+            selectedPlanet.userData.name === "VIDEOS" &&
+            cameraDistance < 10
+
+          // In free space YOUTUBE is completely non-clickable.
+          if (!youtubeIsActive) {
+            isDragging = false
+            pointerMoved = false
+            pendingReturn = false
+            return
+          }
+
+          // ====================================================
+          // YOUTUBE WINDOW
+          // Opens inside NYXTRYP instead of a new browser tab.
+          // ====================================================
+
+          const existingWindow =
+            document.getElementById(
+              "nyxtryp-youtube-window"
+            )
+
+          if (existingWindow) {
+            existingWindow.remove()
+          }
+
+          const overlay =
+            document.createElement("div")
+
+          overlay.id =
+            "nyxtryp-youtube-window"
+
+          overlay.style.position =
+            "absolute"
+
+          overlay.style.left =
+            "0"
+
+          overlay.style.top =
+            "0"
+
+          overlay.style.width =
+            "100%"
+
+          overlay.style.height =
+            "100%"
+
+          overlay.style.background =
+            "rgba(0,0,0,0.72)"
+
+          overlay.style.backdropFilter =
+            "blur(6px)"
+
+          overlay.style.webkitBackdropFilter =
+            "blur(6px)"
+
+          overlay.style.zIndex =
+            "100"
+
+          overlay.style.display =
+            "flex"
+
+          overlay.style.alignItems =
+            "center"
+
+          overlay.style.justifyContent =
+            "center"
+
+          overlay.style.padding =
+            "20px"
+
+          overlay.style.boxSizing =
+            "border-box"
+
+          const windowBox =
+            document.createElement("div")
+
+          windowBox.style.position =
+            "relative"
+
+          windowBox.style.width =
+            "min(900px, 92vw)"
+
+          windowBox.style.height =
+            "min(620px, 82vh)"
+
+          windowBox.style.background =
+            "#050505"
+
+          windowBox.style.border =
+            "1px solid rgba(255,48,48,0.8)"
+
+          windowBox.style.boxShadow =
+            "0 0 35px rgba(255,0,0,0.25), inset 0 0 25px rgba(255,0,0,0.05)"
+
+          windowBox.style.borderRadius =
+            "4px"
+
+          windowBox.style.overflow =
+            "hidden"
+
+          const header =
+            document.createElement("div")
+
+          header.style.position =
+            "absolute"
+
+          header.style.left =
+            "0"
+
+          header.style.top =
+            "0"
+
+          header.style.width =
+            "100%"
+
+          header.style.height =
+            "42px"
+
+          header.style.background =
+            "rgba(8,8,8,0.96)"
+
+          header.style.borderBottom =
+            "1px solid rgba(255,48,48,0.35)"
+
+          header.style.display =
+            "flex"
+
+          header.style.alignItems =
+            "center"
+
+          header.style.padding =
+            "0 14px"
+
+          header.style.boxSizing =
+            "border-box"
+
+          header.style.zIndex =
+            "3"
+
+          const title =
+            document.createElement("div")
+
+          title.textContent =
+            "YOUTUBE"
+
+          title.style.color =
+            "#ffffff"
+
+          title.style.fontFamily =
+            "Arial, Helvetica, sans-serif"
+
+          title.style.fontSize =
+            "10px"
+
+          title.style.fontWeight =
+            "400"
+
+          title.style.letterSpacing =
+            "0.32em"
+
+          header.appendChild(
+            title
+          )
+
+          const close =
+            document.createElement("button")
+
+          close.textContent =
+            "×"
+
+          close.style.position =
+            "absolute"
+
+          close.style.right =
+            "10px"
+
+          close.style.top =
+            "5px"
+
+          close.style.width =
+            "30px"
+
+          close.style.height =
+            "30px"
+
+          close.style.border =
+            "0"
+
+          close.style.background =
+            "transparent"
+
+          close.style.color =
+            "#ffffff"
+
+          close.style.fontSize =
+            "25px"
+
+          close.style.fontWeight =
+            "300"
+
+          close.style.cursor =
+            "pointer"
+
+          close.style.lineHeight =
+            "30px"
+
+          close.style.padding =
+            "0"
+
+          close.onclick =
+            () => overlay.remove()
+
+          header.appendChild(
+            close
+          )
+
+          const frame =
+            document.createElement("iframe")
+
+          frame.src =
+            "https://www.youtube.com/@EvgeniyValion"
+
+          frame.style.position =
+            "absolute"
+
+          frame.style.left =
+            "0"
+
+          frame.style.top =
+            "42px"
+
+          frame.style.width =
+            "100%"
+
+          frame.style.height =
+            "calc(100% - 42px)"
+
+          frame.style.border =
+            "0"
+
+          frame.style.background =
+            "#000000"
+
+          frame.allow =
+            "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+
+          frame.allowFullscreen =
+            true
+
+          windowBox.appendChild(
+            header
+          )
+
+          windowBox.appendChild(
+            frame
+          )
+
+          overlay.appendChild(
+            windowBox
+          )
+
+          overlay.onclick =
+            (event) => {
+              if (
+                event.target === overlay
+              ) {
+                overlay.remove()
+              }
+            }
+
+          el.appendChild(
+            overlay
           )
 
           isDragging = false
