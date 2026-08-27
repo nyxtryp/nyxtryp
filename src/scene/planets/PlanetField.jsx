@@ -2097,45 +2097,238 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
             close
           )
 
-          const frame =
-            document.createElement("iframe")
+          const content =
+            document.createElement("div")
 
-          frame.src =
-            "https://www.youtube.com/@EvgeniyValion"
-
-          frame.style.position =
+          content.style.position =
             "absolute"
 
-          frame.style.left =
+          content.style.left =
             "0"
 
-          frame.style.top =
+          content.style.top =
             "42px"
 
-          frame.style.width =
+          content.style.width =
             "100%"
 
-          frame.style.height =
+          content.style.height =
             "calc(100% - 42px)"
 
-          frame.style.border =
-            "0"
+          content.style.background =
+            "#050505"
 
-          frame.style.background =
+          content.style.display =
+            "flex"
+
+          content.style.flexDirection =
+            "column"
+
+          content.style.alignItems =
+            "center"
+
+          content.style.boxSizing =
+            "border-box"
+
+          content.style.padding =
+            "34px 24px"
+
+          const channel =
+            document.createElement("div")
+
+          channel.style.width =
+            "min(680px, 100%)"
+
+          channel.style.border =
+            "1px solid rgba(255,48,48,0.35)"
+
+          channel.style.background =
+            "rgba(12,12,12,0.96)"
+
+          channel.style.boxShadow =
+            "0 0 30px rgba(255,0,0,0.08)"
+
+          channel.style.padding =
+            "28px"
+
+          channel.style.boxSizing =
+            "border-box"
+
+          const channelTitle =
+            document.createElement("div")
+
+          channelTitle.textContent =
+            "@EvgeniyValion"
+
+          channelTitle.style.color =
+            "#ffffff"
+
+          channelTitle.style.fontFamily =
+            "Arial, Helvetica, sans-serif"
+
+          channelTitle.style.fontSize =
+            "24px"
+
+          channelTitle.style.letterSpacing =
+            "0.08em"
+
+          channelTitle.style.marginBottom =
+            "10px"
+
+          const channelInfo =
+            document.createElement("div")
+
+          channelInfo.textContent =
+            "YOUTUBE CHANNEL"
+
+          channelInfo.style.color =
+            "rgba(255,255,255,0.45)"
+
+          channelInfo.style.fontFamily =
+            "Arial, Helvetica, sans-serif"
+
+          channelInfo.style.fontSize =
+            "10px"
+
+          channelInfo.style.letterSpacing =
+            "0.25em"
+
+          channelInfo.style.marginBottom =
+            "28px"
+
+          const search =
+            document.createElement("input")
+
+          search.type =
+            "text"
+
+          search.placeholder =
+            "Search YouTube..."
+
+          search.value =
+            "@EvgeniyValion"
+
+          search.style.width =
+            "100%"
+
+          search.style.height =
+            "42px"
+
+          search.style.background =
             "#000000"
 
-          frame.allow =
-            "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          search.style.border =
+            "1px solid rgba(255,255,255,0.18)"
 
-          frame.allowFullscreen =
-            true
+          search.style.color =
+            "#ffffff"
+
+          search.style.padding =
+            "0 14px"
+
+          search.style.boxSizing =
+            "border-box"
+
+          search.style.outline =
+            "none"
+
+          search.style.fontFamily =
+            "Arial, Helvetica, sans-serif"
+
+          search.style.fontSize =
+            "13px"
+
+          const open =
+            document.createElement("button")
+
+          open.textContent =
+            "OPEN YOUTUBE"
+
+          open.style.marginTop =
+            "18px"
+
+          open.style.width =
+            "100%"
+
+          open.style.height =
+            "42px"
+
+          open.style.border =
+            "1px solid rgba(255,48,48,0.8)"
+
+          open.style.background =
+            "rgba(255,48,48,0.12)"
+
+          open.style.color =
+            "#ffffff"
+
+          open.style.fontFamily =
+            "Arial, Helvetica, sans-serif"
+
+          open.style.fontSize =
+            "10px"
+
+          open.style.letterSpacing =
+            "0.25em"
+
+          open.style.cursor =
+            "pointer"
+
+          open.onclick =
+            () => {
+              window.open(
+                "https://www.youtube.com/@EvgeniyValion",
+                "_blank",
+                "noopener,noreferrer"
+              )
+            }
+
+          search.onkeydown =
+            (event) => {
+              if (
+                event.key === "Enter"
+              ) {
+                const query =
+                  encodeURIComponent(
+                    search.value.trim()
+                  )
+
+                if (query) {
+                  window.open(
+                    "https://www.youtube.com/results?search_query=" + query,
+                    "_blank",
+                    "noopener,noreferrer"
+                  )
+                }
+              }
+            }
+
+          channel.appendChild(
+            channelTitle
+          )
+
+          channel.appendChild(
+            channelInfo
+          )
+
+          channel.appendChild(
+            search
+          )
+
+          channel.appendChild(
+            open
+          )
+
+          content.appendChild(
+            channel
+          )
 
           windowBox.appendChild(
             header
           )
 
           windowBox.appendChild(
-            frame
+            content
           )
 
           overlay.appendChild(
