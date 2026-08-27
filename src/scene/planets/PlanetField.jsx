@@ -1235,6 +1235,94 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
             audioSatellites
         }
 
+        // ========================================================
+        // VIDEOS / YOUTUBE SATELLITE
+        // Separate system. AUDIO is untouched.
+        // ========================================================
+
+        if (data.name === "VIDEOS") {
+
+          const videosSatellites =
+            new THREE.Group()
+
+          videosSatellites.name =
+            "VIDEOS_SATELLITES"
+
+          const youtube =
+            new THREE.Group()
+
+          youtube.name =
+            "YOUTUBE"
+
+          const youtubePlanet =
+            new THREE.Mesh(
+              new THREE.SphereGeometry(
+                data.radius * 0.20,
+                32,
+                32
+              ),
+              new THREE.MeshStandardMaterial({
+                color: 0x151515,
+                metalness: 0.65,
+                roughness: 0.25,
+                emissive: 0x300000,
+                emissiveIntensity: 0.55
+              })
+            )
+
+          youtube.add(
+            youtubePlanet
+          )
+
+          const youtubeRing =
+            new THREE.Mesh(
+              new THREE.TorusGeometry(
+                data.radius * 0.30,
+                data.radius * 0.015,
+                10,
+                48
+              ),
+              new THREE.MeshBasicMaterial({
+                color: 0xff3030,
+                transparent: true,
+                opacity: 0.9
+              })
+            )
+
+          youtubeRing.rotation.x =
+            Math.PI * 0.43
+
+          youtubeRing.rotation.z =
+            Math.PI * 0.18
+
+          youtube.add(
+            youtubeRing
+          )
+
+          youtube.position.set(
+            data.radius * 2.0,
+            0,
+            0
+          )
+
+          videosSatellites.add(
+            youtube
+          )
+
+          videosSatellites.userData.youtube =
+            youtube
+
+          videosSatellites.userData.freePosition =
+            youtube.position.clone()
+
+          planet.add(
+            videosSatellites
+          )
+
+          planet.userData.videosSatellites =
+            videosSatellites
+        }
+
         const object = {
           mesh: planet,
           speed: data.speed,
