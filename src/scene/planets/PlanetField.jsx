@@ -1257,7 +1257,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
           const youtubePlanet =
             new THREE.Mesh(
               new THREE.SphereGeometry(
-                data.radius * 0.30,
+                data.radius * 0.55,
                 32,
                 32
               ),
@@ -2260,7 +2260,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
 
                 // Horizontal orbit around VIDEOS.
                 // Opposite direction to VIDEOS rotation.
-                videosSatellites.userData.orbitAngle -=
+                videosSatellites.userData.orbitAngle +=
                   speed
 
                 const angle =
@@ -2308,6 +2308,15 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
                 videosActive
                   ? "0.8"
                   : "0"
+
+              // VIDEOS label must appear together with YOUTUBE
+              // when VIDEOS arrives at the camera.
+              if (object.nameLabel) {
+                object.nameLabel.style.opacity =
+                  videosActive
+                    ? "0.8"
+                    : "0"
+              }
             }
 
             // ======================================================
