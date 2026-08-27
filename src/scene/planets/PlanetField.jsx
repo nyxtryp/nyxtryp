@@ -1257,7 +1257,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
           const youtubePlanet =
             new THREE.Mesh(
               new THREE.SphereGeometry(
-                data.radius * 0.20,
+                data.radius * 0.30,
                 32,
                 32
               ),
@@ -1277,8 +1277,8 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
           const youtubeRing =
             new THREE.Mesh(
               new THREE.TorusGeometry(
-                data.radius * 0.30,
-                data.radius * 0.015,
+                data.radius * 0.42,
+                data.radius * 0.018,
                 10,
                 48
               ),
@@ -1314,6 +1314,21 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
 
           videosSatellites.userData.freePosition =
             youtube.position.clone()
+
+          videosSatellites.userData.orbitRadius =
+            data.radius * 2.0
+
+          videosSatellites.userData.orbitAngle =
+            0
+
+          videosSatellites.userData.inverseQuaternion =
+            new THREE.Quaternion()
+
+          videosSatellites.userData.targetPosition =
+            new THREE.Vector3()
+
+          videosSatellites.userData.worldPosition =
+            new THREE.Vector3()
 
           planet.add(
             videosSatellites
@@ -1539,6 +1554,64 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         audioMenuLabels[name] =
           menuLabel
       }
+    )
+
+    // ============================================================
+    // YOUTUBE LABEL
+    // ============================================================
+
+    const youtubeLabel =
+      document.createElement(
+        "div"
+      )
+
+    youtubeLabel.style.position =
+      "absolute"
+
+    youtubeLabel.style.left =
+      "0"
+
+    youtubeLabel.style.top =
+      "0"
+
+    youtubeLabel.style.transform =
+      "translate(-50%, -50%)"
+
+    youtubeLabel.style.color =
+      "#ffffff"
+
+    youtubeLabel.style.fontSize =
+      "9px"
+
+    youtubeLabel.style.fontFamily =
+      "Arial, Helvetica, sans-serif"
+
+    youtubeLabel.style.fontWeight =
+      "400"
+
+    youtubeLabel.style.letterSpacing =
+      "0.32em"
+
+    youtubeLabel.style.whiteSpace =
+      "nowrap"
+
+    youtubeLabel.style.pointerEvents =
+      "none"
+
+    youtubeLabel.style.opacity =
+      "0"
+
+    youtubeLabel.style.transition =
+      "opacity 0.25s ease"
+
+    youtubeLabel.style.zIndex =
+      "21"
+
+    youtubeLabel.textContent =
+      "YOUTUBE"
+
+    el.appendChild(
+      youtubeLabel
     )
 
     // ============================================================
@@ -2135,6 +2208,106 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
             ) {
               mesh.rotation.y +=
                 speed
+            }
+
+            // ======================================================
+            // VIDEOS / YOUTUBE SATELLITE MOTION
+            // ======================================================
+
+            const videosSatellites =
+              mesh.userData.videosSatellites
+
+            if (videosSatellites) {
+
+              const youtube =
+                videosSatellites.userData.youtube
+
+              const orbitRadius =
+                videosSatellites.userData.orbitRadius
+
+              const videosActive =
+                mesh === selectedPlanet &&
+                cameraDistance < 10
+
+              if (videosActive) {
+
+                // Keep YOUTUBE strictly left on screen,
+                // even when VIDEOS itself is manually rotated.
+                const inverseQuaternion =
+                  videosSatellites.userData.inverseQuaternion
+
+                inverseQuaternion.copy(
+                  mesh.quaternion
+                ).invert()
+
+                const targetPosition =
+                  videosSatellites.userData.targetPosition
+
+                targetPosition.set(
+                  -orbitRadius,
+                  0,
+                  0
+                ).applyQuaternion(
+                  inverseQuaternion
+                )
+
+                youtube.position.lerp(
+                  targetPosition,
+                  0.08
+                )
+
+              } else {
+
+                // Horizontal orbit around VIDEOS.
+                // Opposite direction to VIDEOS rotation.
+                videosSatellites.userData.orbitAngle -=
+                  speed
+
+                const angle =
+                  videosSatellites.userData.orbitAngle
+
+                youtube.position.set(
+                  Math.cos(angle) *
+                    orbitRadius,
+                  0,
+                  Math.sin(angle) *
+                    orbitRadius
+                )
+              }
+
+              // Show YOUTUBE label only when VIDEOS arrives.
+              const worldPosition =
+                videosSatellites.userData.worldPosition
+
+              youtube.getWorldPosition(
+                worldPosition
+              )
+
+              worldPosition.y +=
+                mesh.geometry.parameters.radius *
+                0.65
+
+              worldPosition.project(
+                camera
+              )
+
+              const rect =
+                canvas.getBoundingClientRect()
+
+              youtubeLabel.style.left =
+                ((worldPosition.x + 1) / 2 *
+                  rect.width) +
+                "px"
+
+              youtubeLabel.style.top =
+                ((-worldPosition.y + 1) / 2 *
+                  rect.height) +
+                "px"
+
+              youtubeLabel.style.opacity =
+                videosActive
+                  ? "0.8"
+                  : "0"
             }
 
             // ======================================================
