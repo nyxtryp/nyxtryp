@@ -1696,6 +1696,22 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         const satelliteMeshes = []
 
         for (const { mesh } of objects) {
+
+          if (
+            mesh.userData.name === "VIDEOS" &&
+            mesh.userData.videosSatellites
+          ) {
+            mesh.userData.videosSatellites.traverse(
+              (child) => {
+                if (
+                  child.isMesh &&
+                  child.visible
+                ) {
+                  satelliteMeshes.push(child)
+                }
+              }
+            )
+          }
           if (
             mesh.userData.name === "AUDIO" &&
             mesh.userData.audioSatellites
@@ -1839,6 +1855,42 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         }
 
         // ======================================================
+        // YOUTUBE SATELLITE CLICK
+        // Opens the current YouTube channel.
+        // ======================================================
+
+        let youtubeSatellite = null
+        let currentObject = hit
+
+        while (currentObject) {
+          if (
+            currentObject.name === "YOUTUBE"
+          ) {
+            youtubeSatellite =
+              currentObject
+            break
+          }
+
+          currentObject =
+            currentObject.parent
+        }
+
+        if (youtubeSatellite) {
+
+          window.open(
+            "https://www.youtube.com/@EvgeniyValion",
+            "_blank",
+            "noopener,noreferrer"
+          )
+
+          isDragging = false
+          pointerMoved = false
+          pendingReturn = false
+
+          return
+        }
+
+        // ======================================================
         // RADIO SATELLITE CLICK
         // The raycaster returns a child mesh, so walk up its
         // parent chain until the RADIO group is found.
@@ -1846,7 +1898,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         // ======================================================
 
         let radioSatellite = null
-        let currentObject = hit
+        currentObject = hit
 
         while (currentObject) {
           if (
