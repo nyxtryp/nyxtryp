@@ -1235,6 +1235,159 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
             audioSatellites
         }
 
+        // ========================================================
+        // VIDEOS / YOUTUBE SATELLITE
+        // ========================================================
+
+        if (data.name === "VIDEOS") {
+
+          const youtubeSatellite =
+            new THREE.Group()
+
+          youtubeSatellite.name =
+            "YOUTUBE"
+
+          // Main satellite body.
+          const youtubeBody =
+            new THREE.Mesh(
+              new THREE.SphereGeometry(
+                data.radius * 0.22,
+                32,
+                32
+              ),
+              new THREE.MeshStandardMaterial({
+                color: 0x111111,
+                metalness: 0.62,
+                roughness: 0.24,
+                emissive: 0x240000,
+                emissiveIntensity: 0.65
+              })
+            )
+
+          youtubeSatellite.add(
+            youtubeBody
+          )
+
+          // Small glowing red core.
+          const youtubeCore =
+            new THREE.Mesh(
+              new THREE.CircleGeometry(
+                data.radius * 0.085,
+                32
+              ),
+              new THREE.MeshBasicMaterial({
+                color: 0xff2020,
+                transparent: true,
+                opacity: 0.95,
+                side: THREE.DoubleSide
+              })
+            )
+
+          youtubeCore.position.z =
+            data.radius * 0.205
+
+          youtubeSatellite.add(
+            youtubeCore
+          )
+
+          // YouTube-style triangular play mark.
+          const playShape =
+            new THREE.Shape()
+
+          playShape.moveTo(
+            -data.radius * 0.035,
+            -data.radius * 0.055
+          )
+
+          playShape.lineTo(
+            data.radius * 0.065,
+            0
+          )
+
+          playShape.lineTo(
+            -data.radius * 0.035,
+            data.radius * 0.055
+          )
+
+          playShape.closePath()
+
+          const playMark =
+            new THREE.Mesh(
+              new THREE.ShapeGeometry(
+                playShape
+              ),
+              new THREE.MeshBasicMaterial({
+                color: 0xffffff,
+                side: THREE.DoubleSide
+              })
+            )
+
+          playMark.position.z =
+            data.radius * 0.215
+
+          youtubeSatellite.add(
+            playMark
+          )
+
+          // Thin orbital ring.
+          const youtubeRing =
+            new THREE.Mesh(
+              new THREE.TorusGeometry(
+                data.radius * 0.34,
+                data.radius * 0.012,
+                12,
+                64
+              ),
+              new THREE.MeshBasicMaterial({
+                color: 0xff3030,
+                transparent: true,
+                opacity: 0.9
+              })
+            )
+
+          youtubeRing.rotation.x =
+            Math.PI * 0.43
+
+          youtubeRing.rotation.z =
+            Math.PI * 0.18
+
+          youtubeSatellite.add(
+            youtubeRing
+          )
+
+          // Fixed local position around VIDEOS.
+          youtubeSatellite.position.set(
+            data.radius * 2.0,
+            0,
+            0
+          )
+
+          planet.add(
+            youtubeSatellite
+          )
+
+          youtubeSatellite.userData.orbitAngle =
+            Math.PI * 0.15
+
+          youtubeSatellite.userData.orbitRadius =
+            data.radius * 2.0
+
+          youtubeSatellite.userData.orbitHeight =
+            data.radius * 0.35
+
+          youtubeSatellite.userData.orbitSpeed =
+            0.0018
+
+          youtubeSatellite.userData.spinSpeed =
+            -0.0028
+
+          youtubeSatellite.userData.ring =
+            youtubeRing
+
+          planet.userData.youtubeSatellite =
+            youtubeSatellite
+        }
+
         const object = {
           mesh: planet,
           speed: data.speed,
@@ -2047,6 +2200,49 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
             ) {
               mesh.rotation.y +=
                 speed
+            }
+
+            // ======================================================
+            // VIDEOS / YOUTUBE SATELLITE MOTION
+            // ======================================================
+
+            const youtubeSatellite =
+              mesh.userData.youtubeSatellite
+
+            if (youtubeSatellite) {
+
+              const orbitRadius =
+                youtubeSatellite.userData.orbitRadius
+
+              const orbitHeight =
+                youtubeSatellite.userData.orbitHeight
+
+              const orbitSpeed =
+                youtubeSatellite.userData.orbitSpeed
+
+              youtubeSatellite.userData.orbitAngle +=
+                orbitSpeed
+
+              const angle =
+                youtubeSatellite.userData.orbitAngle
+
+              youtubeSatellite.position.x =
+                Math.cos(angle) * orbitRadius
+
+              youtubeSatellite.position.z =
+                Math.sin(angle) * orbitRadius
+
+              youtubeSatellite.position.y =
+                Math.sin(angle * 0.7) * orbitHeight
+
+              // YOUTUBE spins in the opposite direction.
+              youtubeSatellite.rotation.y +=
+                youtubeSatellite.userData.spinSpeed
+
+              if (youtubeSatellite.userData.ring) {
+                youtubeSatellite.userData.ring.rotation.y -=
+                  0.003
+              }
             }
 
             // ======================================================
