@@ -1235,6 +1235,77 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
             audioSatellites
         }
 
+        // ========================================================
+        // VIDEOS / YOUTUBE SATELLITE
+        // ========================================================
+
+        if (data.name === "VIDEOS") {
+
+          const youtube =
+            new THREE.Group()
+
+          youtube.name =
+            "YOUTUBE"
+
+          const youtubeBody =
+            new THREE.Mesh(
+              new THREE.SphereGeometry(
+                data.radius * 0.22,
+                32,
+                32
+              ),
+              new THREE.MeshStandardMaterial({
+                color: 0x151515,
+                metalness: 0.65,
+                roughness: 0.25,
+                emissive: 0x300000,
+                emissiveIntensity: 0.7
+              })
+            )
+
+          youtube.add(
+            youtubeBody
+          )
+
+          const youtubeRing =
+            new THREE.Mesh(
+              new THREE.TorusGeometry(
+                data.radius * 0.34,
+                data.radius * 0.012,
+                12,
+                64
+              ),
+              new THREE.MeshBasicMaterial({
+                color: 0xff3030,
+                transparent: true,
+                opacity: 0.9
+              })
+            )
+
+          youtubeRing.rotation.x =
+            Math.PI * 0.43
+
+          youtubeRing.rotation.z =
+            Math.PI * 0.18
+
+          youtube.add(
+            youtubeRing
+          )
+
+          youtube.position.set(
+            data.radius * 1.9,
+            0,
+            0
+          )
+
+          planet.add(
+            youtube
+          )
+
+          planet.userData.youtube =
+            youtube
+        }
+
         const object = {
           mesh: planet,
           speed: data.speed,
