@@ -1235,77 +1235,6 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
             audioSatellites
         }
 
-        // ========================================================
-        // VIDEOS / YOUTUBE SATELLITE
-        // ========================================================
-
-        if (data.name === "VIDEOS") {
-
-          const youtube =
-            new THREE.Group()
-
-          youtube.name =
-            "YOUTUBE"
-
-          const youtubeBody =
-            new THREE.Mesh(
-              new THREE.SphereGeometry(
-                data.radius * 0.22,
-                32,
-                32
-              ),
-              new THREE.MeshStandardMaterial({
-                color: 0x151515,
-                metalness: 0.65,
-                roughness: 0.25,
-                emissive: 0x300000,
-                emissiveIntensity: 0.7
-              })
-            )
-
-          youtube.add(
-            youtubeBody
-          )
-
-          const youtubeRing =
-            new THREE.Mesh(
-              new THREE.TorusGeometry(
-                data.radius * 0.34,
-                data.radius * 0.012,
-                12,
-                64
-              ),
-              new THREE.MeshBasicMaterial({
-                color: 0xff3030,
-                transparent: true,
-                opacity: 0.9
-              })
-            )
-
-          youtubeRing.rotation.x =
-            Math.PI * 0.43
-
-          youtubeRing.rotation.z =
-            Math.PI * 0.18
-
-          youtube.add(
-            youtubeRing
-          )
-
-          youtube.position.set(
-            data.radius * 1.9,
-            0,
-            0
-          )
-
-          planet.add(
-            youtube
-          )
-
-          planet.userData.youtube =
-            youtube
-        }
-
         const object = {
           mesh: planet,
           speed: data.speed,
@@ -2118,56 +2047,6 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
             ) {
               mesh.rotation.y +=
                 speed
-            }
-
-            // ======================================================
-            // VIDEOS / YOUTUBE SATELLITE MOTION
-            // ======================================================
-
-            const youtube =
-              mesh.userData.youtube
-
-            if (youtube) {
-
-              const orbitRadius =
-                mesh.geometry.parameters.radius * 1.9
-
-              if (
-                mesh === selectedPlanet &&
-                cameraDistance < 10
-              ) {
-
-                // When VIDEOS approaches the camera,
-                // YOUTUBE settles permanently to the left.
-                youtube.position.lerp(
-                  new THREE.Vector3(
-                    -orbitRadius,
-                    0,
-                    0
-                  ),
-                  0.08
-                )
-
-              } else {
-
-                // Normal space orbit around VIDEOS.
-                const orbitAngle =
-                  performance.now() * 0.0005
-
-                youtube.position.set(
-                  Math.cos(orbitAngle) *
-                    orbitRadius,
-                  Math.sin(orbitAngle * 0.7) *
-                    mesh.geometry.parameters.radius *
-                    0.45,
-                  Math.sin(orbitAngle) *
-                    orbitRadius
-                )
-              }
-
-              // YOUTUBE rotates opposite to VIDEOS.
-              youtube.rotation.y -=
-                0.002
             }
 
             // ======================================================
