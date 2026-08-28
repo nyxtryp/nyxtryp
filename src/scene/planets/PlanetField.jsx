@@ -149,7 +149,9 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
             lineHeight: "1.45",
             zIndex: "999999",
             whiteSpace: "pre-wrap",
-            pointerEvents: "none",
+            pointerEvents: "auto",
+            userSelect: "text",
+            WebkitUserSelect: "text",
             border: "1px solid #fff"
           }
         )
@@ -172,7 +174,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
       const elapsed =
         ((now - diagnosticStart) / 1000).toFixed(1)
 
-      diagnosticBox.textContent =
+      const fullDiagnostic =
         "NYXTRYP WEBGL DIAGNOSTIC\n" +
         "--------------------------------\n" +
         title + "\n" +
@@ -190,6 +192,21 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         "POINTS: " + render.points + "\n" +
         "WEBGL: " +
           (gl ? gl.getParameter(gl.VERSION) : "UNKNOWN")
+
+      diagnosticBox.textContent =
+        fullDiagnostic
+
+      try {
+        localStorage.setItem(
+          "nyxtryp-webgl-diagnostic",
+          fullDiagnostic
+        )
+      } catch (e) {
+        console.warn(
+          "NYXTRYP diagnostic localStorage write failed",
+          e
+        )
+      }
     }
 
     const diagnosticErrorHandler =
