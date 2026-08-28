@@ -2719,9 +2719,10 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
 
     const animate =
       () => {
-        const t =
-          performance.now() *
-          0.001
+        try {
+          const t =
+            performance.now() *
+            0.001
 
       diagnosticFrames += 1
 
@@ -3396,6 +3397,26 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
           requestAnimationFrame(
             animate
           )
+        } catch (error) {
+          diagnosticLastAction =
+            "ANIMATE LOOP CRASH"
+
+          showDiagnostic(
+            "!!! ANIMATION LOOP CRASH !!!",
+            String(
+              error?.stack ||
+              error?.message ||
+              error
+            )
+          )
+
+          console.error(
+            "NYXTRYP ANIMATE LOOP CRASH:",
+            error
+          )
+
+          return
+        }
       }
 
     // ============================================================
