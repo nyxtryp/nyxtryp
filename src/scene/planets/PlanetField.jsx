@@ -87,11 +87,13 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
-      antialias: true
+      antialias: !isMobile
     })
 
     renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio, 2)
+      isMobile
+        ? Math.min(window.devicePixelRatio, 1.25)
+        : Math.min(window.devicePixelRatio, 2)
     )
 
     renderer.setSize(
@@ -107,7 +109,8 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
       0
     )
 
-    renderer.shadowMap.enabled = true
+    renderer.shadowMap.enabled =
+      !isMobile
     renderer.shadowMap.type =
       THREE.PCFSoftShadowMap
 
@@ -340,10 +343,10 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
     sunLight.castShadow = true
 
     sunLight.shadow.mapSize.width =
-      2048
+      isMobile ? 1024 : 2048
 
     sunLight.shadow.mapSize.height =
-      2048
+      isMobile ? 1024 : 2048
 
     sunLight.shadow.camera.near = 1
     sunLight.shadow.camera.far = 120
