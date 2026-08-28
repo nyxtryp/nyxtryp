@@ -118,6 +118,170 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
     const canvas =
       renderer.domElement
 
+    // ============================================================
+    // WEBGL FAILURE DIAGNOSTICS — NO VISUAL/MECHANICAL CHANGES
+    // ============================================================
+
+    let diagnosticBox = null
+    let diagnosticFrames = 0
+    let diagnosticStart = performance.now()
+    let diagnosticLastFrame = performance.now()
+    let diagnosticFps = 0
+    let diagnosticLastAction = "page load"
+
+    const showDiagnostic = (title, details = "") => {
+      if (!diagnosticBox) {
+        diagnosticBox = document.createElement("div")
+        diagnosticBox.id = "nyxtryp-webgl-diagnostic"
+
+        Object.assign(
+          diagnosticBox.style,
+          {
+            position: "fixed",
+            left: "8px",
+            right: "8px",
+            top: "8px",
+            padding: "12px",
+            background: "rgba(120,0,0,0.96)",
+            color: "#fff",
+            fontFamily: "monospace",
+            fontSize: "12px",
+            lineHeight: "1.45",
+            zIndex: "999999",
+            whiteSpace: "pre-wrap",
+            pointerEvents: "none",
+            border: "1px solid #fff"
+          }
+        )
+
+        document.body.appendChild(diagnosticBox)
+      }
+
+      const gl =
+        renderer.getContext()
+
+      const memory =
+        renderer.info.memory
+
+      const render =
+        renderer.info.render
+
+      const now =
+        performance.now()
+
+      const elapsed =
+        ((now - diagnosticStart) / 1000).toFixed(1)
+
+      diagnosticBox.textContent =
+        "NYXTRYP WEBGL DIAGNOSTIC\n" +
+        "--------------------------------\n" +
+        title + "\n" +
+        details + "\n" +
+        "TIME: " + elapsed + " s\n" +
+        "FPS: " + diagnosticFps + "\n" +
+        "LAST ACTION: " + diagnosticLastAction + "\n" +
+        "CANVAS: " +
+          canvas.width + "x" + canvas.height + "\n" +
+        "DPR: " + window.devicePixelRatio + "\n" +
+        "GEOMETRIES: " + memory.geometries + "\n" +
+        "TEXTURES: " + memory.textures + "\n" +
+        "CALLS: " + render.calls + "\n" +
+        "TRIANGLES: " + render.triangles + "\n" +
+        "POINTS: " + render.points + "\n" +
+        "WEBGL: " +
+          (gl ? gl.getParameter(gl.VERSION) : "UNKNOWN")
+    }
+
+    const diagnosticErrorHandler =
+      (event) => {
+        diagnosticLastAction =
+          "window error"
+
+        showDiagnostic(
+          "JAVASCRIPT ERROR",
+          String(
+            event?.message ||
+            event?.error ||
+            "unknown error"
+          )
+        )
+      }
+
+    const diagnosticRejectionHandler =
+      (event) => {
+        diagnosticLastAction =
+          "unhandled promise rejection"
+
+        showDiagnostic(
+          "UNHANDLED PROMISE REJECTION",
+          String(
+            event?.reason ||
+            "unknown rejection"
+          )
+        )
+      }
+
+    const onWebGLContextLost =
+      (event) => {
+        event.preventDefault()
+
+        diagnosticLastAction =
+          "WEBGL CONTEXT LOST"
+
+        showDiagnostic(
+          "!!! WEBGL CONTEXT LOST !!!",
+          "The browser/GPU lost the WebGL context."
+        )
+      }
+
+    const onWebGLContextRestored =
+      () => {
+        diagnosticLastAction =
+          "WEBGL CONTEXT RESTORED"
+
+        showDiagnostic(
+          "WEBGL CONTEXT RESTORED",
+          "WebGL context was restored by the browser."
+        )
+      }
+
+    canvas.addEventListener(
+      "webglcontextlost",
+      onWebGLContextLost,
+      false
+    )
+
+    canvas.addEventListener(
+      "webglcontextrestored",
+      onWebGLContextRestored,
+      false
+    )
+
+    window.addEventListener(
+      "error",
+      diagnosticErrorHandler
+    )
+
+    window.addEventListener(
+      "unhandledrejection",
+      diagnosticRejectionHandler
+    )
+
+    const diagnosticAction =
+      (name) => {
+        diagnosticLastAction = name
+      }
+
+    canvas.addEventListener(
+      "pointerdown",
+      () => diagnosticAction("pointerdown")
+    )
+
+    canvas.addEventListener(
+      "wheel",
+      () => diagnosticAction("wheel / zoom")
+    )
+
     canvas.style.cursor = "default"
     canvas.style.touchAction = "none"
 
@@ -2558,6 +2722,32 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         const t =
           performance.now() *
           0.001
+
+      diagnosticFrames += 1
+
+      const frameNow =
+        performance.now()
+
+      const frameDelta =
+        frameNow - diagnosticLastFrame
+
+      diagnosticLastFrame =
+        frameNow
+
+      if (frameDelta > 0) {
+        diagnosticFps =
+          Math.round(1000 / frameDelta)
+      }
+
+      if (
+        diagnosticFrames % 60 === 0 &&
+        diagnosticBox
+      ) {
+        showDiagnostic(
+          "WEBGL RUNNING",
+          "No context loss detected yet."
+        )
+      }
 
         objects.forEach(
           (object) => {
