@@ -2035,6 +2035,371 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
           return
         }
 
+        // ======================================================
+        // ABOUT CLICK
+        // Opens the NYXTRYP story window only after ABOUT arrives.
+        // No extra satellite.
+        // ======================================================
+
+        if (
+          hit.userData.name === "ABOUT" &&
+          selectedPlanet === hit &&
+          cameraDistance < 10
+        ) {
+
+          const existingAbout =
+            document.getElementById(
+              "nyxtryp-about-window"
+            )
+
+          if (existingAbout) {
+            existingAbout.remove()
+          }
+
+          const overlay =
+            document.createElement("div")
+
+          overlay.id =
+            "nyxtryp-about-window"
+
+          overlay.style.position =
+            "absolute"
+
+          overlay.style.inset =
+            "0"
+
+          overlay.style.zIndex =
+            "100"
+
+          overlay.style.background =
+            "rgba(0,0,0,0.94)"
+
+          overlay.style.display =
+            "flex"
+
+          overlay.style.alignItems =
+            "center"
+
+          overlay.style.justifyContent =
+            "center"
+
+          overlay.style.overflow =
+            "hidden"
+
+          overlay.style.fontFamily =
+            "Arial, Helvetica, sans-serif"
+
+          const close =
+            document.createElement("button")
+
+          close.textContent =
+            "×"
+
+          close.style.position =
+            "absolute"
+
+          close.style.right =
+            "24px"
+
+          close.style.top =
+            "18px"
+
+          close.style.zIndex =
+            "5"
+
+          close.style.border =
+            "0"
+
+          close.style.background =
+            "transparent"
+
+          close.style.color =
+            "#ffffff"
+
+          close.style.fontSize =
+            "30px"
+
+          close.style.fontWeight =
+            "200"
+
+          close.style.cursor =
+            "pointer"
+
+          close.style.opacity =
+            "0.75"
+
+          close.onclick =
+            () => overlay.remove()
+
+          overlay.appendChild(
+            close
+          )
+
+          const lang =
+            document.createElement("div")
+
+          lang.style.position =
+            "absolute"
+
+          lang.style.right =
+            "30px"
+
+          lang.style.bottom =
+            "24px"
+
+          lang.style.zIndex =
+            "5"
+
+          lang.style.color =
+            "rgba(255,255,255,0.55)"
+
+          lang.style.fontSize =
+            "10px"
+
+          lang.style.letterSpacing =
+            "0.25em"
+
+          lang.style.cursor =
+            "pointer"
+
+          lang.textContent =
+            "RU / EN"
+
+          overlay.appendChild(
+            lang
+          )
+
+          const content =
+            document.createElement("div")
+
+          content.style.position =
+            "relative"
+
+          content.style.width =
+            "min(900px, 86vw)"
+
+          content.style.height =
+            "min(650px, 78vh)"
+
+          content.style.display =
+            "flex"
+
+          content.style.flexDirection =
+            "column"
+
+          content.style.alignItems =
+            "center"
+
+          content.style.justifyContent =
+            "center"
+
+          content.style.overflow =
+            "hidden"
+
+          overlay.appendChild(
+            content
+          )
+
+          const logo =
+            document.createElement("div")
+
+          logo.textContent =
+            "NYXTRYP"
+
+          logo.style.position =
+            "absolute"
+
+          logo.style.left =
+            "0"
+
+          logo.style.right =
+            "0"
+
+          logo.style.top =
+            "50%"
+
+          logo.style.transform =
+            "translateY(-50%)"
+
+          logo.style.textAlign =
+            "center"
+
+          logo.style.color =
+            "#ffffff"
+
+          logo.style.fontSize =
+            "clamp(48px, 9vw, 110px)"
+
+          logo.style.fontWeight =
+            "300"
+
+          logo.style.letterSpacing =
+            "0.18em"
+
+          logo.style.transition =
+            "top 1.6s cubic-bezier(0.22,1,0.36,1), transform 1.6s cubic-bezier(0.22,1,0.36,1), opacity 1.2s ease"
+
+          content.appendChild(
+            logo
+          )
+
+          const text =
+            document.createElement("div")
+
+          text.style.position =
+            "absolute"
+
+          text.style.left =
+            "0"
+
+          text.style.right =
+            "0"
+
+          text.style.top =
+            "120px"
+
+          text.style.maxWidth =
+            "760px"
+
+          text.style.margin =
+            "0 auto"
+
+          text.style.color =
+            "rgba(255,255,255,0.86)"
+
+          text.style.fontSize =
+            "clamp(14px, 1.5vw, 18px)"
+
+          text.style.lineHeight =
+            "1.9"
+
+          text.style.letterSpacing =
+            "0.04em"
+
+          text.style.fontWeight =
+            "300"
+
+          text.style.whiteSpace =
+            "pre-line"
+
+          text.style.opacity =
+            "0"
+
+          const englishText =
+            "NYXTRYP is an independent electronic music project built around atmosphere, motion and immersion.\n\nThe sound moves between trance, psytrance, deep and organic electronic music — exploring hypnotic rhythms, evolving textures and emotional space.\n\nNYXTRYP is not tied to one genre or one formula. It is a constantly evolving universe where sound, visuals and technology meet.\n\nEnter the world. Explore the sound.\nStay in motion."
+
+          const russianText =
+            "NYXTRYP — независимый электронный музыкальный проект, построенный вокруг атмосферы, движения и погружения.\n\nЗвучание проходит через trance, psytrance, deep и organic electronic music — соединяя гипнотические ритмы, развивающиеся текстуры и эмоциональное пространство.\n\nNYXTRYP не привязан к одному жанру или одной формуле. Это постоянно развивающаяся вселенная, где встречаются звук, визуал и технологии.\n\nВойди во вселенную. Исследуй звук.\nОставайся в движении."
+
+          let currentText =
+            englishText
+
+          let typingTimer = null
+
+          const typeText =
+            () => {
+              if (typingTimer) {
+                clearInterval(
+                  typingTimer
+                )
+              }
+
+              text.textContent =
+                ""
+
+              let index = 0
+
+              text.style.opacity =
+                "1"
+
+              typingTimer =
+                setInterval(
+                  () => {
+                    text.textContent =
+                      currentText.slice(
+                        0,
+                        index
+                      )
+
+                    index += 1
+
+                    if (
+                      index >
+                      currentText.length
+                    ) {
+                      clearInterval(
+                        typingTimer
+                      )
+                    }
+                  },
+                  18
+                )
+            }
+
+          lang.onclick =
+            () => {
+              currentText =
+                currentText === englishText
+                  ? russianText
+                  : englishText
+
+              typeText()
+            }
+
+          content.appendChild(
+            text
+          )
+
+          requestAnimationFrame(
+            () => {
+              setTimeout(
+                () => {
+
+                  logo.style.top =
+                    "8%"
+
+                  logo.style.transform =
+                    "translateY(0)"
+
+                  logo.style.fontSize =
+                    "clamp(24px, 4vw, 48px)"
+
+                  logo.style.letterSpacing =
+                    "0.22em"
+
+                  setTimeout(
+                    () => {
+                      typeText()
+                    },
+                    700
+                  )
+
+                },
+                150
+              )
+            }
+          )
+
+          overlay.onclick =
+            (event) => {
+              if (
+                event.target === overlay
+              ) {
+                overlay.remove()
+              }
+            }
+
+          el.appendChild(
+            overlay
+          )
+
+          isDragging = false
+          pointerMoved = false
+          pendingReturn = false
+
+          return
+        }
+
         if (
           selectedPlanet ===
           hit
