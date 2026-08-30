@@ -85,14 +85,49 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
       isMobile ? 28 : 17
     )
 
-    const renderer = new THREE.WebGLRenderer({
-      alpha: true,
-      antialias: !isMobile
-    })
+    let renderer
+
+    try {
+      renderer =
+        new THREE.WebGLRenderer({
+          alpha: true,
+          antialias: false,
+          powerPreference: "low-power",
+          failIfMajorPerformanceCaveat: false
+        })
+    } catch (error) {
+      console.error(
+        "NYXTRYP WEBGL INIT FAILED:",
+        error
+      )
+
+      el.innerHTML = ""
+
+      const fallback =
+        document.createElement("div")
+
+      fallback.style.width = "100%"
+      fallback.style.height = "100%"
+      fallback.style.background = "#000"
+      fallback.style.color = "#fff"
+      fallback.style.display = "flex"
+      fallback.style.alignItems = "center"
+      fallback.style.justifyContent = "center"
+      fallback.style.fontFamily = "monospace"
+      fallback.style.fontSize = "12px"
+      fallback.style.letterSpacing = "0.12em"
+      fallback.textContent = "NYXTRYP"
+
+      el.appendChild(fallback)
+
+      return () => {
+        fallback.remove()
+      }
+    }
 
     renderer.setPixelRatio(
       isMobile
-        ? Math.min(window.devicePixelRatio, 1.25)
+        ? Math.min(window.devicePixelRatio, 1)
         : Math.min(window.devicePixelRatio, 2)
     )
 
