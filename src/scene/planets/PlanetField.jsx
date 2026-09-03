@@ -280,8 +280,14 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
       (event) => {
         event.preventDefault()
 
+        webglContextLost = true
+
         diagnosticLastAction =
           "WEBGL CONTEXT LOST"
+
+        cancelAnimationFrame(
+          animationId
+        )
 
         showDiagnostic(
           "!!! WEBGL CONTEXT LOST !!!",
@@ -291,6 +297,8 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
 
     const onWebGLContextRestored =
       () => {
+        webglContextLost = false
+
         diagnosticLastAction =
           "WEBGL CONTEXT RESTORED"
 
@@ -298,6 +306,11 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
           "WEBGL CONTEXT RESTORED",
           "WebGL context was restored by the browser."
         )
+
+        animationId =
+          requestAnimationFrame(
+            animate
+          )
       }
 
     canvas.addEventListener(
@@ -2771,9 +2784,14 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
     // ============================================================
 
     let animationId
+    let webglContextLost = false
 
     const animate =
       () => {
+        if (webglContextLost) {
+          return
+        }
+
         try {
           const t =
             performance.now() *
