@@ -129,7 +129,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
 
     renderer.setPixelRatio(
       lowPowerWebGL
-        ? Math.min(window.devicePixelRatio, 0.75)
+        ? Math.min(window.devicePixelRatio, 1)
         : Math.min(window.devicePixelRatio, 2)
     )
 
