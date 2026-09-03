@@ -634,7 +634,9 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
           THREE.SRGBColorSpace
 
         texture.anisotropy =
-          renderer.capabilities.getMaxAnisotropy()
+          lowPowerWebGL
+            ? 1
+            : renderer.capabilities.getMaxAnisotropy()
 
         const material =
           new THREE.MeshStandardMaterial({
