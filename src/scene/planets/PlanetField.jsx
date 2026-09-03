@@ -968,8 +968,8 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
             new THREE.Mesh(
               new THREE.SphereGeometry(
                 data.radius * 1.075,
-                128,
-                128
+                lowPowerWebGL ? 64 : 128,
+                lowPowerWebGL ? 64 : 128
               ),
               atmosphereMaterial
             )
