@@ -844,7 +844,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
             );
 
           // Several integration samples through the atmosphere.
-          const int STEPS = 8;
+          const int STEPS = ${lowPowerWebGL ? 4 : 8};
 
           float stepSize =
             segment / float(STEPS);
