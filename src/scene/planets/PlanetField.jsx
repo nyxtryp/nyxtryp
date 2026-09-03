@@ -71,6 +71,8 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
     const scene = new THREE.Scene()
 
     const isMobile = window.innerWidth < 768
+    const isTouchDevice = navigator.maxTouchPoints > 1
+    const lowPowerWebGL = isMobile || isTouchDevice
 
     const camera = new THREE.PerspectiveCamera(
       isMobile ? 55 : 35,
@@ -126,7 +128,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
     }
 
     renderer.setPixelRatio(
-      isMobile
+      lowPowerWebGL
         ? Math.min(window.devicePixelRatio, 1)
         : Math.min(window.devicePixelRatio, 2)
     )
@@ -145,7 +147,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
     )
 
     renderer.shadowMap.enabled =
-      !isMobile
+      !lowPowerWebGL
     renderer.shadowMap.type =
       THREE.PCFSoftShadowMap
 
