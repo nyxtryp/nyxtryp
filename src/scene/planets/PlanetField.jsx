@@ -93,9 +93,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
       renderer =
         new THREE.WebGLRenderer({
           alpha: true,
-          antialias: false,
-          powerPreference: "low-power",
-          failIfMajorPerformanceCaveat: false
+          antialias: true
         })
     } catch (error) {
       console.error(
@@ -128,9 +126,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
     }
 
     renderer.setPixelRatio(
-      lowPowerWebGL
-        ? Math.min(window.devicePixelRatio, 1)
-        : Math.min(window.devicePixelRatio, 2)
+      Math.min(window.devicePixelRatio, 2)
     )
 
     renderer.setSize(
@@ -147,7 +143,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
     )
 
     renderer.shadowMap.enabled =
-      !lowPowerWebGL
+      true
     renderer.shadowMap.type =
       THREE.PCFSoftShadowMap
 
