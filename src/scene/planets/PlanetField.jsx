@@ -39,7 +39,7 @@ const PLANETS = [
     speed: 0.00045
   },
   {
-    name: "WORLDS",
+    name: "GUESTBOOK",
     texture: "/textures/planets/saturn.jpg",
     radius: 0.82,
     position: [-9.0, 5.8, -17.0],
@@ -2271,6 +2271,819 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         // PHOTOS CLICK
         // ======================================================
 
+
+        if (hit.userData.name === "GUESTBOOK") {
+          diagnosticAction("GUESTBOOK opened")
+
+          const old = document.getElementById(
+            "nyxtryp-guestbook-window"
+          )
+          if (old) old.remove()
+
+          const style = document.createElement("style")
+          style.id = "nyxtryp-guestbook-style"
+
+          style.textContent = `
+            #nyxtryp-guestbook-window {
+              position: fixed;
+              inset: 0;
+              z-index: 100000;
+              background:
+                radial-gradient(circle at 50% 35%, rgba(70,80,110,.16), transparent 45%),
+                linear-gradient(180deg, rgba(3,5,12,.97), rgba(0,0,0,.985));
+              color: #fff;
+              font-family: Arial, Helvetica, sans-serif;
+              overflow: auto;
+              animation: nyxtrypGuestbookIn .35s ease;
+            }
+
+            @keyframes nyxtrypGuestbookIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+
+            #nyxtryp-guestbook-window * {
+              box-sizing: border-box;
+            }
+
+            .nyxtryp-guestbook-page {
+              min-height: 100%;
+              width: min(1180px, 100%);
+              margin: 0 auto;
+              padding: 42px 34px 30px;
+              position: relative;
+            }
+
+            .nyxtryp-guestbook-close {
+              position: fixed;
+              top: 22px;
+              right: 28px;
+              width: 46px;
+              height: 46px;
+              border: 1px solid rgba(255,255,255,.22);
+              background: rgba(255,255,255,.04);
+              color: #fff;
+              font-size: 30px;
+              font-weight: 200;
+              cursor: pointer;
+              z-index: 3;
+              transition: .2s ease;
+            }
+
+            .nyxtryp-guestbook-close:hover {
+              background: rgba(255,255,255,.12);
+              transform: rotate(90deg);
+            }
+
+            .nyxtryp-guestbook-head {
+              padding-right: 70px;
+              margin-bottom: 38px;
+            }
+
+            .nyxtryp-guestbook-kicker {
+              font-size: 11px;
+              letter-spacing: .45em;
+              opacity: .5;
+              margin-bottom: 13px;
+            }
+
+            .nyxtryp-guestbook-head h1 {
+              margin: 0;
+              font-size: clamp(42px, 7vw, 88px);
+              line-height: .9;
+              font-weight: 200;
+              letter-spacing: .08em;
+            }
+
+            .nyxtryp-guestbook-line {
+              width: 100%;
+              height: 1px;
+              background: linear-gradient(90deg, rgba(255,255,255,.55), transparent);
+              margin: 24px 0 15px;
+            }
+
+            .nyxtryp-guestbook-head p {
+              margin: 0;
+              font-size: 11px;
+              letter-spacing: .35em;
+              opacity: .52;
+            }
+
+            .nyxtryp-guestbook-layout {
+              display: grid;
+              grid-template-columns: minmax(300px, .8fr) minmax(420px, 1.2fr);
+              gap: 55px;
+              align-items: start;
+            }
+
+            .nyxtryp-guestbook-form {
+              position: sticky;
+              top: 25px;
+              border: 1px solid rgba(255,255,255,.12);
+              background: rgba(255,255,255,.025);
+              padding: 24px;
+            }
+
+            .nyxtryp-guestbook-input,
+            .nyxtryp-guestbook-textarea {
+              width: 100%;
+              border: 0;
+              border-bottom: 1px solid rgba(255,255,255,.18);
+              background: transparent;
+              color: #fff;
+              outline: none;
+              font: inherit;
+              letter-spacing: .06em;
+            }
+
+            .nyxtryp-guestbook-input {
+              height: 48px;
+              margin-bottom: 22px;
+              font-size: 13px;
+            }
+
+            .nyxtryp-guestbook-textarea {
+              min-height: 170px;
+              resize: vertical;
+              padding: 12px 0;
+              font-size: 14px;
+              line-height: 1.6;
+            }
+
+            .nyxtryp-guestbook-input::placeholder,
+            .nyxtryp-guestbook-textarea::placeholder {
+              color: rgba(255,255,255,.35);
+            }
+
+            .nyxtryp-guestbook-form-bottom {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              gap: 15px;
+              margin-top: 20px;
+            }
+
+            .nyxtryp-guestbook-counter {
+              font-size: 10px;
+              letter-spacing: .12em;
+              opacity: .4;
+              white-space: nowrap;
+            }
+
+            .nyxtryp-guestbook-submit {
+              border: 1px solid rgba(255,255,255,.3);
+              background: rgba(255,255,255,.07);
+              color: #fff;
+              padding: 13px 17px;
+              cursor: pointer;
+              font-size: 10px;
+              letter-spacing: .14em;
+              transition: .2s ease;
+            }
+
+            .nyxtryp-guestbook-submit:hover {
+              background: rgba(255,255,255,.16);
+              transform: translateY(-2px);
+            }
+
+            .nyxtryp-guestbook-submit:disabled {
+              opacity: .35;
+              cursor: wait;
+            }
+
+            .nyxtryp-guestbook-status {
+              min-height: 18px;
+              margin-top: 15px;
+              font-size: 11px;
+              line-height: 1.5;
+              opacity: .65;
+            }
+
+            .nyxtryp-guestbook-admin-row {
+              display: flex;
+              gap: 8px;
+              margin-top: 18px;
+            }
+
+            .nyxtryp-guestbook-admin {
+              flex: 1;
+              border: 1px solid rgba(255,255,255,.13);
+              background: transparent;
+              color: rgba(255,255,255,.55);
+              padding: 10px;
+              cursor: pointer;
+              font-size: 9px;
+              letter-spacing: .16em;
+              transition: .2s ease;
+            }
+
+            .nyxtryp-guestbook-admin:hover {
+              color: #fff;
+              border-color: rgba(255,255,255,.3);
+            }
+
+            .nyxtryp-guestbook-messages-head {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              border-bottom: 1px solid rgba(255,255,255,.12);
+              padding-bottom: 13px;
+              margin-bottom: 18px;
+              font-size: 10px;
+              letter-spacing: .25em;
+              opacity: .55;
+            }
+
+            .nyxtryp-guestbook-messages {
+              display: flex;
+              flex-direction: column;
+              gap: 13px;
+            }
+
+            .nyxtryp-guestbook-card {
+              position: relative;
+              border-left: 1px solid rgba(255,255,255,.18);
+              background: rgba(255,255,255,.025);
+              padding: 18px 20px;
+            }
+
+            .nyxtryp-guestbook-author {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              margin-bottom: 10px;
+            }
+
+            .nyxtryp-guestbook-name {
+              font-size: 11px;
+              letter-spacing: .14em;
+              font-weight: 600;
+            }
+
+            .nyxtryp-guestbook-official {
+              font-size: 8px;
+              letter-spacing: .12em;
+              border: 1px solid rgba(255,255,255,.28);
+              padding: 3px 6px;
+              opacity: .65;
+            }
+
+            .nyxtryp-guestbook-date {
+              margin-left: auto;
+              font-size: 9px;
+              letter-spacing: .08em;
+              opacity: .3;
+            }
+
+            .nyxtryp-guestbook-message {
+              font-size: 13px;
+              line-height: 1.65;
+              white-space: pre-wrap;
+              word-break: break-word;
+              opacity: .78;
+            }
+
+            .nyxtryp-guestbook-delete {
+              margin-top: 13px;
+              border: 0;
+              background: transparent;
+              color: rgba(255,255,255,.32);
+              cursor: pointer;
+              padding: 0;
+              font-size: 8px;
+              letter-spacing: .14em;
+            }
+
+            .nyxtryp-guestbook-delete:hover {
+              color: #fff;
+            }
+
+            .nyxtryp-guestbook-empty {
+              padding: 45px 0;
+              text-align: center;
+              font-size: 10px;
+              letter-spacing: .2em;
+              opacity: .3;
+            }
+
+            .nyxtryp-guestbook-footer {
+              margin-top: 50px;
+              padding-top: 18px;
+              border-top: 1px solid rgba(255,255,255,.08);
+              text-align: center;
+              font-size: 9px;
+              letter-spacing: .4em;
+              opacity: .22;
+            }
+
+            .nyxtryp-guestbook-honeypot {
+              position: absolute !important;
+              left: -9999px !important;
+              opacity: 0 !important;
+              pointer-events: none !important;
+            }
+
+            @media (max-width: 800px) {
+              .nyxtryp-guestbook-page {
+                padding: 28px 18px 25px;
+              }
+
+              .nyxtryp-guestbook-close {
+                top: 12px;
+                right: 12px;
+                width: 40px;
+                height: 40px;
+                font-size: 26px;
+              }
+
+              .nyxtryp-guestbook-head {
+                padding-right: 55px;
+                margin-bottom: 30px;
+              }
+
+              .nyxtryp-guestbook-layout {
+                grid-template-columns: 1fr;
+                gap: 35px;
+              }
+
+              .nyxtryp-guestbook-form {
+                position: static;
+              }
+
+              .nyxtryp-guestbook-card {
+                padding: 15px;
+              }
+
+              .nyxtryp-guestbook-author {
+                flex-wrap: wrap;
+              }
+
+              .nyxtryp-guestbook-date {
+                width: 100%;
+                margin-left: 0;
+                margin-top: -4px;
+              }
+            }
+          `
+
+          document.head.appendChild(style)
+
+          const overlay = document.createElement("div")
+          overlay.id = "nyxtryp-guestbook-window"
+
+          overlay.innerHTML = `
+            <div class="nyxtryp-guestbook-page">
+              <button class="nyxtryp-guestbook-close" aria-label="Close">×</button>
+
+              <div class="nyxtryp-guestbook-head">
+                <div class="nyxtryp-guestbook-kicker">NYXTRYP</div>
+                <h1>GUESTBOOK</h1>
+                <div class="nyxtryp-guestbook-line"></div>
+                <p>LEAVE A MESSAGE</p>
+              </div>
+
+              <div class="nyxtryp-guestbook-layout">
+                <form class="nyxtryp-guestbook-form">
+                  <input
+                    class="nyxtryp-guestbook-input"
+                    id="nyxtryp-guestbook-name"
+                    maxlength="40"
+                    placeholder="YOUR NAME / ALIAS"
+                    autocomplete="nickname"
+                  />
+
+                  <textarea
+                    class="nyxtryp-guestbook-textarea"
+                    id="nyxtryp-guestbook-message"
+                    maxlength="300"
+                    placeholder="Write something to NYXTRYP..."
+                    required
+                  ></textarea>
+
+                  <input
+                    class="nyxtryp-guestbook-honeypot"
+                    name="website"
+                    tabindex="-1"
+                    autocomplete="off"
+                  />
+
+                  <div class="nyxtryp-guestbook-form-bottom">
+                    <span class="nyxtryp-guestbook-counter">0 / 300</span>
+                    <button class="nyxtryp-guestbook-submit" type="submit">
+                      SIGN THE GUESTBOOK →
+                    </button>
+                  </div>
+
+                  <div class="nyxtryp-guestbook-admin-row">
+                    <button class="nyxtryp-guestbook-admin" type="button">
+                      ADMIN / NYXTRYP MODE
+                    </button>
+                  </div>
+
+                  <div class="nyxtryp-guestbook-status"></div>
+                </form>
+
+                <div>
+                  <div class="nyxtryp-guestbook-messages-head">
+                    <span>MESSAGES</span>
+                  </div>
+                  <div class="nyxtryp-guestbook-messages"></div>
+                </div>
+              </div>
+
+              <div class="nyxtryp-guestbook-footer">
+                YOU WERE HERE.
+              </div>
+            </div>
+          `
+
+          document.body.appendChild(overlay)
+
+          const closeButton =
+            overlay.querySelector(".nyxtryp-guestbook-close")
+
+          const form =
+            overlay.querySelector(".nyxtryp-guestbook-form")
+
+          const nameInput =
+            overlay.querySelector("#nyxtryp-guestbook-name")
+
+          const messageInput =
+            overlay.querySelector("#nyxtryp-guestbook-message")
+
+          const counter =
+            overlay.querySelector(".nyxtryp-guestbook-counter")
+
+          const status =
+            overlay.querySelector(".nyxtryp-guestbook-status")
+
+          const messagesBox =
+            overlay.querySelector(".nyxtryp-guestbook-messages")
+
+          const adminButton =
+            overlay.querySelector(".nyxtryp-guestbook-admin")
+
+          const submitButton =
+            overlay.querySelector(".nyxtryp-guestbook-submit")
+
+          let messages = []
+          let adminKey = ""
+          let nyxtrypMode = false
+
+          const closeGuestbook = () => {
+            overlay.remove()
+            style.remove()
+            window.removeEventListener("keydown", onKeyDown)
+          }
+
+          const onKeyDown = (event) => {
+            if (event.key === "Escape") {
+              closeGuestbook()
+            }
+          }
+
+          closeButton.addEventListener(
+            "click",
+            closeGuestbook
+          )
+
+          overlay.addEventListener("click", (event) => {
+            if (event.target === overlay) {
+              closeGuestbook()
+            }
+          })
+
+          window.addEventListener(
+            "keydown",
+            onKeyDown
+          )
+
+          messageInput.addEventListener(
+            "input",
+            () => {
+              counter.textContent =
+                messageInput.value.length + " / 300"
+            }
+          )
+
+          const formatDate = (value) => {
+            const date = new Date(value)
+
+            if (Number.isNaN(date.getTime())) {
+              return ""
+            }
+
+            return date.toLocaleDateString(
+              undefined,
+              {
+                year: "numeric",
+                month: "short",
+                day: "numeric"
+              }
+            )
+          }
+
+          const renderMessages = () => {
+            messagesBox.innerHTML = ""
+
+            if (!messages.length) {
+              const empty =
+                document.createElement("div")
+
+              empty.className =
+                "nyxtryp-guestbook-empty"
+
+              empty.textContent =
+                "NO MESSAGES YET — BE THE FIRST."
+
+              messagesBox.appendChild(empty)
+              return
+            }
+
+            messages.forEach((item) => {
+              const card =
+                document.createElement("div")
+
+              card.className =
+                "nyxtryp-guestbook-card"
+
+              const author =
+                document.createElement("div")
+
+              author.className =
+                "nyxtryp-guestbook-author"
+
+              const authorName =
+                document.createElement("span")
+
+              authorName.className =
+                "nyxtryp-guestbook-name"
+
+              authorName.textContent =
+                item.name || "Anonymous"
+
+              author.appendChild(authorName)
+
+              if (item.official) {
+                const official =
+                  document.createElement("span")
+
+                official.className =
+                  "nyxtryp-guestbook-official"
+
+                official.textContent =
+                  "OFFICIAL"
+
+                author.appendChild(official)
+              }
+
+              const date =
+                document.createElement("span")
+
+              date.className =
+                "nyxtryp-guestbook-date"
+
+              date.textContent =
+                formatDate(item.date)
+
+              author.appendChild(date)
+
+              const text =
+                document.createElement("div")
+
+              text.className =
+                "nyxtryp-guestbook-message"
+
+              text.textContent =
+                item.message || ""
+
+              card.appendChild(author)
+              card.appendChild(text)
+
+              if (adminKey) {
+                const deleteButton =
+                  document.createElement("button")
+
+                deleteButton.className =
+                  "nyxtryp-guestbook-delete"
+
+                deleteButton.type = "button"
+                deleteButton.textContent =
+                  "DELETE"
+
+                deleteButton.addEventListener(
+                  "click",
+                  async () => {
+                    if (!window.confirm(
+                      "Delete this message?"
+                    )) return
+
+                    try {
+                      const response =
+                        await fetch(
+                          "/api/guestbook",
+                          {
+                            method: "DELETE",
+                            headers: {
+                              "Content-Type":
+                                "application/json",
+                              "X-Guestbook-Admin-Key":
+                                adminKey
+                            },
+                            body: JSON.stringify({
+                              id: item.id
+                            })
+                          }
+                        )
+
+                      const data =
+                        await response.json()
+
+                      if (!response.ok) {
+                        throw new Error(
+                          data.error ||
+                          "Delete failed."
+                        )
+                      }
+
+                      messages =
+                        messages.filter(
+                          (message) =>
+                            message.id !== item.id
+                        )
+
+                      renderMessages()
+                    } catch (error) {
+                      status.textContent =
+                        error.message
+                    }
+                  }
+                )
+
+                card.appendChild(deleteButton)
+              }
+
+              messagesBox.appendChild(card)
+            })
+          }
+
+          const loadMessages = async () => {
+            try {
+              const response =
+                await fetch(
+                  "/api/guestbook",
+                  { cache: "no-store" }
+                )
+
+              const data =
+                await response.json()
+
+              if (!response.ok) {
+                throw new Error(
+                  data.error ||
+                  "Could not load guestbook."
+                )
+              }
+
+              messages =
+                Array.isArray(data.messages)
+                  ? data.messages
+                  : []
+
+              renderMessages()
+            } catch (error) {
+              status.textContent =
+                error.message
+            }
+          }
+
+          adminButton.addEventListener(
+            "click",
+            () => {
+              const key =
+                window.prompt(
+                  "Enter GUESTBOOK ADMIN KEY:"
+                )
+
+              if (!key) return
+
+              adminKey = key
+              nyxtrypMode = true
+
+              nameInput.value = "NYXTRYP"
+              nameInput.disabled = true
+
+              adminButton.textContent =
+                "NYXTRYP MODE ACTIVE"
+
+              adminButton.style.borderColor =
+                "rgba(255,255,255,.45)"
+
+              status.textContent =
+                "You can now post as NYXTRYP and delete messages."
+
+              renderMessages()
+            }
+          )
+
+          form.addEventListener(
+            "submit",
+            async (event) => {
+              event.preventDefault()
+
+              const name =
+                nyxtrypMode
+                  ? "NYXTRYP"
+                  : nameInput.value.trim()
+
+              const message =
+                messageInput.value.trim()
+
+              const website =
+                form.querySelector(
+                  '[name="website"]'
+                ).value.trim()
+
+              if (message.length < 2) {
+                status.textContent =
+                  "Message is too short."
+                return
+              }
+
+              submitButton.disabled = true
+              status.textContent = "SIGNING..."
+
+              try {
+                const headers = {
+                  "Content-Type":
+                    "application/json"
+                }
+
+                if (nyxtrypMode) {
+                  headers[
+                    "X-Guestbook-Admin-Key"
+                  ] = adminKey
+                }
+
+                const response =
+                  await fetch(
+                    "/api/guestbook",
+                    {
+                      method: "POST",
+                      headers,
+                      body: JSON.stringify({
+                        name,
+                        message,
+                        website,
+                        asNyxtryp:
+                          nyxtrypMode
+                      })
+                    }
+                  )
+
+                const data =
+                  await response.json()
+
+                if (!response.ok) {
+                  throw new Error(
+                    data.error ||
+                    "Could not sign the guestbook."
+                  )
+                }
+
+                messages = [
+                  data.message,
+                  ...messages
+                ].slice(0, 500)
+
+                messageInput.value = ""
+                counter.textContent = "0 / 300"
+
+                if (!nyxtrypMode) {
+                  nameInput.value = ""
+                }
+
+                status.textContent =
+                  "Message signed."
+
+                renderMessages()
+              } catch (error) {
+                status.textContent =
+                  error.message
+              } finally {
+                submitButton.disabled = false
+              }
+            }
+          )
+
+          isDragging = false
+          pointerMoved = false
+          pendingReturn = false
+
+          loadMessages()
+
+          return
+        }
 
         if (hit.userData.name === "SOCIAL") {
           diagnosticAction("SOCIAL opened")

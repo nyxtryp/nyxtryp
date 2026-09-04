@@ -88,12 +88,24 @@ export default async function handler(req, res) {
         return json(res, 400, { error: 'Please keep the guestbook respectful.' })
       }
 
+      const adminKey = process.env.GUESTBOOK_ADMIN_KEY
+      const suppliedKey = req.headers['x-guestbook-admin-key']
+      const asNyxtryp = body.asNyxtryp === true
+
+      if (
+        asNyxtryp &&
+        (!adminKey || suppliedKey !== adminKey)
+      ) {
+        return json(res, 403, { error: 'Forbidden.' })
+      }
+
       const guestbook = await readGuestbook()
       const entry = {
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        name: name || 'Anonymous',
+        name: asNyxtryp ? 'NYXTRYP' : (name || 'Anonymous'),
         message,
-        date: new Date().toISOString()
+        date: new Date().toISOString(),
+        official: asNyxtryp
       }
 
       const messages = [entry, ...guestbook.messages].slice(0, 500)
