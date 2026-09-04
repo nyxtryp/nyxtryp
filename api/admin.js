@@ -10,16 +10,12 @@ const folders = {
 }
 
 function json(res, status, data) {
-  res
-    .status(status)
-    .setHeader('Content-Type', 'application/json; charset=utf-8')
-    .send(JSON.stringify(data))
+  res.status(status).setHeader('Content-Type', 'application/json; charset=utf-8').send(JSON.stringify(data))
 }
 
 async function github(path, options = {}) {
   const token = process.env.GITHUB_TOKEN
   if (!token) throw new Error('GITHUB_TOKEN is not configured')
-
   const response = await fetch(`${API}${path}`, {
     ...options,
     headers: {
@@ -29,212 +25,102 @@ async function github(path, options = {}) {
       ...(options.headers || {})
     }
   })
-
   const text = await response.text()
   let data
-  try {
-    data = JSON.parse(text)
-  } catch {
-    data = { message: text }
-  }
-
-  if (!response.ok) {
-    const error = new Error(data.message || 'GitHub request failed')
-    error.status = response.status
-    throw error
-  }
-
+  try { data = JSON.parse(text) } catch { data = { message: text } }
+  if (!response.ok) { const error = new Error(data.message || 'GitHub request failed'); error.status = response.status; throw error }
   return data
 }
 
 function checkAdmin(body) {
   const adminKey = process.env.GUESTBOOK_ADMIN_KEY
-  const suppliedKey = String(body?.adminKey || '')
-  return Boolean(adminKey && suppliedKey === adminKey)
+  return Boolean(adminKey && String(body?.adminKey || '') === adminKey)
 }
 
 function safeName(name) {
   const value = String(name || '').trim()
-
   if (!value || value === '.' || value === '..') return null
-  if (value.includes('/') || value.includes('\\')) return null
-  if (value.includes('..')) return null
-
+  if (value.includes('/') || value.includes('\\') || value.includes('..')) return null
   return value
 }
 
 async function listFiles(folder) {
   const data = await github(`/contents/${folder}?ref=main`)
-
   if (!Array.isArray(data)) return []
-
-  return data
-    .filter(item => item.type === 'file')
-    .map(item => item.name)
-    .sort((a, b) => a.localeCompare(b))
+  return data.filter(item => item.type === 'file').map(item => item.name).sort((a, b) => a.localeCompare(b))
 }
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end()
-  }
+  if (req.method === 'OPTIONS') return res.status(204).end()
 
   try {
     if (req.method === 'GET') {
       const result = {}
-
-      for (const [key, folder] of Object.entries(folders)) {
-        result[key] = await listFiles(folder)
-      }
-
+      for (const [key, folder] of Object.entries(folders)) result[key] = await listFiles(folder)
       return json(res, 200, result)
     }
 
-    const body =
-      typeof req.body === 'string'
-        ? JSON.parse(req.body || '{}')
-        : (req.body || {})
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
+    if (!checkAdmin(body)) return json(res, 403, { error: 'Forbidden.' })
 
-    if (!checkAdmin(body)) {
-      return json(res, 403, { error: 'Forbidden.' })
-    }
+    if (req.method === 'POST' && body.action === 'auth') return json(res, 200, { ok: true })
 
     if (req.method === 'POST') {
       const type = String(body.type || '')
       const name = safeName(body.name)
       const content = String(body.content || '')
-
-      if (!folders[type] || !name || !content) {
-        return json(res, 400, { error: 'Type, name and content are required.' })
-      }
-
-      if (!/^[A-Za-z0-9+/=\s]+$/.test(content)) {
-        return json(res, 400, { error: 'Invalid base64 content.' })
-      }
-
+      if (!folders[type] || !name || !content) return json(res, 400, { error: 'Type, name and content are required.' })
+      if (!/^[A-Za-z0-9+/=\s]+$/.test(content)) return json(res, 400, { error: 'Invalid base64 content.' })
       const folder = folders[type]
       const filePath = `${folder}/${name}`
       const encodedPath = encodeURIComponent(filePath).replace(/%2F/g, '/')
-
       let sha
-
       try {
         const existing = await github(`/contents/${encodedPath}?ref=main`)
         sha = existing.sha
       } catch (error) {
         if (error.status !== 404) throw error
       }
-
-      const payload = {
-        message: `admin: ${sha ? 'replace' : 'add'} ${type}/${name}`,
-        content: content.replace(/\s/g, ''),
-        branch: 'main'
-      }
-
+      const payload = { message: `admin: ${sha ? 'replace' : 'add'} ${type}/${name}`, content: content.replace(/\s/g, ''), branch: 'main' }
       if (sha) payload.sha = sha
-
-      await github(`/contents/${encodedPath}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-
-      return json(res, 200, {
-        ok: true,
-        action: sha ? 'replaced' : 'added',
-        type,
-        name
-      })
+      await github(`/contents/${encodedPath}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      return json(res, 200, { ok: true, action: sha ? 'replaced' : 'added', type, name })
     }
 
     if (req.method === 'PATCH') {
       const type = String(body.type || '')
       const oldName = safeName(body.oldName)
       const newName = safeName(body.newName)
-
-      if (!folders[type] || !oldName || !newName) {
-        return json(res, 400, { error: 'Type, oldName and newName are required.' })
-      }
-
-      if (oldName === newName) {
-        return json(res, 400, { error: 'New name must be different.' })
-      }
-
+      if (!folders[type] || !oldName || !newName) return json(res, 400, { error: 'Type, oldName and newName are required.' })
+      if (oldName === newName) return json(res, 400, { error: 'New name must be different.' })
       const folder = folders[type]
       const oldPath = `${folder}/${oldName}`
       const newPath = `${folder}/${newName}`
-
       const oldEncoded = encodeURIComponent(oldPath).replace(/%2F/g, '/')
       const newEncoded = encodeURIComponent(newPath).replace(/%2F/g, '/')
-
       const file = await github(`/contents/${oldEncoded}?ref=main`)
-
-      await github(`/contents/${newEncoded}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `admin: rename ${type}/${oldName} to ${newName}`,
-          content: file.content.replace(/\n/g, ''),
-          branch: 'main'
-        })
-      })
-
-      await github(`/contents/${oldEncoded}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `admin: remove old name ${type}/${oldName}`,
-          sha: file.sha,
-          branch: 'main'
-        })
-      })
-
-      return json(res, 200, {
-        ok: true,
-        action: 'renamed',
-        type,
-        oldName,
-        newName
-      })
+      await github(`/contents/${newEncoded}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `admin: rename ${type}/${oldName} to ${newName}`, content: file.content.replace(/\n/g, ''), branch: 'main' }) })
+      await github(`/contents/${oldEncoded}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `admin: remove old name ${type}/${oldName}`, sha: file.sha, branch: 'main' }) })
+      return json(res, 200, { ok: true, action: 'renamed', type, oldName, newName })
     }
 
     if (req.method === 'DELETE') {
       const type = String(body.type || '')
       const name = safeName(body.name)
-
-      if (!folders[type] || !name) {
-        return json(res, 400, { error: 'Invalid file.' })
-      }
-
-      const folder = folders[type]
-      const filePath = `${folder}/${name}`
-      const file = await github(`/contents/${encodeURIComponent(filePath).replace(/%2F/g, '/') }?ref=main`)
-
-      await github(`/contents/${encodeURIComponent(filePath).replace(/%2F/g, '/') }`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: `admin: delete ${type}/${name}`,
-          sha: file.sha,
-          branch: 'main'
-        })
-      })
-
+      if (!folders[type] || !name) return json(res, 400, { error: 'Invalid file.' })
+      const filePath = `${folders[type]}/${name}`
+      const encodedPath = encodeURIComponent(filePath).replace(/%2F/g, '/')
+      const file = await github(`/contents/${encodedPath}?ref=main`)
+      await github(`/contents/${encodedPath}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `admin: delete ${type}/${name}`, sha: file.sha, branch: 'main' }) })
       return json(res, 200, { ok: true })
     }
 
-    return json(res, 501, {
-      error: 'Admin operation is not implemented yet.'
-    })
+    return json(res, 501, { error: 'Admin operation is not implemented yet.' })
   } catch (error) {
     console.error('Admin API error:', error)
-
-    return json(res, error.status || 500, {
-      error: error.message || 'Admin service error.'
-    })
+    return json(res, error.status || 500, { error: error.message || 'Admin service error.' })
   }
 }
