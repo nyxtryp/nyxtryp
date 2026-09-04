@@ -64,7 +64,7 @@ async function readGuestbook() {
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Guestbook-Admin-Key')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
   if (req.method === 'OPTIONS') return res.status(204).end()
 
@@ -89,7 +89,7 @@ export default async function handler(req, res) {
       }
 
       const adminKey = process.env.GUESTBOOK_ADMIN_KEY
-      const suppliedKey = req.headers['x-guestbook-admin-key']
+      const suppliedKey = String(body.adminKey || '')
       const asNyxtryp = body.asNyxtryp === true
 
       if (
@@ -127,12 +127,13 @@ export default async function handler(req, res) {
 
     if (req.method === 'DELETE') {
       const adminKey = process.env.GUESTBOOK_ADMIN_KEY
-      const suppliedKey = req.headers['x-guestbook-admin-key']
+      const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
+      const suppliedKey = String(body.adminKey || '')
+
       if (!adminKey || suppliedKey !== adminKey) {
         return json(res, 403, { error: 'Forbidden.' })
       }
 
-      const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
       const id = String(body.id || '').trim()
       if (!id) return json(res, 400, { error: 'Message id is required.' })
 
