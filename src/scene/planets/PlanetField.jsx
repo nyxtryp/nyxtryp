@@ -4125,6 +4125,24 @@ if (hit.userData.name === "PHOTOS") {
             "/photos/photo-19.jpg"
           ]
 
+          fetch("/api/media", { cache: "no-store" })
+            .then(r => r.ok ? r.json() : Promise.reject(new Error("media api failed")))
+            .then(data => {
+              if (!Array.isArray(data.photos) || !data.photos.length) return
+
+              photos.splice(
+                0,
+                photos.length,
+                ...data.photos.map(name => `/photos/${encodeURIComponent(name)}`)
+              )
+
+              if (photos.length) {
+                index = Math.min(index, photos.length - 1)
+                update()
+              }
+            })
+            .catch(() => {})
+
           let index = 0
 
           const overlay = document.createElement("div")
