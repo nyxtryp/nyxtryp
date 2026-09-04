@@ -2274,9 +2274,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         // ======================================================
 
         if (
-          hit.userData.name === "ABOUT" &&
-          selectedPlanet === hit &&
-          cameraDistance < 10
+          hit.userData.name === "ABOUT"
         ) {
 
           const existingAbout =
