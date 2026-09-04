@@ -444,8 +444,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
           transparent: true,
           opacity: 0,
           depthWrite: false,
-          blending:
-            THREE.AdditiveBlending
+          blending: THREE.AdditiveBlending
         })
       )
 
@@ -848,7 +847,8 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
           vec3 scattering =
             vec3(0.0);
 
-          float opticalDepth = 0.0;
+          float opticalDepth =
+            0.0;
 
           for (int i = 0; i < STEPS; i++) {
 
@@ -2886,12 +2886,11 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
                             method: "DELETE",
                             headers: {
                               "Content-Type":
-                                "application/json",
-                              "X-Guestbook-Admin-Key":
-                                adminKey
+                                "application/json"
                             },
                             body: JSON.stringify({
-                              id: item.id
+                              id: item.id,
+                              adminKey
                             })
                           }
                         )
@@ -3014,29 +3013,25 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
               status.textContent = "SIGNING..."
 
               try {
-                const headers = {
-                  "Content-Type":
-                    "application/json"
-                }
-
-                if (nyxtrypMode) {
-                  headers[
-                    "X-Guestbook-Admin-Key"
-                  ] = adminKey
-                }
-
                 const response =
                   await fetch(
                     "/api/guestbook",
                     {
                       method: "POST",
-                      headers,
+                      headers: {
+                        "Content-Type":
+                          "application/json"
+                      },
                       body: JSON.stringify({
                         name,
                         message,
                         website,
                         asNyxtryp:
+                          nyxtrypMode,
+                        adminKey:
                           nyxtrypMode
+                            ? adminKey
+                            : ""
                       })
                     }
                   )
