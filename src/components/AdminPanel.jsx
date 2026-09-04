@@ -47,7 +47,23 @@ export default function AdminPanel() {
   }
 
   useEffect(() => {
-    if (sessionStorage.getItem('nyxtryp-admin-key')) load()
+    const saved = sessionStorage.getItem('nyxtryp-admin-key')
+    if (!saved) return
+    ;(async () => {
+      try {
+        const r = await fetch('/api/admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'auth', adminKey: saved })
+        })
+        if (!r.ok) throw new Error('Неверный admin key')
+        await load()
+      } catch {
+        sessionStorage.removeItem('nyxtryp-admin-key')
+        setKey('')
+        setOk(false)
+      }
+    })()
   }, [])
 
   const api = async (method, body) => {
@@ -64,9 +80,18 @@ export default function AdminPanel() {
   const login = async e => {
     e.preventDefault()
     if (!key.trim()) return
-    sessionStorage.setItem('nyxtryp-admin-key', key.trim())
-    setStatus('')
-    await load()
+    setStatus('ПРОВЕРКА…')
+    setError('')
+    try {
+      await api('POST', { action: 'auth' })
+      sessionStorage.setItem('nyxtryp-admin-key', key.trim())
+      await load()
+      setStatus('')
+    } catch (e) {
+      setOk(false)
+      setError(e.message || 'Неверный admin key')
+      setStatus('')
+    }
   }
 
   const logout = () => {
@@ -90,7 +115,7 @@ export default function AdminPanel() {
 
     const tooLarge = selected.find(f => f.size > 4 * 1024 * 1024)
     if (tooLarge) {
-      setError(`«${tooLarge.name}» больше 4 МБ. Текущий Vercel API не принимает такие файлы.`)
+      setError(`«${tooLarge.name}» больше 4 МБ. Для больших MP3 следующим шагом подключим отдельную загрузку.`)
       return
     }
 
@@ -134,7 +159,7 @@ export default function AdminPanel() {
     finally { setBusy(false) }
   }
 
-  if (!ok) return <div className="nyx-admin-shell"><style>{CSS}</style><form className="nyx-admin-login" onSubmit={login}><div className="kicker">NYXTRYP / PRIVATE</div><h1>MEDIA CONTROL</h1><div className="sub">ADMIN ACCESS</div><input autoFocus type="password" value={key} onChange={e => setKey(e.target.value)} placeholder="Admin key"/><button>ENTER</button>{error && <p className="err">{error}</p>}</form></div>
+  if (!ok) return <div className="nyx-admin-shell"><style>{CSS}</style><form className="nyx-admin-login" onSubmit={login}><div className="kicker">NYXTRYP / PRIVATE</div><h1>MEDIA CONTROL</h1><div className="sub">ADMIN ACCESS</div><input autoFocus type="password" value={key} onChange={e => setKey(e.target.value)} placeholder="Admin key"/><button disabled={busy}>{busy ? 'CHECKING…' : 'ENTER'}</button>{status && <p className="status">{status}</p>}{error && <p className="err">{error}</p>}</form></div>
 
   return <div className="nyx-admin-shell"><style>{CSS}</style><main className="nyx-admin-panel">
     <header><div><div className="kicker">NYXTRYP / PRIVATE</div><h1>MEDIA CONTROL</h1></div><button className="plain" onClick={logout}>EXIT</button></header>
