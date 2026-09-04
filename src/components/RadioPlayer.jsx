@@ -78,10 +78,47 @@ export default function RadioPlayer({ onClose }) {
     randomIndex()
   )
 
+  const [, setMediaVersion] = useState(0)
+
   const [signal, setSignal] = useState(92)
   const [latency, setLatency] = useState("1.4s")
 
   const track = RADIO_TRACKS[trackIndex]
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetch('/api/media', { cache: 'no-store' })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('media api failed')
+        }
+        return response.json()
+      })
+      .then(data => {
+        if (
+          cancelled ||
+          !Array.isArray(data.radio) ||
+          !data.radio.length
+        ) {
+          return
+        }
+
+        const dynamic = data.radio.map(name => ({
+          title: name.replace(/\.mp3$/i, ''),
+          file: `/audio/radio/${encodeURIComponent(name)}`
+        }))
+
+        RADIO_TRACKS.splice(0, RADIO_TRACKS.length, ...dynamic)
+        setTrackIndex(current => Math.min(current, dynamic.length - 1))
+        setMediaVersion(version => version + 1)
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   /*
    * Create the real Web Audio analyser once.
