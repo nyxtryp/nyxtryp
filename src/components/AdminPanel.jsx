@@ -182,8 +182,8 @@ export default function AdminPanel() {
   }
 
   const upload = async e => {
-    const selected = Array.from(e.target.files || [])
-    e.target.value = ''
+    const inputElement = e.currentTarget
+    const selected = Array.from(inputElement.files || [])
     if (!selected.length) {
       setStatus('ФАЙЛ НЕ ВЫБРАН')
       return
@@ -231,6 +231,7 @@ export default function AdminPanel() {
       setStatus('ОШИБКА ЗАГРУЗКИ')
     } finally {
       setBusy(false)
+      inputElement.value = ''
     }
   }
 
