@@ -2272,234 +2272,323 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         // ======================================================
 
 
-if (
-  hit.userData.name === "SOCIAL"
-) {
-  const socials = [
-    {
-      name: "WEBSITE",
-      handle: "NYXTRYP",
-      url: "https://nyxtryp.vercel.app"
-    },
-    {
-      name: "TELEGRAM",
-      handle: "NYXTRYP",
-      url: "https://t.me/nyxtryp"
-    },
-    {
-      name: "YOUTUBE",
-      handle: "NYXTRYP",
-      url: "https://www.youtube.com/@nyxtryp"
-    },
-    {
-      name: "TIKTOK",
-      handle: "NYXTRYP",
-      url: "https://www.tiktok.com/@nyxtryp"
-    },
-    {
-      name: "INSTAGRAM",
-      handle: "NYXTRYP",
-      url: "https://www.instagram.com/nyxtryp/"
-    }
-  ]
+        if (hit.userData.name === "SOCIAL") {
+          diagnosticAction("SOCIAL opened")
 
-  const old = document.getElementById(
-    "nyxtryp-social-window"
-  )
+          const old = document.getElementById("nyxtryp-social-window")
+          if (old) old.remove()
 
-  if (old) old.remove()
+          const socials = [
+            {
+              name: "WEBSITE",
+              url: "https://nyxtryp.vercel.app",
+              icon: `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3c3 3 4 6 4 9s-1 6-4 9c-3-3-4-6-4-9s1-6 4-9Z"/></svg>`
+            },
+            {
+              name: "TELEGRAM",
+              url: "https://t.me/nyxtryp",
+              icon: `<svg viewBox="0 0 24 24"><path d="M21 4 3.8 10.6c-.9.35-.85 1.65.08 1.9l4.3 1.2 1.65 5.05c.27.83 1.32 1.08 1.88.45l2.45-2.75 3.85 2.85c.72.53 1.75.12 1.92-.76L23 5.45C23.2 4.5 22 3.65 21 4Z"/><path d="m8.3 13.7 8.8-5.4-6.45 7.2"/></svg>`
+            },
+            {
+              name: "YOUTUBE",
+              url: "https://www.youtube.com/@nyxtryp",
+              icon: `<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="4"/><path d="m10 9 5 3-5 3V9Z"/></svg>`
+            },
+            {
+              name: "TIKTOK",
+              url: "https://www.tiktok.com/@nyxtryp",
+              icon: `<svg viewBox="0 0 24 24"><path d="M14 4v10.2a4.3 4.3 0 1 1-3.4-4.2"/><path d="M14 4c1.1 2.7 2.8 4.2 5.5 4.4"/></svg>`
+            },
+            {
+              name: "INSTAGRAM",
+              url: "https://www.instagram.com/nyxtryp/",
+              icon: `<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.4" cy="6.7" r="1"/></svg>`
+            }
+          ]
 
-  const overlay = document.createElement("div")
-  overlay.id = "nyxtryp-social-window"
+          const overlay = document.createElement("div")
+          overlay.id = "nyxtryp-social-window"
 
-  overlay.innerHTML = `
-    <div class="nyxtryp-social-panel">
-      <button class="nyxtryp-social-close">×</button>
+          overlay.innerHTML = `
+            <div class="nyxtryp-social-page">
+              <button class="nyxtryp-social-close" aria-label="Close">×</button>
 
-      <div class="nyxtryp-social-title">
-        SOCIAL
-      </div>
+              <div class="nyxtryp-social-head">
+                <div class="nyxtryp-social-kicker">NYXTRYP</div>
+                <h1>SOCIAL</h1>
+                <div class="nyxtryp-social-line"></div>
+                <p>CONNECT WITH NYXTRYP</p>
+              </div>
 
-      <div class="nyxtryp-social-subtitle">
-        FOLLOW NYXTRYP
-      </div>
+              <div class="nyxtryp-social-links">
+                ${socials.map((item, i) => `
+                  <a class="nyxtryp-social-link" href="${item.url}" target="_blank" rel="noopener noreferrer">
+                    <span class="nyxtryp-social-number">0${i + 1}</span>
+                    <span class="nyxtryp-social-icon">${item.icon}</span>
+                    <span class="nyxtryp-social-info">
+                      <strong>${item.name}</strong>
+                      <small>NYXTRYP</small>
+                    </span>
+                    <span class="nyxtryp-social-arrow">↗</span>
+                  </a>
+                `).join("")}
+              </div>
+            </div>
+          `
 
-      <div class="nyxtryp-social-list">
-        ${socials.map((item) => `
-          <a
-            class="nyxtryp-social-card"
-            href="${item.url}"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span class="nyxtryp-social-name">
-              ${item.name}
-            </span>
+          const style = document.createElement("style")
+          style.textContent = `
+            #nyxtryp-social-window {
+              position: fixed;
+              inset: 0;
+              z-index: 99999;
+              overflow: auto;
+              background:
+                radial-gradient(circle at 50% 25%, rgba(255,255,255,.08), transparent 32%),
+                linear-gradient(180deg, rgba(3,4,8,.97), rgba(0,0,0,.99));
+              color: #fff;
+              font-family: Arial, Helvetica, sans-serif;
+            }
 
-            <span class="nyxtryp-social-handle">
-              ${item.handle}
-            </span>
+            .nyxtryp-social-page {
+              min-height: 100%;
+              box-sizing: border-box;
+              padding: 8vh 8vw 7vh;
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              position: relative;
+            }
 
-            <span class="nyxtryp-social-arrow">
-              ↗
-            </span>
-          </a>
-        `).join("")}
-      </div>
-    </div>
-  `
+            .nyxtryp-social-close {
+              position: fixed;
+              top: 28px;
+              right: 34px;
+              z-index: 2;
+              width: 48px;
+              height: 48px;
+              border: 1px solid rgba(255,255,255,.2);
+              border-radius: 50%;
+              background: rgba(255,255,255,.04);
+              color: rgba(255,255,255,.85);
+              font-size: 32px;
+              font-weight: 200;
+              line-height: 42px;
+              cursor: pointer;
+              transition: .25s ease;
+            }
 
-  const style = document.createElement("style")
-  style.textContent = `
-    #nyxtryp-social-window {
-      position: fixed;
-      inset: 0;
-      z-index: 99999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      background: rgba(0,0,0,.58);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      font-family: Arial, sans-serif;
-    }
+            .nyxtryp-social-close:hover {
+              background: rgba(255,255,255,.12);
+              border-color: rgba(255,255,255,.45);
+              transform: rotate(90deg);
+            }
 
-    .nyxtryp-social-panel {
-      position: relative;
-      width: min(560px, 100%);
-      max-height: 88vh;
-      overflow-y: auto;
-      padding: 42px 32px 32px;
-      border: 1px solid rgba(255,255,255,.18);
-      border-radius: 24px;
-      background: rgba(8,10,18,.88);
-      box-shadow: 0 30px 100px rgba(0,0,0,.55);
-    }
+            .nyxtryp-social-head {
+              max-width: 900px;
+              width: 100%;
+              margin: 0 auto 48px;
+            }
 
-    .nyxtryp-social-close {
-      position: absolute;
-      top: 14px;
-      right: 18px;
-      width: 38px;
-      height: 38px;
-      border: 0;
-      background: transparent;
-      color: rgba(255,255,255,.75);
-      font-size: 30px;
-      line-height: 1;
-      cursor: pointer;
-    }
+            .nyxtryp-social-kicker {
+              font-size: 11px;
+              letter-spacing: .45em;
+              color: rgba(255,255,255,.38);
+              margin-bottom: 14px;
+            }
 
-    .nyxtryp-social-title {
-      color: white;
-      font-size: 30px;
-      font-weight: 600;
-      letter-spacing: .22em;
-      text-align: center;
-    }
+            .nyxtryp-social-head h1 {
+              margin: 0;
+              font-size: clamp(48px, 9vw, 110px);
+              line-height: .9;
+              font-weight: 300;
+              letter-spacing: .08em;
+            }
 
-    .nyxtryp-social-subtitle {
-      margin-top: 8px;
-      margin-bottom: 28px;
-      color: rgba(255,255,255,.42);
-      font-size: 11px;
-      letter-spacing: .22em;
-      text-align: center;
-    }
+            .nyxtryp-social-line {
+              width: 100%;
+              height: 1px;
+              margin: 26px 0 15px;
+              background: linear-gradient(90deg, rgba(255,255,255,.5), rgba(255,255,255,.04));
+            }
 
-    .nyxtryp-social-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+            .nyxtryp-social-head p {
+              margin: 0;
+              font-size: 11px;
+              letter-spacing: .3em;
+              color: rgba(255,255,255,.42);
+            }
 
-    .nyxtryp-social-card {
-      display: grid;
-      grid-template-columns: 1fr auto 28px;
-      align-items: center;
-      gap: 16px;
-      min-height: 68px;
-      padding: 0 20px;
-      border: 1px solid rgba(255,255,255,.1);
-      border-radius: 16px;
-      background: rgba(255,255,255,.035);
-      color: white;
-      text-decoration: none;
-      transition:
-        transform .2s ease,
-        background .2s ease,
-        border-color .2s ease;
-    }
+            .nyxtryp-social-links {
+              width: 100%;
+              max-width: 900px;
+              margin: 0 auto;
+              display: grid;
+              grid-template-columns: 1fr 1fr;
+              gap: 12px;
+            }
 
-    .nyxtryp-social-card:hover {
-      transform: translateY(-2px);
-      background: rgba(255,255,255,.09);
-      border-color: rgba(255,255,255,.28);
-    }
+            .nyxtryp-social-link {
+              min-height: 105px;
+              box-sizing: border-box;
+              display: grid;
+              grid-template-columns: 34px 52px 1fr 30px;
+              align-items: center;
+              gap: 18px;
+              padding: 0 24px;
+              border: 1px solid rgba(255,255,255,.11);
+              border-radius: 4px;
+              background: rgba(255,255,255,.035);
+              color: white;
+              text-decoration: none;
+              position: relative;
+              overflow: hidden;
+              transition: transform .25s ease, background .25s ease, border-color .25s ease;
+            }
 
-    .nyxtryp-social-name {
-      font-size: 13px;
-      font-weight: 600;
-      letter-spacing: .12em;
-    }
+            .nyxtryp-social-link::before {
+              content: "";
+              position: absolute;
+              inset: 0;
+              background: linear-gradient(105deg, transparent 30%, rgba(255,255,255,.08), transparent 70%);
+              transform: translateX(-100%);
+              transition: transform .6s ease;
+            }
 
-    .nyxtryp-social-handle {
-      color: rgba(255,255,255,.5);
-      font-size: 12px;
-      letter-spacing: .08em;
-    }
+            .nyxtryp-social-link:hover {
+              transform: translateY(-4px);
+              background: rgba(255,255,255,.08);
+              border-color: rgba(255,255,255,.3);
+            }
 
-    .nyxtryp-social-arrow {
-      color: rgba(255,255,255,.65);
-      font-size: 18px;
-      text-align: right;
-    }
+            .nyxtryp-social-link:hover::before {
+              transform: translateX(100%);
+            }
 
-    @media (max-width: 600px) {
-      #nyxtryp-social-window {
-        padding: 14px;
-      }
+            .nyxtryp-social-number {
+              font-size: 10px;
+              letter-spacing: .1em;
+              color: rgba(255,255,255,.25);
+            }
 
-      .nyxtryp-social-panel {
-        padding: 38px 16px 18px;
-        border-radius: 20px;
-      }
+            .nyxtryp-social-icon {
+              width: 48px;
+              height: 48px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              border: 1px solid rgba(255,255,255,.16);
+              border-radius: 50%;
+              background: rgba(255,255,255,.045);
+            }
 
-      .nyxtryp-social-card {
-        grid-template-columns: 1fr 28px;
-        gap: 8px;
-        min-height: 62px;
-        padding: 0 16px;
-      }
+            .nyxtryp-social-icon svg {
+              width: 23px;
+              height: 23px;
+              fill: none;
+              stroke: currentColor;
+              stroke-width: 1.45;
+              stroke-linecap: round;
+              stroke-linejoin: round;
+            }
 
-      .nyxtryp-social-handle {
-        display: none;
-      }
-    }
-  `
+            .nyxtryp-social-info {
+              display: flex;
+              flex-direction: column;
+              gap: 7px;
+            }
 
-  document.head.appendChild(style)
-  document.body.appendChild(overlay)
+            .nyxtryp-social-info strong {
+              font-size: 14px;
+              font-weight: 500;
+              letter-spacing: .18em;
+            }
 
-  const close = overlay.querySelector(
-    ".nyxtryp-social-close"
-  )
+            .nyxtryp-social-info small {
+              font-size: 10px;
+              letter-spacing: .2em;
+              color: rgba(255,255,255,.38);
+            }
 
-  close.onclick = () => {
-    overlay.remove()
-    style.remove()
-  }
+            .nyxtryp-social-arrow {
+              font-size: 24px;
+              color: rgba(255,255,255,.45);
+              transition: transform .25s ease, color .25s ease;
+            }
 
-  overlay.onclick = (event) => {
-    if (event.target === overlay) {
-      overlay.remove()
-      style.remove()
-    }
-  }
+            .nyxtryp-social-link:hover .nyxtryp-social-arrow {
+              transform: translate(3px,-3px);
+              color: white;
+            }
 
-  return
-}
+            @media (max-width: 700px) {
+              .nyxtryp-social-page {
+                padding: 70px 18px 30px;
+              }
+
+              .nyxtryp-social-close {
+                top: 18px;
+                right: 18px;
+                width: 42px;
+                height: 42px;
+                font-size: 28px;
+              }
+
+              .nyxtryp-social-head {
+                margin-bottom: 30px;
+              }
+
+              .nyxtryp-social-head h1 {
+                font-size: 52px;
+              }
+
+              .nyxtryp-social-links {
+                grid-template-columns: 1fr;
+                gap: 9px;
+              }
+
+              .nyxtryp-social-link {
+                min-height: 82px;
+                grid-template-columns: 25px 44px 1fr 24px;
+                gap: 12px;
+                padding: 0 14px;
+              }
+
+              .nyxtryp-social-icon {
+                width: 40px;
+                height: 40px;
+              }
+
+              .nyxtryp-social-icon svg {
+                width: 20px;
+                height: 20px;
+              }
+
+              .nyxtryp-social-info strong {
+                font-size: 12px;
+                letter-spacing: .14em;
+              }
+            }
+          `
+
+          document.head.appendChild(style)
+          document.body.appendChild(overlay)
+
+          const close = overlay.querySelector(".nyxtryp-social-close")
+          close.onclick = () => {
+            overlay.remove()
+            style.remove()
+          }
+
+          overlay.onclick = (event) => {
+            if (event.target === overlay) {
+              overlay.remove()
+              style.remove()
+            }
+          }
+
+          return
+        }
 
 if (hit.userData.name === "PHOTOS") {
 
