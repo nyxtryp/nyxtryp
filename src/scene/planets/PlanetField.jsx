@@ -2280,559 +2280,1599 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         // ======================================================
 
         if (hit.userData.name === "VISUALS") {
-      diagnosticAction("VISUALS opened")
 
-      const old = document.getElementById("nyxtryp-visuals-window")
+      diagnosticAction("VISUALS flight opened")
+
+      const old =
+        document.getElementById(
+          "nyxtryp-visuals-window"
+        )
+
       if (old) old.remove()
 
-      const overlay = document.createElement("div")
-      overlay.id = "nyxtryp-visuals-window"
+      const overlay =
+        document.createElement("div")
 
-      Object.assign(overlay.style, {
-        position: "fixed",
-        inset: "0",
-        zIndex: "100000",
-        overflow: "hidden",
-        background: "#010207",
-        cursor: "crosshair",
-        touchAction: "none"
-      })
+      overlay.id =
+        "nyxtryp-visuals-window"
 
-      const canvas = document.createElement("canvas")
-      Object.assign(canvas.style, {
-        position: "absolute",
-        inset: "0",
-        width: "100%",
-        height: "100%"
-      })
+      Object.assign(
+        overlay.style,
+        {
+          position: "fixed",
+          inset: "0",
+          zIndex: "100000",
+          overflow: "hidden",
+          background: "#000",
+          cursor: "none",
+          touchAction: "none"
+        }
+      )
+
+      const canvas =
+        document.createElement("canvas")
+
+      canvas.style.position = "absolute"
+      canvas.style.inset = "0"
+      canvas.style.width = "100%"
+      canvas.style.height = "100%"
+      canvas.style.display = "block"
 
       overlay.appendChild(canvas)
-      document.body.appendChild(overlay)
 
-      const ctx = canvas.getContext("2d")
-      let w = 0
-      let h = 0
-      let dpr = Math.min(window.devicePixelRatio || 1, 2)
+      const ctx =
+        canvas.getContext("2d")
 
-      const resize = () => {
-        w = window.innerWidth
-        h = window.innerHeight
-        dpr = Math.min(window.devicePixelRatio || 1, 2)
-        canvas.width = w * dpr
-        canvas.height = h * dpr
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      }
+      const close =
+        document.createElement("button")
 
-      resize()
-      window.addEventListener("resize", resize)
-
-      const cx = () => w * 0.5
-      const cy = () => h * 0.5
-
-      const rnd = (a, b) => a + Math.random() * (b - a)
-      const TAU = Math.PI * 2
-
-      const stars = Array.from({ length: 180 }, () => ({
-        x: Math.random(),
-        y: Math.random(),
-        z: rnd(0.2, 1),
-        a: rnd(0.15, 0.8),
-        s: rnd(0.3, 1.6)
-      }))
-
-      const particles = []
-      const waves = []
-      const meteors = []
-
-      let t = 0
-      let last = performance.now()
-      let eventTime = 0
-      let phase = "quiet"
-      let event = 0
-      let gravityX = cx()
-      let gravityY = cy()
-      let pointerDown = false
-      let vortex = 0
-      let raf = 0
-
-      const palette = [
-        [255,255,255],
-        [190,225,255],
-        [100,150,255],
-        [125,80,220],
-        [60,210,255]
-      ]
-
-      const color = (p, a = 1) => {
-        const k = Math.max(0, Math.min(3.999, p))
-        const i = Math.floor(k)
-        const f = k - i
-        const a1 = palette[i]
-        const a2 = palette[Math.min(i + 1, 4)]
-        const r = Math.round(a1[0] + (a2[0] - a1[0]) * f)
-        const g = Math.round(a1[1] + (a2[1] - a1[1]) * f)
-        const b = Math.round(a1[2] + (a2[2] - a1[2]) * f)
-        return `rgba(${r},${g},${b},${a})`
-      }
-
-      const seedGalaxy = () => {
-        particles.length = 0
-
-        for (let i = 0; i < 1050; i++) {
-          const arm = Math.random() < 0.5 ? 0 : 1
-          const r = Math.pow(Math.random(), 0.62) * Math.min(w,h) * 0.58
-          const base = arm * Math.PI + r * 0.012
-          const angle = base + rnd(-0.28, 0.28) * (1 - r / Math.min(w,h))
-          const spread = rnd(-1,1) * (16 + r * 0.08)
-
-          particles.push({
-            x: cx() + Math.cos(angle) * r,
-            y: cy() + Math.sin(angle) * r * 0.48 + spread,
-            px: cx(),
-            py: cy(),
-            vx: 0,
-            vy: 0,
-            r: rnd(0.35, 1.8),
-            life: 1,
-            age: rnd(0, 10),
-            arm,
-            radius: r,
-            angle,
-            speed: rnd(0.0005, 0.0022),
-            hue: rnd(0.2, 3.8)
-          })
-        }
-      }
-
-      const seedWave = () => {
-        particles.length = 0
-        for (let i = 0; i < 650; i++) {
-          particles.push({
-            x: rnd(-w * 0.2, w * 1.2),
-            y: rnd(-h, h * 1.5),
-            vx: rnd(2, 8),
-            vy: rnd(-0.5, 0.5),
-            r: rnd(0.4, 2),
-            life: rnd(0.3, 1),
-            age: rnd(0, 8),
-            hue: rnd(0.5, 3.8)
-          })
-        }
-      }
-
-      const seedMeteors = () => {
-        particles.length = 0
-        for (let i = 0; i < 420; i++) {
-          const side = Math.random()
-          particles.push({
-            x: side < 0.5 ? rnd(-w, w * 0.4) : rnd(w * 0.6, w * 2),
-            y: rnd(-h, h),
-            vx: rnd(-7, -2),
-            vy: rnd(1, 5),
-            r: rnd(0.5, 2.2),
-            life: rnd(0.3, 1),
-            age: rnd(0, 8),
-            hue: rnd(0, 4)
-          })
-        }
-      }
-
-      const seedPortal = () => {
-        particles.length = 0
-        for (let i = 0; i < 900; i++) {
-          const a = Math.random() * TAU
-          const r = rnd(20, Math.min(w,h) * 0.7)
-          particles.push({
-            x: cx() + Math.cos(a) * r,
-            y: cy() + Math.sin(a) * r,
-            vx: 0,
-            vy: 0,
-            r: rnd(0.3, 1.7),
-            life: 1,
-            age: rnd(0, 8),
-            angle: a,
-            radius: r,
-            hue: rnd(0.2, 4)
-          })
-        }
-      }
-
-      const resetEvent = () => {
-        event = (event + 1) % 4
-        eventTime = 0
-        phase = "impact"
-
-        if (event === 0) seedGalaxy()
-        if (event === 1) seedWave()
-        if (event === 2) seedMeteors()
-        if (event === 3) seedPortal()
-      }
-
-      const drawStars = () => {
-        for (const s of stars) {
-          const x = s.x * w
-          const y = s.y * h
-          const pulse = 0.65 + Math.sin(t * 0.0015 + s.x * 12) * 0.35
-          ctx.beginPath()
-          ctx.fillStyle = `rgba(190,215,255,${s.a * pulse})`
-          ctx.arc(x, y, s.s * s.z, 0, TAU)
-          ctx.fill()
-        }
-      }
-
-      const drawCore = (power) => {
-        const g = ctx.createRadialGradient(cx(),cy(),0,cx(),cy(),Math.min(w,h)*0.22*power)
-        g.addColorStop(0,"rgba(255,255,255,0.95)")
-        g.addColorStop(0.025,"rgba(210,235,255,0.9)")
-        g.addColorStop(0.12,"rgba(90,150,255,0.32)")
-        g.addColorStop(0.38,"rgba(90,60,220,0.10)")
-        g.addColorStop(1,"rgba(0,0,0,0)")
-        ctx.fillStyle = g
-        ctx.fillRect(0,0,w,h)
-
-        ctx.beginPath()
-        ctx.fillStyle = "rgba(255,255,255,0.98)"
-        ctx.shadowBlur = 35 * power
-        ctx.shadowColor = "rgba(170,220,255,0.95)"
-        ctx.arc(cx(),cy(),Math.max(1.5,5*power),0,TAU)
-        ctx.fill()
-        ctx.shadowBlur = 0
-      }
-
-      const drawGalaxy = (dt) => {
-        const maxR = Math.min(w,h) * 0.62
-
-        for (const p of particles) {
-          p.angle += p.speed * dt * 3
-          const bend = Math.sin(p.radius * 0.018 + t * 0.001) * 0.08
-          const a = p.angle + bend
-          const r = p.radius
-
-          let tx = cx() + Math.cos(a) * r
-          let ty = cy() + Math.sin(a) * r * 0.48
-
-          const dx = gravityX - tx
-          const dy = gravityY - ty
-          const dist = Math.sqrt(dx*dx + dy*dy) + 1
-          const force = pointerDown ? Math.min(18, 15000 / (dist*dist)) : 0
-
-          tx += dx / dist * force
-          ty += dy / dist * force
-
-          p.x += (tx - p.x) * 0.055
-          p.y += (ty - p.y) * 0.055
-
-          const edge = Math.max(0, 1 - r / maxR)
-          const alpha = 0.2 + edge * 0.72
-
-          ctx.beginPath()
-          ctx.fillStyle = color(p.hue, alpha)
-          ctx.arc(p.x,p.y,p.r,0,TAU)
-          ctx.fill()
-        }
-
-        ctx.save()
-        ctx.translate(cx(),cy())
-        ctx.rotate(t * 0.00012)
-
-        ctx.beginPath()
-        ctx.ellipse(0,0,maxR*0.82,maxR*0.27,0,0,TAU)
-        ctx.strokeStyle = "rgba(120,170,255,0.055)"
-        ctx.lineWidth = 2
-        ctx.stroke()
-
-        ctx.beginPath()
-        ctx.ellipse(0,0,maxR*0.58,maxR*0.18,0,0,TAU)
-        ctx.strokeStyle = "rgba(170,110,255,0.05)"
-        ctx.stroke()
-
-        ctx.restore()
-
-        drawCore(1)
-      }
-
-      const drawWave = (dt) => {
-        for (const p of particles) {
-          p.x += p.vx * dt * 0.06
-          p.y += p.vy * dt * 0.06
-
-          const wave = Math.sin(p.x * 0.012 - t * 0.003) * 75
-          const targetY = h * 0.5 + wave
-
-          p.y += (targetY - p.y) * 0.035
-
-          if (p.x > w + 50) p.x = -50
-
-          ctx.beginPath()
-          ctx.moveTo(p.x,p.y)
-          ctx.lineTo(p.x - p.vx * 5,p.y - p.vy * 5)
-          ctx.strokeStyle = color(p.hue,0.3 + p.life*0.5)
-          ctx.lineWidth = p.r
-          ctx.stroke()
-        }
-
-        const g = ctx.createRadialGradient(cx(),cy(),0,cx(),cy(),h)
-        g.addColorStop(0,"rgba(80,130,255,0.08)")
-        g.addColorStop(0.45,"rgba(90,60,210,0.035)")
-        g.addColorStop(1,"rgba(0,0,0,0)")
-        ctx.fillStyle = g
-        ctx.fillRect(0,0,w,h)
-      }
-
-      const drawMeteors = (dt) => {
-        for (const p of particles) {
-          p.x += p.vx * dt * 0.12
-          p.y += p.vy * dt * 0.12
-
-          if (p.x < -100 || p.y > h + 100) {
-            p.x = rnd(w,w*1.5)
-            p.y = rnd(-h*0.4,h*0.8)
-          }
-
-          ctx.beginPath()
-          ctx.moveTo(p.x,p.y)
-          ctx.lineTo(p.x - p.vx * 8,p.y - p.vy * 8)
-          ctx.strokeStyle = color(p.hue,0.25 + p.life*0.55)
-          ctx.lineWidth = p.r
-          ctx.stroke()
-        }
-      }
-
-      const drawPortal = (dt) => {
-        for (const p of particles) {
-          p.angle += 0.0012 * dt * (1 + 120 / (p.radius + 40))
-          const r = p.radius + Math.sin(t*0.002 + p.angle*4)*8
-
-          let tx = cx() + Math.cos(p.angle)*r
-          let ty = cy() + Math.sin(p.angle)*r
-
-          const dx = gravityX - tx
-          const dy = gravityY - ty
-          const dist = Math.sqrt(dx*dx + dy*dy) + 1
-
-          if (pointerDown) {
-            tx += dx/dist * Math.min(80,30000/(dist*dist))
-            ty += dy/dist * Math.min(80,30000/(dist*dist))
-          }
-
-          p.x += (tx-p.x)*0.08
-          p.y += (ty-p.y)*0.08
-
-          ctx.beginPath()
-          ctx.fillStyle = color(p.hue,0.25 + p.life*0.65)
-          ctx.arc(p.x,p.y,p.r,0,TAU)
-          ctx.fill()
-        }
-
-        ctx.save()
-        ctx.translate(cx(),cy())
-        ctx.rotate(t*0.0004)
-        ctx.beginPath()
-        ctx.ellipse(0,0,Math.min(w,h)*0.35,Math.min(w,h)*0.10,0,0,TAU)
-        ctx.strokeStyle = "rgba(130,190,255,0.28)"
-        ctx.lineWidth = 2
-        ctx.shadowBlur = 25
-        ctx.shadowColor = "rgba(90,140,255,0.7)"
-        ctx.stroke()
-        ctx.restore()
-
-        drawCore(0.8)
-      }
-
-      const collapse = (dt) => {
-        for (const p of particles) {
-          const dx = cx() - p.x
-          const dy = cy() - p.y
-          const dist = Math.sqrt(dx*dx + dy*dy) + 1
-          const f = Math.min(45, 9000/(dist+30))
-          p.x += dx/dist * f * dt * 0.018
-          p.y += dy/dist * f * dt * 0.018
-
-          ctx.beginPath()
-          ctx.fillStyle = color(0,Math.min(1,dist/500))
-          ctx.arc(p.x,p.y,p.r,0,TAU)
-          ctx.fill()
-        }
-
-        drawCore(1.4)
-      }
-
-      const explosion = (dt) => {
-        for (const p of particles) {
-          if (!p.vx && !p.vy) {
-            const a = Math.random()*TAU
-            const speed = rnd(2,12)
-            p.vx = Math.cos(a)*speed
-            p.vy = Math.sin(a)*speed
-          }
-
-          const dx = p.x-cx()
-          const dy = p.y-cy()
-          const dist = Math.sqrt(dx*dx+dy*dy)+1
-
-          p.vx += -dy/dist * 0.8 * dt
-          p.vy += dx/dist * 0.8 * dt
-          p.vx *= 0.997
-          p.vy *= 0.997
-          p.x += p.vx * dt * 0.04
-          p.y += p.vy * dt * 0.04
-
-          ctx.beginPath()
-          ctx.fillStyle = color(p.hue,0.75)
-          ctx.arc(p.x,p.y,p.r,0,TAU)
-          ctx.fill()
-        }
-
-        drawCore(Math.max(0,1-eventTime/900))
-      }
-
-      const animate = (now) => {
-        const dt = Math.min(40,now-last)
-        last = now
-        t += dt
-        eventTime += dt
-
-        ctx.fillStyle = "rgba(1,2,7,0.18)"
-        ctx.fillRect(0,0,w,h)
-
-        drawStars()
-
-        if (phase === "quiet") {
-          ctx.fillStyle = "rgba(1,2,7,0.45)"
-          ctx.fillRect(0,0,w,h)
-
-          const pulse = 0.35 + Math.sin(t*0.004)*0.2
-          drawCore(pulse)
-
-          if (eventTime > 1800) {
-            phase = "collapse"
-            eventTime = 0
-          }
-        } else if (phase === "collapse") {
-          collapse(dt)
-          if (eventTime > 1500) {
-            phase = "explosion"
-            eventTime = 0
-          }
-        } else if (phase === "explosion") {
-          explosion(dt)
-          if (eventTime > 2200) {
-            resetEvent()
-            phase = "event"
-            eventTime = 0
-          }
-        } else {
-          if (event === 0) drawGalaxy(dt)
-          if (event === 1) drawWave(dt)
-          if (event === 2) drawMeteors(dt)
-          if (event === 3) drawPortal(dt)
-
-          if (eventTime > 8500) {
-            phase = "quiet"
-            eventTime = 0
-            particles.forEach(p => {
-              p.vx *= 0.2
-              p.vy *= 0.2
-            })
-          }
-        }
-
-        if (pointerDown) {
-          vortex += dt * 0.004
-        } else {
-          vortex *= 0.96
-        }
-
-        raf = requestAnimationFrame(animate)
-      }
-
-      const pointer = (e) => {
-        const r = canvas.getBoundingClientRect()
-        gravityX = e.clientX - r.left
-        gravityY = e.clientY - r.top
-      }
-
-      const down = (e) => {
-        pointerDown = true
-        pointer(e)
-      }
-
-      const move = (e) => pointer(e)
-
-      const up = () => {
-        pointerDown = false
-
-        for (const p of particles) {
-          const dx = p.x - gravityX
-          const dy = p.y - gravityY
-          const dist = Math.sqrt(dx*dx + dy*dy) + 1
-          if (dist < 260) {
-            p.vx += dx/dist * (260-dist)*0.025
-            p.vy += dy/dist * (260-dist)*0.025
-          }
-        }
-      }
-
-      canvas.addEventListener("pointerdown",down)
-      canvas.addEventListener("pointermove",move)
-      window.addEventListener("pointerup",up)
-
-      const close = document.createElement("button")
       close.textContent = "×"
 
-      Object.assign(close.style,{
-        position:"absolute",
-        top:"24px",
-        right:"28px",
-        zIndex:"3",
-        width:"46px",
-        height:"46px",
-        border:"1px solid rgba(180,210,255,0.25)",
-        borderRadius:"50%",
-        background:"rgba(0,0,0,0.25)",
-        color:"rgba(220,235,255,0.8)",
-        fontSize:"30px",
-        lineHeight:"42px",
-        fontWeight:"200",
-        cursor:"pointer",
-        backdropFilter:"blur(8px)"
-      })
-
-      close.onclick = () => {
-        cancelAnimationFrame(raf)
-        window.removeEventListener("resize",resize)
-        window.removeEventListener("pointerup",up)
-        overlay.remove()
-      }
+      Object.assign(
+        close.style,
+        {
+          position: "absolute",
+          top: "22px",
+          right: "26px",
+          zIndex: "10",
+          border: "0",
+          background: "transparent",
+          color: "rgba(255,255,255,.72)",
+          fontSize: "30px",
+          fontWeight: "200",
+          cursor: "pointer",
+          padding: "4px 10px",
+          lineHeight: "1",
+          opacity: "0.45"
+        }
+      )
 
       overlay.appendChild(close)
 
-      const title = document.createElement("div")
-      title.textContent = "VISUALS"
+      document.body.appendChild(overlay)
 
-      Object.assign(title.style,{
-        position:"absolute",
-        left:"30px",
-        bottom:"28px",
-        zIndex:"3",
-        color:"rgba(220,235,255,0.35)",
-        fontFamily:"monospace",
-        fontSize:"11px",
-        letterSpacing:"0.35em",
-        pointerEvents:"none"
+      let W = 0
+      let H = 0
+      let DPR = 1
+
+      const resize = () => {
+        DPR =
+          Math.min(
+            window.devicePixelRatio || 1,
+            2
+          )
+
+        W =
+          window.innerWidth
+
+        H =
+          window.innerHeight
+
+        canvas.width =
+          W * DPR
+
+        canvas.height =
+          H * DPR
+
+        ctx.setTransform(
+          DPR,
+          0,
+          0,
+          DPR,
+          0,
+          0
+        )
+      }
+
+      resize()
+
+      window.addEventListener(
+        "resize",
+        resize
+      )
+
+      /*
+       * =========================================================
+       * NYXTRYP VISUALS
+       * CONTINUOUS COSMIC FLIGHT
+       *
+       * This is deliberately NOT a particle show.
+       * The camera travels continuously through a generated
+       * 3D-like universe made from depth, geometry and light.
+       * =========================================================
+       */
+
+      const TAU = Math.PI * 2
+
+      let running = true
+      let t0 = performance.now()
+      let last = t0
+
+      let flightTime = 0
+
+      const duration =
+        168000
+
+      const mouse = {
+        x: 0,
+        y: 0,
+        active: false
+      }
+
+      const stars = []
+      const rings = []
+      const structures = []
+      const streams = []
+
+      const rand =
+        (a, b) =>
+          a +
+          Math.random() *
+          (b - a)
+
+      const makeStar = () => ({
+        x: rand(-1, 1),
+        y: rand(-1, 1),
+        z: rand(0.02, 1),
+        size: rand(.35, 1.8),
+        drift: rand(-.12, .12)
       })
+
+      for (let i = 0; i < 900; i++)
+        stars.push(makeStar())
+
+      const makeRing = (
+        z,
+        radius,
+        tilt,
+        speed
+      ) => ({
+        z,
+        radius,
+        tilt,
+        speed,
+        phase: rand(0, TAU)
+      })
+
+      for (let i = 0; i < 32; i++) {
+        rings.push(
+          makeRing(
+            rand(.04, 1),
+            rand(.18, 1.55),
+            rand(-1.1, 1.1),
+            rand(-.35, .35)
+          )
+        )
+      }
+
+      for (let i = 0; i < 260; i++) {
+        structures.push({
+          a: rand(0, TAU),
+          radius: rand(.25, 2.8),
+          z: rand(.02, 1),
+          length: rand(.4, 2.2),
+          twist: rand(-2, 2),
+          type: Math.floor(
+            rand(0, 4)
+          )
+        })
+      }
+
+      for (let i = 0; i < 420; i++) {
+        streams.push({
+          a: rand(0, TAU),
+          r: rand(.15, 2.4),
+          z: rand(.02, 1),
+          speed: rand(.25, 1.3),
+          phase: rand(0, TAU)
+        })
+      }
+
+      const project = (
+        x,
+        y,
+        z
+      ) => {
+
+        const depth =
+          Math.max(
+            .035,
+            z
+          )
+
+        const focal =
+          Math.min(W, H) *
+          .92
+
+        return {
+          x:
+            W * .5 +
+            x *
+            focal /
+            depth,
+
+          y:
+            H * .5 +
+            y *
+            focal /
+            depth,
+
+          scale:
+            focal /
+            depth
+        }
+      }
+
+      const clear = () => {
+        const g =
+          ctx.createRadialGradient(
+            W * .5,
+            H * .5,
+            0,
+            W * .5,
+            H * .5,
+            Math.max(W, H)
+          )
+
+        g.addColorStop(
+          0,
+          "#111827"
+        )
+
+        g.addColorStop(
+          .32,
+          "#050914"
+        )
+
+        g.addColorStop(
+          1,
+          "#000000"
+        )
+
+        ctx.fillStyle = g
+        ctx.fillRect(
+          0,
+          0,
+          W,
+          H
+        )
+      }
+
+      const starfield = (
+        dt,
+        speed,
+        bend
+      ) => {
+
+        for (const s of stars) {
+
+          s.z -=
+            dt *
+            speed *
+            (
+              .65 +
+              s.size * .22
+            )
+
+          s.x +=
+            Math.sin(
+              flightTime * .00018 +
+              s.drift
+            ) *
+            dt *
+            bend *
+            .015
+
+          s.y +=
+            Math.cos(
+              flightTime * .00016 +
+              s.drift
+            ) *
+            dt *
+            bend *
+            .012
+
+          if (s.z < .018) {
+            s.z = 1
+            s.x = rand(-1, 1)
+            s.y = rand(-1, 1)
+          }
+
+          const p =
+            project(
+              s.x,
+              s.y,
+              s.z
+            )
+
+          if (
+            p.x < -80 ||
+            p.x > W + 80 ||
+            p.y < -80 ||
+            p.y > H + 80
+          )
+            continue
+
+          const alpha =
+            Math.min(
+              .95,
+              .12 +
+              (1 - s.z) *
+              .9
+            )
+
+          ctx.globalAlpha =
+            alpha
+
+          ctx.fillStyle =
+            "#dcecff"
+
+          ctx.beginPath()
+
+          ctx.arc(
+            p.x,
+            p.y,
+            Math.max(
+              .35,
+              s.size *
+              p.scale *
+              .002
+            ),
+            0,
+            TAU
+          )
+
+          ctx.fill()
+
+          if (s.z < .16) {
+
+            ctx.globalAlpha =
+              alpha * .24
+
+            ctx.strokeStyle =
+              "#9fc9ff"
+
+            ctx.lineWidth = 1
+
+            ctx.beginPath()
+
+            ctx.moveTo(
+              p.x,
+              p.y
+            )
+
+            ctx.lineTo(
+              W * .5 +
+              s.x *
+              p.scale *
+              1.08,
+
+              H * .5 +
+              s.y *
+              p.scale *
+              1.08
+            )
+
+            ctx.stroke()
+          }
+        }
+
+        ctx.globalAlpha = 1
+      }
+
+      const giantRing =
+        (
+          radius,
+          rotation,
+          alpha
+        ) => {
+
+          ctx.save()
+
+          ctx.translate(
+            W * .5,
+            H * .5
+          )
+
+          ctx.rotate(rotation)
+
+          ctx.scale(
+            1,
+            .32
+          )
+
+          ctx.strokeStyle =
+            `rgba(170,215,255,${alpha})`
+
+          ctx.lineWidth = 1.5
+
+          ctx.shadowBlur = 18
+
+          ctx.shadowColor =
+            "rgba(100,180,255,.55)"
+
+          ctx.beginPath()
+
+          ctx.arc(
+            0,
+            0,
+            radius,
+            0,
+            TAU
+          )
+
+          ctx.stroke()
+
+          ctx.shadowBlur = 0
+
+          ctx.restore()
+        }
+
+      const tunnel =
+        (
+          time,
+          intensity
+        ) => {
+
+          for (
+            let i = 0;
+            i < 18;
+            i++
+          ) {
+
+            const p =
+              i / 18
+
+            const z =
+              .04 +
+              p * .96
+
+            const twist =
+              time *
+              .00035 *
+              (1 - p) +
+              p * 8
+
+            const radius =
+              (
+                .08 +
+                p * 1.7
+              ) *
+              (
+                1 +
+                Math.sin(
+                  time * .001 +
+                  p * 9
+                ) *
+                .12
+              )
+
+            const x =
+              Math.cos(
+                twist
+              ) *
+              radius
+
+            const y =
+              Math.sin(
+                twist
+              ) *
+              radius
+
+            const q =
+              project(
+                x,
+                y,
+                z
+              )
+
+            ctx.globalAlpha =
+              (.08 +
+              intensity *
+              .055) *
+              (1 - p)
+
+            ctx.strokeStyle =
+              "#a9d8ff"
+
+            ctx.lineWidth =
+              1 +
+              intensity *
+              1.5
+
+            ctx.beginPath()
+
+            ctx.arc(
+              q.x,
+              q.y,
+              q.scale *
+              radius *
+              .22,
+              0,
+              TAU
+            )
+
+            ctx.stroke()
+          }
+
+          ctx.globalAlpha = 1
+      }
+
+      const architecture =
+        (
+          time,
+          power
+        ) => {
+
+          ctx.save()
+
+          ctx.translate(
+            W * .5,
+            H * .5
+          )
+
+          for (
+            let i = 0;
+            i < 42;
+            i++
+          ) {
+
+            const a =
+              i / 42 *
+              TAU +
+              time *
+              .00022
+
+            const r =
+              (
+                .22 +
+                (i % 7) * .19
+              ) *
+              (
+                1 +
+                Math.sin(
+                  time * .0008 +
+                  i
+                ) *
+                .16
+              )
+
+            const len =
+              (
+                80 +
+                (i % 5) *
+                65
+              ) *
+              power
+
+            const x =
+              Math.cos(a) *
+              r *
+              Math.min(W, H)
+
+            const y =
+              Math.sin(a) *
+              r *
+              Math.min(W, H) *
+              .55
+
+            ctx.globalAlpha =
+              .055 +
+              power * .06
+
+            ctx.strokeStyle =
+              "#b9d8ff"
+
+            ctx.lineWidth =
+              .6 +
+              power * .8
+
+            ctx.beginPath()
+
+            ctx.moveTo(
+              x,
+              y
+            )
+
+            ctx.lineTo(
+              x +
+              Math.cos(a) *
+              len,
+
+              y +
+              Math.sin(a) *
+              len
+            )
+
+            ctx.stroke()
+          }
+
+          ctx.restore()
+
+          ctx.globalAlpha = 1
+      }
+
+      const flyStructures =
+        (
+          dt,
+          time,
+          power
+        ) => {
+
+          for (
+            const s of structures
+          ) {
+
+            s.z -=
+              dt *
+              (.28 +
+              power *
+              .55)
+
+            s.a +=
+              dt *
+              .0009 *
+              s.twist
+
+            if (s.z < .045) {
+              s.z = 1
+              s.a = rand(
+                0,
+                TAU
+              )
+            }
+
+            const radius =
+              s.radius *
+              (
+                .7 +
+                .3 *
+                Math.sin(
+                  time * .0006 +
+                  s.a
+                )
+              )
+
+            const x =
+              Math.cos(s.a) *
+              radius
+
+            const y =
+              Math.sin(s.a) *
+              radius *
+              .62
+
+            const p =
+              project(
+                x,
+                y,
+                s.z
+              )
+
+            const size =
+              Math.min(
+                800,
+                p.scale *
+                s.length *
+                .08
+              )
+
+            if (
+              p.x < -500 ||
+              p.x > W + 500 ||
+              p.y < -500 ||
+              p.y > H + 500
+            )
+              continue
+
+            ctx.save()
+
+            ctx.translate(
+              p.x,
+              p.y
+            )
+
+            ctx.rotate(
+              s.a +
+              time * .00025
+            )
+
+            ctx.globalAlpha =
+              Math.min(
+                .75,
+                .035 +
+                (1 - s.z) *
+                .58
+              )
+
+            ctx.strokeStyle =
+              s.type === 0
+                ? "#d9edff"
+                : "#9db8ff"
+
+            ctx.lineWidth =
+              Math.max(
+                .5,
+                1.2 *
+                (1 - s.z)
+              )
+
+            if (
+              s.type === 0
+            ) {
+
+              ctx.strokeRect(
+                -size,
+                -size * .18,
+                size * 2,
+                size * .36
+              )
+
+            } else if (
+              s.type === 1
+            ) {
+
+              ctx.beginPath()
+
+              ctx.moveTo(
+                -size,
+                0
+              )
+
+              ctx.lineTo(
+                0,
+                -size * .55
+              )
+
+              ctx.lineTo(
+                size,
+                0
+              )
+
+              ctx.lineTo(
+                0,
+                size * .55
+              )
+
+              ctx.closePath()
+
+              ctx.stroke()
+
+            } else if (
+              s.type === 2
+            ) {
+
+              ctx.beginPath()
+
+              ctx.arc(
+                0,
+                0,
+                size,
+                0,
+                TAU
+              )
+
+              ctx.stroke()
+
+            } else {
+
+              ctx.beginPath()
+
+              ctx.moveTo(
+                -size,
+                -size
+              )
+
+              ctx.lineTo(
+                size,
+                size
+              )
+
+              ctx.moveTo(
+                size,
+                -size
+              )
+
+              ctx.lineTo(
+                -size,
+                size
+              )
+
+              ctx.stroke()
+            }
+
+            ctx.restore()
+          }
+
+          ctx.globalAlpha = 1
+      }
+
+      const flyStreams =
+        (
+          dt,
+          time,
+          power
+        ) => {
+
+          for (
+            const s of streams
+          ) {
+
+            s.z -=
+              dt *
+              s.speed *
+              (
+                .55 +
+                power
+              )
+
+            s.a +=
+              dt *
+              (
+                .0004 +
+                power *
+                .0009
+              )
+
+            if (s.z < .025) {
+              s.z = 1
+              s.r = rand(
+                .15,
+                2.6
+              )
+              s.a = rand(
+                0,
+                TAU
+              )
+            }
+
+            const spiral =
+              s.a +
+              s.z * 7 +
+              time *
+              .00015
+
+            const x =
+              Math.cos(
+                spiral
+              ) *
+              s.r *
+              (
+                .4 +
+                (1 - s.z) *
+                .7
+              )
+
+            const y =
+              Math.sin(
+                spiral
+              ) *
+              s.r *
+              (
+                .4 +
+                (1 - s.z) *
+                .7
+              )
+
+            const q =
+              project(
+                x,
+                y,
+                s.z
+              )
+
+            const tail =
+              project(
+                x * .82,
+                y * .82,
+                Math.min(
+                  1,
+                  s.z + .025
+                )
+              )
+
+            ctx.globalAlpha =
+              .05 +
+              (1 - s.z) *
+              .45
+
+            ctx.strokeStyle =
+              "#c6e3ff"
+
+            ctx.lineWidth =
+              .6 +
+              (1 - s.z) *
+              1.4
+
+            ctx.beginPath()
+
+            ctx.moveTo(
+              tail.x,
+              tail.y
+            )
+
+            ctx.lineTo(
+              q.x,
+              q.y
+            )
+
+            ctx.stroke()
+          }
+
+          ctx.globalAlpha = 1
+      }
+
+      const nebula =
+        (
+          time,
+          amount
+        ) => {
+
+          const g =
+            ctx.createRadialGradient(
+              W * .5,
+              H * .5,
+              0,
+              W * .5,
+              H * .5,
+              Math.min(W, H) *
+              .72
+            )
+
+          g.addColorStop(
+            0,
+            `rgba(130,180,255,${.025 * amount})`
+          )
+
+          g.addColorStop(
+            .35,
+            `rgba(90,100,220,${.018 * amount})`
+          )
+
+          g.addColorStop(
+            1,
+            "rgba(0,0,0,0)"
+          )
+
+          ctx.fillStyle = g
+
+          ctx.fillRect(
+            0,
+            0,
+            W,
+            H
+          )
+      }
+
+      const lens =
+        (
+          strength
+        ) => {
+
+          if (strength <= 0)
+            return
+
+          const g =
+            ctx.createRadialGradient(
+              W * .5,
+              H * .5,
+              0,
+              W * .5,
+              H * .5,
+              Math.min(W, H) *
+              .5
+            )
+
+          g.addColorStop(
+            0,
+            `rgba(255,255,255,${.035 * strength})`
+          )
+
+          g.addColorStop(
+            .25,
+            `rgba(150,210,255,${.018 * strength})`
+          )
+
+          g.addColorStop(
+            1,
+            "rgba(0,0,0,0)"
+          )
+
+          ctx.fillStyle = g
+
+          ctx.fillRect(
+            0,
+            0,
+            W,
+            H
+          )
+      }
+
+      const title =
+        document.createElement("div")
+
+      Object.assign(
+        title.style,
+        {
+          position: "absolute",
+          left: "50%",
+          top: "50%",
+          transform: "translate(-50%,-50%)",
+          color: "#fff",
+          fontFamily:
+            "Arial, Helvetica, sans-serif",
+          fontSize:
+            "clamp(28px,7vw,88px)",
+          fontWeight: "200",
+          letterSpacing: ".48em",
+          whiteSpace: "nowrap",
+          opacity: "0",
+          pointerEvents: "none",
+          textIndent: ".48em",
+          transition:
+            "opacity 3s ease"
+        }
+      )
+
+      title.textContent =
+        "NYXTRYP"
 
       overlay.appendChild(title)
 
-      seedGalaxy()
-      phase = "quiet"
-      event = 0
-      eventTime = 0
+      const subtitle =
+        document.createElement("div")
 
-      ctx.fillStyle = "#010207"
-      ctx.fillRect(0,0,w,h)
+      Object.assign(
+        subtitle.style,
+        {
+          position: "absolute",
+          left: "50%",
+          top: "calc(50% + 65px)",
+          transform: "translateX(-50%)",
+          color:
+            "rgba(210,230,255,.62)",
+          fontFamily:
+            "Arial, Helvetica, sans-serif",
+          fontSize: "10px",
+          fontWeight: "300",
+          letterSpacing: ".7em",
+          whiteSpace: "nowrap",
+          opacity: "0",
+          pointerEvents: "none",
+          textIndent: ".7em",
+          transition:
+            "opacity 3s ease"
+        }
+      )
 
-      raf = requestAnimationFrame(animate)
+      subtitle.textContent =
+        "SEE YOU"
+
+      overlay.appendChild(
+        subtitle
+      )
+
+      const pointerMove =
+        (e) => {
+
+          mouse.x =
+            (
+              e.clientX /
+              W -
+              .5
+            )
+
+          mouse.y =
+            (
+              e.clientY /
+              H -
+              .5
+            )
+
+          mouse.active = true
+        }
+
+      const pointerLeave =
+        () => {
+          mouse.active = false
+        }
+
+      overlay.addEventListener(
+        "pointermove",
+        pointerMove
+      )
+
+      overlay.addEventListener(
+        "pointerleave",
+        pointerLeave
+      )
+
+      const finish =
+        () => {
+
+          if (!running)
+            return
+
+          running = false
+
+          window.removeEventListener(
+            "resize",
+            resize
+          )
+
+          overlay.removeEventListener(
+            "pointermove",
+            pointerMove
+          )
+
+          overlay.removeEventListener(
+            "pointerleave",
+            pointerLeave
+          )
+
+          overlay.remove()
+
+          document.removeEventListener(
+            "keydown",
+            escape
+          )
+        }
+
+      const escape =
+        (e) => {
+
+          if (
+            e.key === "Escape"
+          )
+            finish()
+        }
+
+      close.addEventListener(
+        "click",
+        finish
+      )
+
+      document.addEventListener(
+        "keydown",
+        escape
+      )
+
+      /*
+       * FLIGHT PHASES
+       *
+       * 0-25s     departure
+       * 25-55s    acceleration
+       * 55-95s    giant structures
+       * 95-125s   tunnel / hyperspace
+       * 125-150s  deep space
+       * 150-168s  arrival / NYXTRYP
+       */
+
+      const frame =
+        (now) => {
+
+          if (!running)
+            return
+
+          const dt =
+            Math.min(
+              34,
+              now - last
+            )
+
+          last = now
+
+          flightTime =
+            now - t0
+
+          const elapsed =
+            flightTime
+
+          const progress =
+            Math.min(
+              1,
+              elapsed /
+              duration
+            )
+
+          const seconds =
+            elapsed / 1000
+
+          clear()
+
+          /*
+           * Pointer subtly bends the flight direction.
+           */
+          const bend =
+            mouse.active
+              ? (
+                  mouse.x * 1.7 +
+                  mouse.y * .8
+                )
+              : 0
+
+          /*
+           * Continuous speed curve.
+           * Never actually stops.
+           */
+          const cruise =
+            seconds < 18
+              ? .16 +
+                seconds * .018
+              : seconds < 48
+                ? .48 +
+                  (
+                    seconds - 18
+                  ) * .012
+                : seconds < 112
+                  ? .84
+                : seconds < 142
+                  ? 1.08
+                  : 0.55
+
+          starfield(
+            dt / 16,
+            cruise,
+            bend
+          )
+
+          nebula(
+            elapsed,
+            1 +
+            Math.sin(
+              elapsed * .00012
+            ) * .35
+          )
+
+          /*
+           * DEPARTURE:
+           * almost empty space, then distant geometry.
+           */
+          if (
+            seconds < 28
+          ) {
+
+            const p =
+              Math.min(
+                1,
+                seconds / 28
+              )
+
+            giantRing(
+              Math.min(
+                W,
+                H
+              ) *
+              (
+                .12 +
+                p * .7
+              ),
+              elapsed * .00008,
+              .08 +
+              p * .16
+            )
+
+            tunnel(
+              elapsed,
+              p * .6
+            )
+          }
+
+          /*
+           * GIANT STRUCTURES:
+           * architecture flies around the viewer.
+           */
+          if (
+            seconds >= 22 &&
+            seconds < 78
+          ) {
+
+            const p =
+              Math.min(
+                1,
+                (
+                  seconds - 22
+                ) / 18
+              )
+
+            flyStructures(
+              dt / 16,
+              elapsed,
+              p
+            )
+
+            architecture(
+              elapsed,
+              .4 +
+              p
+            )
+
+            giantRing(
+              Math.min(
+                W,
+                H
+              ) *
+              (
+                .3 +
+                Math.sin(
+                  elapsed * .00035
+                ) *
+                .08
+              ),
+              elapsed * .00022,
+              .18
+            )
+          }
+
+          /*
+           * TRANSITION:
+           * structures collapse into a flight corridor.
+           */
+          if (
+            seconds >= 68 &&
+            seconds < 105
+          ) {
+
+            const p =
+              Math.min(
+                1,
+                (
+                  seconds - 68
+                ) / 37
+              )
+
+            flyStreams(
+              dt / 16,
+              elapsed,
+              .7 +
+              p * 1.8
+            )
+
+            tunnel(
+              elapsed,
+              1.5 +
+              p * 2
+            )
+
+            giantRing(
+              Math.min(
+                W,
+                H
+              ) *
+              (
+                .75 -
+                p * .38
+              ),
+              elapsed * .0005,
+              .16 +
+              p * .14
+            )
+          }
+
+          /*
+           * HYPERSPACE:
+           * high-speed tunnel, no discrete scene cut.
+           */
+          if (
+            seconds >= 95 &&
+            seconds < 132
+          ) {
+
+            const p =
+              Math.min(
+                1,
+                (
+                  seconds - 95
+                ) / 37
+              )
+
+            flyStreams(
+              dt / 10,
+              elapsed,
+              2.5 +
+              p * 3
+            )
+
+            tunnel(
+              elapsed,
+              4 +
+              p * 2
+            )
+
+            architecture(
+              elapsed,
+              1.5 +
+              p * 2
+            )
+
+            lens(
+              p * 1.8
+            )
+          }
+
+          /*
+           * DEEP SPACE:
+           * speed begins falling, scale becomes enormous.
+           */
+          if (
+            seconds >= 125 &&
+            seconds < 154
+          ) {
+
+            const p =
+              Math.min(
+                1,
+                (
+                  seconds - 125
+                ) / 29
+              )
+
+            flyStructures(
+              dt / 18,
+              elapsed,
+              1.2 -
+              p * .8
+            )
+
+            giantRing(
+              Math.min(
+                W,
+                H
+              ) *
+              (
+                .7 +
+                p * 1.2
+              ),
+              elapsed * .00009,
+              .12 *
+              (1 - p)
+            )
+
+            nebula(
+              elapsed,
+              2.5 -
+              p * 2
+            )
+          }
+
+          /*
+           * FINAL ARRIVAL:
+           * everything disappears into black.
+           */
+          if (
+            seconds >= 148
+          ) {
+
+            const p =
+              Math.min(
+                1,
+                (
+                  seconds - 148
+                ) / 20
+              )
+
+            ctx.fillStyle =
+              `rgba(0,0,0,${p * .94})`
+
+            ctx.fillRect(
+              0,
+              0,
+              W,
+              H
+            )
+
+            if (p > .35) {
+
+              title.style.opacity =
+                String(
+                  Math.min(
+                    1,
+                    (
+                      p - .35
+                    ) / .3
+                  )
+                )
+
+              subtitle.style.opacity =
+                String(
+                  Math.min(
+                    1,
+                    (
+                      p - .55
+                    ) / .25
+                  )
+                )
+            }
+          }
+
+          /*
+           * Very subtle central flight glow.
+           */
+          if (
+            seconds > 8 &&
+            seconds < 150
+          ) {
+
+            const g =
+              ctx.createRadialGradient(
+                W * (
+                  .5 +
+                  bend * .018
+                ),
+                H * (
+                  .5 +
+                  mouse.y * .018
+                ),
+                0,
+                W * .5,
+                H * .5,
+                Math.min(W,H) *
+                .18
+              )
+
+            g.addColorStop(
+              0,
+              "rgba(190,225,255,.055)"
+            )
+
+            g.addColorStop(
+              1,
+              "rgba(0,0,0,0)"
+            )
+
+            ctx.fillStyle = g
+
+            ctx.fillRect(
+              0,
+              0,
+              W,
+              H
+            )
+          }
+
+          ctx.globalAlpha = 1
+
+          if (
+            elapsed <
+            duration
+          ) {
+            requestAnimationFrame(
+              frame
+            )
+          } else {
+            title.style.opacity = "1"
+            subtitle.style.opacity = "1"
+
+            setTimeout(
+              finish,
+              6500
+            )
+          }
+        }
+
+      requestAnimationFrame(
+        frame
+      )
 
       return
     }
