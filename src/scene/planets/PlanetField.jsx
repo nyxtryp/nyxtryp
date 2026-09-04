@@ -3197,8 +3197,43 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
               }
             }
 
+            // ======================================================
+            // SOFT COSMIC PARALLAX TEST
+            // Shared space drift with depth-based strength.
+            // Near planets move more, distant planets move less.
+            // Selected planet keeps the existing approach mechanics.
+            // ======================================================
+
+            const depthFactor =
+              THREE.MathUtils.clamp(
+                1.0 +
+                  base.z / 24.0,
+                0.22,
+                1.0
+              )
+
+            const cosmicX =
+              (
+                Math.sin(t * 0.12) * 0.34 +
+                Math.sin(t * 0.047) * 0.16
+              ) *
+              depthFactor
+
+            const cosmicY =
+              (
+                Math.cos(t * 0.095) * 0.26 +
+                Math.sin(t * 0.041) * 0.13
+              ) *
+              depthFactor
+
+            const cosmicZ =
+              Math.sin(t * 0.07) *
+              0.12 *
+              depthFactor
+
             const naturalX =
               base.x +
+              cosmicX +
               Math.sin(
                 t *
                   driftX +
@@ -3208,6 +3243,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
 
             const naturalY =
               base.y +
+              cosmicY +
               Math.sin(
                 t *
                   driftY +
@@ -3217,6 +3253,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
 
             const naturalZ =
               base.z +
+              cosmicZ +
               Math.sin(
                 t *
                   driftZ +
@@ -3370,6 +3407,23 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
             object.rotation.x +=
               speed *
               0.35
+
+            const layerDepth =
+              [0.22, 0.48, 0.78][index] || 0.48
+
+            object.position.x =
+              Math.sin(
+                t * 0.10
+              ) *
+              0.22 *
+              layerDepth
+
+            object.position.y =
+              Math.cos(
+                t * 0.08
+              ) *
+              0.16 *
+              layerDepth
           }
         )
 
