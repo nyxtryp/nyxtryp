@@ -50,8 +50,33 @@ export default function MixesPlayer({ onClose }) {
 
   const [signal, setSignal] = useState(92)
   const [latency, setLatency] = useState("1.4s")
+  const [, setMediaVersion] = useState(0)
 
   const track = MIXES[trackIndex]
+
+  useEffect(() => {
+    let cancelled = false
+
+    fetch("/api/media", { cache: "no-store" })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error("media api failed")))
+      .then(data => {
+        if (cancelled || !Array.isArray(data.mixes) || !data.mixes.length) return
+
+        const dynamic = data.mixes.map(name => ({
+          title: name.replace(/\.mp3$/i, ""),
+          file: `/audio/mixes/${encodeURIComponent(name)}`
+        }))
+
+        MIXES.splice(0, MIXES.length, ...dynamic)
+        setTrackIndex(current => Math.min(current, dynamic.length - 1))
+        setMediaVersion(v => v + 1)
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   /*
    * Same visual pulse style used by RadioPlayer.
