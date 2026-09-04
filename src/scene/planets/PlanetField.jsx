@@ -2272,6 +2272,908 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         // ======================================================
 
 
+
+        // ======================================================
+        // VISUALS CLICK
+        // VISUALS does NOT fly to the camera.
+        // Opens a full-screen cosmic particle experience.
+        // ======================================================
+
+        if (hit.userData.name === "VISUALS") {
+          diagnosticAction("VISUALS opened")
+
+          const old = document.getElementById(
+            "nyxtryp-visuals-window"
+          )
+
+          if (old) old.remove()
+
+          const overlay = document.createElement("div")
+          overlay.id = "nyxtryp-visuals-window"
+
+          Object.assign(overlay.style, {
+            position: "fixed",
+            inset: "0",
+            zIndex: "100000",
+            overflow: "hidden",
+            background: "#000",
+            cursor: "crosshair",
+            touchAction: "none"
+          })
+
+          const canvas = document.createElement("canvas")
+
+          Object.assign(canvas.style, {
+            position: "absolute",
+            inset: "0",
+            width: "100%",
+            height: "100%",
+            display: "block"
+          })
+
+          overlay.appendChild(canvas)
+
+          const close = document.createElement("button")
+
+          close.textContent = "×"
+
+          Object.assign(close.style, {
+            position: "fixed",
+            top: "22px",
+            right: "28px",
+            width: "46px",
+            height: "46px",
+            border: "1px solid rgba(255,255,255,.22)",
+            borderRadius: "50%",
+            background: "rgba(0,0,0,.22)",
+            color: "rgba(255,255,255,.8)",
+            fontSize: "30px",
+            fontWeight: "200",
+            lineHeight: "42px",
+            padding: "0",
+            cursor: "pointer",
+            zIndex: "10",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
+            transition: "transform .3s ease, background .3s ease"
+          })
+
+          close.onmouseenter = () => {
+            close.style.transform = "rotate(90deg)"
+            close.style.background = "rgba(255,255,255,.1)"
+          }
+
+          close.onmouseleave = () => {
+            close.style.transform = "rotate(0deg)"
+            close.style.background = "rgba(0,0,0,.22)"
+          }
+
+          overlay.appendChild(close)
+
+          document.body.appendChild(overlay)
+
+          const ctx = canvas.getContext("2d")
+
+          let width = 0
+          let height = 0
+          let dpr = 1
+          let animationFrame = 0
+          let running = true
+          let lastTime = performance.now()
+          let lastBurst = 0
+
+          const stars = []
+          const particles = []
+          const flashes = []
+
+          const pointer = {
+            x: 0,
+            y: 0,
+            active: false
+          }
+
+          const resize = () => {
+            width = window.innerWidth
+            height = window.innerHeight
+            dpr = Math.min(window.devicePixelRatio || 1, 2)
+
+            canvas.width =
+              Math.floor(width * dpr)
+
+            canvas.height =
+              Math.floor(height * dpr)
+
+            ctx.setTransform(
+              dpr,
+              0,
+              0,
+              dpr,
+              0,
+              0
+            )
+
+            stars.length = 0
+
+            const count =
+              width < 700
+                ? 150
+                : 280
+
+            for (let i = 0; i < count; i++) {
+              stars.push({
+                x: Math.random() * width,
+                y: Math.random() * height,
+                z: Math.random(),
+                size:
+                  0.35 +
+                  Math.random() * 1.25,
+                twinkle:
+                  Math.random() * Math.PI * 2,
+                speed:
+                  0.15 +
+                  Math.random() * 0.7
+              })
+            }
+          }
+
+          resize()
+
+          window.addEventListener(
+            "resize",
+            resize
+          )
+
+          const randomColor = () => {
+            const colors = [
+              [150, 190, 255],
+              [190, 160, 255],
+              [110, 220, 255],
+              [255, 255, 255],
+              [170, 230, 255],
+              [230, 190, 255]
+            ]
+
+            return colors[
+              Math.floor(
+                Math.random() *
+                colors.length
+              )
+            ]
+          }
+
+          const createParticle = (
+            x,
+            y,
+            angle,
+            speed,
+            size,
+            life,
+            color
+          ) => {
+            particles.push({
+              x,
+              y,
+              vx:
+                Math.cos(angle) *
+                speed,
+              vy:
+                Math.sin(angle) *
+                speed,
+              size,
+              life,
+              maxLife: life,
+              color,
+              drag: 0.985,
+              gravity:
+                (Math.random() - 0.5) *
+                0.003,
+              trail: []
+            })
+          }
+
+          const burst = (
+            x,
+            y,
+            amount = 90,
+            power = 2.4
+          ) => {
+            const color = randomColor()
+
+            flashes.push({
+              x,
+              y,
+              life: 1,
+              size: 8
+            })
+
+            for (
+              let i = 0;
+              i < amount;
+              i++
+            ) {
+              const angle =
+                Math.random() *
+                Math.PI *
+                2
+
+              const speed =
+                power *
+                (
+                  0.35 +
+                  Math.pow(
+                    Math.random(),
+                    0.55
+                  )
+                )
+
+              createParticle(
+                x,
+                y,
+                angle,
+                speed,
+                0.7 +
+                  Math.random() *
+                  2.0,
+                0.75 +
+                  Math.random() *
+                  1.25,
+                color
+              )
+            }
+
+            for (
+              let i = 0;
+              i < Math.floor(amount * 0.18);
+              i++
+            ) {
+              const angle =
+                Math.random() *
+                Math.PI *
+                2
+
+              const speed =
+                power *
+                (
+                  0.15 +
+                  Math.random() *
+                  0.45
+                )
+
+              createParticle(
+                x,
+                y,
+                angle,
+                speed,
+                2 +
+                  Math.random() *
+                  2.8,
+                1.2 +
+                  Math.random() *
+                  1.3,
+                [255, 255, 255]
+              )
+            }
+          }
+
+          const spiralBurst = (
+            x,
+            y
+          ) => {
+            const count = 150
+
+            for (
+              let i = 0;
+              i < count;
+              i++
+            ) {
+              const angle =
+                i *
+                0.19 +
+                Math.random() *
+                0.25
+
+              const speed =
+                0.45 +
+                i / count *
+                3.0
+
+              createParticle(
+                x,
+                y,
+                angle,
+                speed,
+                0.5 +
+                  Math.random() *
+                  1.6,
+                1.2 +
+                  Math.random() *
+                  1.5,
+                randomColor()
+              )
+            }
+          }
+
+          const satelliteStream = (
+            x,
+            y
+          ) => {
+            for (
+              let i = 0;
+              i < 8;
+              i++
+            ) {
+              const angle =
+                Math.random() *
+                Math.PI *
+                2
+
+              createParticle(
+                x,
+                y,
+                angle,
+                0.5 +
+                  Math.random() *
+                  1.8,
+                0.6 +
+                  Math.random() *
+                  1.4,
+                0.6 +
+                  Math.random() *
+                  0.8,
+                randomColor()
+              )
+            }
+          }
+
+          const drawBackground = (
+            time
+          ) => {
+            const gradient =
+              ctx.createRadialGradient(
+                width * 0.5,
+                height * 0.48,
+                0,
+                width * 0.5,
+                height * 0.48,
+                Math.max(
+                  width,
+                  height
+                ) * 0.72
+              )
+
+            gradient.addColorStop(
+              0,
+              "rgba(18,24,45,0.95)"
+            )
+
+            gradient.addColorStop(
+              0.32,
+              "rgba(5,8,18,0.97)"
+            )
+
+            gradient.addColorStop(
+              1,
+              "rgba(0,0,0,1)"
+            )
+
+            ctx.fillStyle = gradient
+            ctx.fillRect(
+              0,
+              0,
+              width,
+              height
+            )
+
+            for (
+              const star of stars
+            ) {
+              star.twinkle +=
+                0.015 *
+                star.speed
+
+              const alpha =
+                0.2 +
+                (
+                  Math.sin(
+                    star.twinkle
+                  ) +
+                  1
+                ) *
+                0.28
+
+              ctx.beginPath()
+
+              ctx.arc(
+                star.x,
+                star.y,
+                star.size *
+                  (
+                    0.75 +
+                    star.z *
+                    0.8
+                  ),
+                0,
+                Math.PI * 2
+              )
+
+              ctx.fillStyle =
+                `rgba(220,235,255,${alpha})`
+
+              ctx.fill()
+            }
+
+            if (
+              pointer.active
+            ) {
+              const glow =
+                ctx.createRadialGradient(
+                  pointer.x,
+                  pointer.y,
+                  0,
+                  pointer.x,
+                  pointer.y,
+                  180
+                )
+
+              glow.addColorStop(
+                0,
+                "rgba(150,190,255,.07)"
+              )
+
+              glow.addColorStop(
+                1,
+                "rgba(80,100,180,0)"
+              )
+
+              ctx.fillStyle = glow
+
+              ctx.fillRect(
+                pointer.x - 180,
+                pointer.y - 180,
+                360,
+                360
+              )
+            }
+          }
+
+          const drawParticles = (
+            delta
+          ) => {
+            for (
+              let i =
+                particles.length - 1;
+              i >= 0;
+              i--
+            ) {
+              const p =
+                particles[i]
+
+              p.trail.push({
+                x: p.x,
+                y: p.y
+              })
+
+              if (
+                p.trail.length > 5
+              ) {
+                p.trail.shift()
+              }
+
+              p.x +=
+                p.vx *
+                delta *
+                60
+
+              p.y +=
+                p.vy *
+                delta *
+                60
+
+              p.vx *=
+                Math.pow(
+                  p.drag,
+                  delta * 60
+                )
+
+              p.vy *=
+                Math.pow(
+                  p.drag,
+                  delta * 60
+                )
+
+              p.vy +=
+                p.gravity *
+                delta *
+                60
+
+              p.life -= delta
+
+              const alpha =
+                Math.max(
+                  0,
+                  p.life /
+                  p.maxLife
+                )
+
+              if (
+                p.life <= 0 ||
+                p.x < -100 ||
+                p.x > width + 100 ||
+                p.y < -100 ||
+                p.y > height + 100
+              ) {
+                particles.splice(i, 1)
+                continue
+              }
+
+              const [r, g, b] =
+                p.color
+
+              if (
+                p.trail.length > 1
+              ) {
+                ctx.beginPath()
+
+                ctx.moveTo(
+                  p.trail[0].x,
+                  p.trail[0].y
+                )
+
+                for (
+                  let t = 1;
+                  t < p.trail.length;
+                  t++
+                ) {
+                  ctx.lineTo(
+                    p.trail[t].x,
+                    p.trail[t].y
+                  )
+                }
+
+                ctx.strokeStyle =
+                  `rgba(${r},${g},${b},${alpha * .28})`
+
+                ctx.lineWidth =
+                  p.size * 0.75
+
+                ctx.stroke()
+              }
+
+              ctx.beginPath()
+
+              ctx.arc(
+                p.x,
+                p.y,
+                p.size,
+                0,
+                Math.PI * 2
+              )
+
+              ctx.fillStyle =
+                `rgba(${r},${g},${b},${alpha})`
+
+              ctx.shadowBlur =
+                12
+
+              ctx.shadowColor =
+                `rgba(${r},${g},${b},${alpha})`
+
+              ctx.fill()
+
+              ctx.shadowBlur = 0
+            }
+          }
+
+          const drawFlashes = (
+            delta
+          ) => {
+            for (
+              let i =
+                flashes.length - 1;
+              i >= 0;
+              i--
+            ) {
+              const f =
+                flashes[i]
+
+              f.life -=
+                delta * 2.8
+
+              f.size +=
+                delta * 180
+
+              if (
+                f.life <= 0
+              ) {
+                flashes.splice(i, 1)
+                continue
+              }
+
+              const gradient =
+                ctx.createRadialGradient(
+                  f.x,
+                  f.y,
+                  0,
+                  f.x,
+                  f.y,
+                  f.size
+                )
+
+              gradient.addColorStop(
+                0,
+                `rgba(255,255,255,${f.life * .65})`
+              )
+
+              gradient.addColorStop(
+                0.12,
+                `rgba(180,210,255,${f.life * .3})`
+              )
+
+              gradient.addColorStop(
+                1,
+                "rgba(100,130,255,0)"
+              )
+
+              ctx.fillStyle =
+                gradient
+
+              ctx.fillRect(
+                f.x - f.size,
+                f.y - f.size,
+                f.size * 2,
+                f.size * 2
+              )
+            }
+          }
+
+          const updatePointer = (
+            event
+          ) => {
+            const rect =
+              canvas.getBoundingClientRect()
+
+            pointer.x =
+              event.clientX -
+              rect.left
+
+            pointer.y =
+              event.clientY -
+              rect.top
+
+            pointer.active = true
+          }
+
+          canvas.addEventListener(
+            "pointermove",
+            event => {
+              updatePointer(event)
+
+              if (
+                Math.random() < 0.24
+              ) {
+                satelliteStream(
+                  pointer.x,
+                  pointer.y
+                )
+              }
+            }
+          )
+
+          canvas.addEventListener(
+            "pointerleave",
+            () => {
+              pointer.active = false
+            }
+          )
+
+          canvas.addEventListener(
+            "pointerdown",
+            event => {
+              updatePointer(event)
+
+              if (
+                event.pointerType ===
+                "touch"
+              ) {
+                burst(
+                  pointer.x,
+                  pointer.y,
+                  105,
+                  2.7
+                )
+              } else {
+                burst(
+                  pointer.x,
+                  pointer.y,
+                  130,
+                  3.0
+                )
+              }
+            }
+          )
+
+          const automaticBurst = (
+            time
+          ) => {
+            if (
+              time - lastBurst <
+              (
+                width < 700
+                  ? 1500
+                  : 1050
+              )
+            ) {
+              return
+            }
+
+            lastBurst = time
+
+            const x =
+              width *
+              (
+                0.18 +
+                Math.random() *
+                0.64
+              )
+
+            const y =
+              height *
+              (
+                0.18 +
+                Math.random() *
+                0.62
+              )
+
+            const type =
+              Math.random()
+
+            if (
+              type < 0.22
+            ) {
+              spiralBurst(
+                x,
+                y
+              )
+            } else {
+              burst(
+                x,
+                y,
+                width < 700
+                  ? 70
+                  : 105,
+                2.1 +
+                  Math.random() *
+                  1.1
+              )
+            }
+          }
+
+          const animate = (
+            time
+          ) => {
+            if (!running)
+              return
+
+            const delta =
+              Math.min(
+                0.033,
+                (
+                  time -
+                  lastTime
+                ) / 1000
+              )
+
+            lastTime = time
+
+            drawBackground(
+              time
+            )
+
+            automaticBurst(
+              time
+            )
+
+            drawFlashes(
+              delta
+            )
+
+            drawParticles(
+              delta
+            )
+
+            animationFrame =
+              requestAnimationFrame(
+                animate
+              )
+          }
+
+          close.onclick = () => {
+            running = false
+
+            cancelAnimationFrame(
+              animationFrame
+            )
+
+            window.removeEventListener(
+              "resize",
+              resize
+            )
+
+            overlay.remove()
+          }
+
+          const onKeyDown = (
+            event
+          ) => {
+            if (
+              event.key === "Escape"
+            ) {
+              close.onclick()
+              window.removeEventListener(
+                "keydown",
+                onKeyDown
+              )
+            }
+          }
+
+          window.addEventListener(
+            "keydown",
+            onKeyDown
+          )
+
+          overlay.addEventListener(
+            "pointerdown",
+            event => {
+              if (
+                event.target ===
+                overlay
+              ) {
+                const rect =
+                  overlay.getBoundingClientRect()
+
+                burst(
+                  event.clientX -
+                    rect.left,
+                  event.clientY -
+                    rect.top,
+                  100,
+                  2.6
+                )
+              }
+            }
+          )
+
+          isDragging = false
+          pointerMoved = false
+          pendingReturn = false
+
+          // Initial explosion immediately after opening.
+          burst(
+            width * 0.5,
+            height * 0.5,
+            width < 700
+              ? 120
+              : 180,
+            2.8
+          )
+
+          setTimeout(() => {
+            if (running) {
+              spiralBurst(
+                width * 0.5,
+                height * 0.5
+              )
+            }
+          }, 450)
+
+          animationFrame =
+            requestAnimationFrame(
+              animate
+            )
+
+          return
+        }
+
         if (hit.userData.name === "GUESTBOOK") {
           diagnosticAction("GUESTBOOK opened")
 
