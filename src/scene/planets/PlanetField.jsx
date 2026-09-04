@@ -2268,6 +2268,266 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         }
 
         // ======================================================
+        // PHOTOS CLICK
+        // ======================================================
+
+        if (hit.userData.name === "PHOTOS") {
+
+          const old = document.getElementById("nyxtryp-photos-window")
+          if (old) old.remove()
+
+          const photos = [
+            "/photos/photo-01.png",
+            "/photos/photo-02.png",
+            "/photos/photo-03.png",
+            "/photos/photo-04.webp",
+            "/photos/photo-05.png",
+            "/photos/photo-06.png",
+            "/photos/photo-07.png",
+            "/photos/photo-08.png",
+            "/photos/photo-09.png",
+            "/photos/photo-10.png",
+            "/photos/photo-11.webp",
+            "/photos/photo-12.webp",
+            "/photos/photo-13.webp",
+            "/photos/photo-14.jpg",
+            "/photos/photo-15.jpg",
+            "/photos/photo-16.jpg",
+            "/photos/photo-17.jpg",
+            "/photos/photo-18.jpg",
+            "/photos/photo-19.jpg"
+          ]
+
+          let index = 0
+
+          const overlay = document.createElement("div")
+          overlay.id = "nyxtryp-photos-window"
+
+          Object.assign(overlay.style, {
+            position: "absolute",
+            inset: "0",
+            zIndex: "100",
+            background: "rgba(0,0,0,0.96)",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            overflow: "hidden"
+          })
+
+          const close = document.createElement("button")
+          close.textContent = "×"
+
+          Object.assign(close.style, {
+            position: "absolute",
+            right: "20px",
+            top: "10px",
+            zIndex: "20",
+            border: "0",
+            background: "transparent",
+            color: "#fff",
+            fontSize: "36px",
+            cursor: "pointer"
+          })
+
+          close.onclick = () => overlay.remove()
+          overlay.appendChild(close)
+
+          const main = document.createElement("div")
+
+          Object.assign(main.style, {
+            position: "relative",
+            width: "100%",
+            flex: "1",
+            minHeight: "0",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "40px 65px 15px",
+            boxSizing: "border-box"
+          })
+
+          const image = document.createElement("img")
+
+          Object.assign(image.style, {
+            maxWidth: "100%",
+            maxHeight: "100%",
+            width: "auto",
+            height: "auto",
+            objectFit: "contain",
+            userSelect: "none"
+          })
+
+          image.draggable = false
+          main.appendChild(image)
+
+          const arrow = (symbol, side) => {
+            const b = document.createElement("button")
+            b.textContent = symbol
+
+            Object.assign(b.style, {
+              position: "absolute",
+              top: "50%",
+              [side]: "10px",
+              transform: "translateY(-50%)",
+              width: "46px",
+              height: "80px",
+              border: "0",
+              background: "transparent",
+              color: "#fff",
+              fontSize: "40px",
+              cursor: "pointer",
+              zIndex: "10"
+            })
+
+            return b
+          }
+
+          const prev = arrow("‹", "left")
+          const next = arrow("›", "right")
+
+          main.appendChild(prev)
+          main.appendChild(next)
+          overlay.appendChild(main)
+
+          const thumbs = document.createElement("div")
+
+          Object.assign(thumbs.style, {
+            width: "100%",
+            height: "90px",
+            flexShrink: "0",
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            overflowX: "auto",
+            overflowY: "hidden",
+            padding: "8px 16px 14px",
+            boxSizing: "border-box"
+          })
+
+          overlay.appendChild(thumbs)
+
+          const thumbList = []
+
+          const update = () => {
+            image.src = photos[index]
+
+            thumbList.forEach((t, i) => {
+              t.style.opacity = i === index ? "1" : "0.45"
+              t.style.borderColor =
+                i === index
+                  ? "rgba(255,255,255,0.95)"
+                  : "rgba(255,255,255,0.25)"
+            })
+
+            if (thumbList[index]) {
+              thumbList[index].scrollIntoView({
+                behavior: "smooth",
+                block: "nearest",
+                inline: "center"
+              })
+            }
+          }
+
+          photos.forEach((src, i) => {
+            const t = document.createElement("button")
+
+            Object.assign(t.style, {
+              flex: "0 0 72px",
+              width: "72px",
+              height: "62px",
+              padding: "0",
+              border: "1px solid rgba(255,255,255,0.25)",
+              background: "#080808",
+              overflow: "hidden",
+              cursor: "pointer",
+              opacity: "0.45"
+            })
+
+            const ti = document.createElement("img")
+            ti.src = src
+
+            Object.assign(ti.style, {
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block"
+            })
+
+            t.appendChild(ti)
+
+            t.onclick = () => {
+              index = i
+              update()
+            }
+
+            thumbs.appendChild(t)
+            thumbList.push(t)
+          })
+
+          prev.onclick = () => {
+            index = (index - 1 + photos.length) % photos.length
+            update()
+          }
+
+          next.onclick = () => {
+            index = (index + 1) % photos.length
+            update()
+          }
+
+          let startX = 0
+
+          main.addEventListener("touchstart", e => {
+            if (e.touches.length)
+              startX = e.touches[0].clientX
+          }, { passive: true })
+
+          main.addEventListener("touchend", e => {
+            if (!e.changedTouches.length) return
+
+            const dx = e.changedTouches[0].clientX - startX
+
+            if (Math.abs(dx) > 50) {
+              index = dx < 0
+                ? (index + 1) % photos.length
+                : (index - 1 + photos.length) % photos.length
+
+              update()
+            }
+          }, { passive: true })
+
+          const keys = e => {
+            if (!document.body.contains(overlay)) {
+              window.removeEventListener("keydown", keys)
+              return
+            }
+
+            if (e.key === "ArrowLeft") {
+              index = (index - 1 + photos.length) % photos.length
+              update()
+            }
+
+            if (e.key === "ArrowRight") {
+              index = (index + 1) % photos.length
+              update()
+            }
+
+            if (e.key === "Escape") {
+              overlay.remove()
+              window.removeEventListener("keydown", keys)
+            }
+          }
+
+          window.addEventListener("keydown", keys)
+
+          document.body.appendChild(overlay)
+
+          update()
+
+          return
+        }
+
+        // ======================================================
         // ABOUT CLICK
         // Opens the NYXTRYP story window only after ABOUT arrives.
         // No extra satellite.
@@ -3197,43 +3457,8 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
               }
             }
 
-            // ======================================================
-            // SOFT COSMIC PARALLAX TEST
-            // Shared space drift with depth-based strength.
-            // Near planets move more, distant planets move less.
-            // Selected planet keeps the existing approach mechanics.
-            // ======================================================
-
-            const depthFactor =
-              THREE.MathUtils.clamp(
-                1.0 +
-                  base.z / 24.0,
-                0.22,
-                1.0
-              )
-
-            const cosmicX =
-              (
-                Math.sin(t * 0.12) * 0.34 +
-                Math.sin(t * 0.047) * 0.16
-              ) *
-              depthFactor
-
-            const cosmicY =
-              (
-                Math.cos(t * 0.095) * 0.26 +
-                Math.sin(t * 0.041) * 0.13
-              ) *
-              depthFactor
-
-            const cosmicZ =
-              Math.sin(t * 0.07) *
-              0.12 *
-              depthFactor
-
             const naturalX =
               base.x +
-              cosmicX +
               Math.sin(
                 t *
                   driftX +
@@ -3243,7 +3468,6 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
 
             const naturalY =
               base.y +
-              cosmicY +
               Math.sin(
                 t *
                   driftY +
@@ -3253,7 +3477,6 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
 
             const naturalZ =
               base.z +
-              cosmicZ +
               Math.sin(
                 t *
                   driftZ +
@@ -3407,23 +3630,6 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
             object.rotation.x +=
               speed *
               0.35
-
-            const layerDepth =
-              [0.22, 0.48, 0.78][index] || 0.48
-
-            object.position.x =
-              Math.sin(
-                t * 0.10
-              ) *
-              0.22 *
-              layerDepth
-
-            object.position.y =
-              Math.cos(
-                t * 0.08
-              ) *
-              0.16 *
-              layerDepth
           }
         )
 
