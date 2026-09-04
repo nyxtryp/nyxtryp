@@ -2280,1598 +2280,1050 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         // ======================================================
 
         if (hit.userData.name === "VISUALS") {
+      diagnosticAction("VISUALS cinematic flight opened")
 
-      diagnosticAction("VISUALS flight opened")
-
-      const old =
-        document.getElementById(
-          "nyxtryp-visuals-window"
-        )
+      const old = document.getElementById(
+        "nyxtryp-visuals-window"
+      )
 
       if (old) old.remove()
 
-      const overlay =
-        document.createElement("div")
+      const overlay = document.createElement("div")
+      overlay.id = "nyxtryp-visuals-window"
 
-      overlay.id =
-        "nyxtryp-visuals-window"
+      Object.assign(overlay.style, {
+        position: "fixed",
+        inset: "0",
+        zIndex: "100000",
+        background: "transparent",
+        pointerEvents: "none",
+        overflow: "hidden"
+      })
 
-      Object.assign(
-        overlay.style,
-        {
-          position: "fixed",
-          inset: "0",
-          zIndex: "100000",
-          overflow: "hidden",
-          background: "#000",
-          cursor: "none",
-          touchAction: "none"
-        }
-      )
-
-      const canvas =
-        document.createElement("canvas")
-
-      canvas.style.position = "absolute"
-      canvas.style.inset = "0"
-      canvas.style.width = "100%"
-      canvas.style.height = "100%"
-      canvas.style.display = "block"
-
-      overlay.appendChild(canvas)
-
-      const ctx =
-        canvas.getContext("2d")
-
-      const close =
-        document.createElement("button")
+      const close = document.createElement("button")
 
       close.textContent = "×"
 
-      Object.assign(
-        close.style,
-        {
-          position: "absolute",
-          top: "22px",
-          right: "26px",
-          zIndex: "10",
-          border: "0",
-          background: "transparent",
-          color: "rgba(255,255,255,.72)",
-          fontSize: "30px",
-          fontWeight: "200",
-          cursor: "pointer",
-          padding: "4px 10px",
-          lineHeight: "1",
-          opacity: "0.45"
+      Object.assign(close.style, {
+        position: "absolute",
+        top: "22px",
+        right: "28px",
+        zIndex: "20",
+        background: "transparent",
+        border: "0",
+        color: "rgba(255,255,255,.72)",
+        fontSize: "28px",
+        fontWeight: "200",
+        cursor: "pointer",
+        pointerEvents: "auto",
+        lineHeight: "1",
+        padding: "8px",
+        fontFamily: "Arial, Helvetica, sans-serif"
+      })
+
+      overlay.appendChild(close)
+      document.body.appendChild(overlay)
+
+      /*
+       * ==========================================================
+       * NYXTRYP VISUALS
+       * REAL 3D CINEMATIC FLIGHT
+       *
+       * The existing Three.js universe becomes the flight path.
+       * No fake 2D perspective.
+       * Camera = viewer's eyes.
+       * ==========================================================
+       */
+
+      const savedCameraPosition =
+        camera.position.clone()
+
+      const savedCameraQuaternion =
+        camera.quaternion.clone()
+
+      const savedCameraTarget =
+        cameraTarget.clone()
+
+      const savedLookTarget =
+        lookTarget.clone()
+
+      const savedSelectedPlanet =
+        selectedPlanet
+
+      const savedCameraDistance =
+        cameraDistance
+
+      const savedPixelRatio =
+        renderer.getPixelRatio()
+
+      let active = true
+      let finished = false
+
+      const flightStart =
+        performance.now()
+
+      const FLIGHT_DURATION =
+        60000
+
+      const temp = new THREE.Vector3()
+      const temp2 = new THREE.Vector3()
+      const temp3 = new THREE.Vector3()
+
+      /*
+       * ----------------------------------------------------------
+       * Hide normal labels during cinematic.
+       * ----------------------------------------------------------
+       */
+
+      const labels = []
+
+      document
+        .querySelectorAll(".planet-name")
+        .forEach((label) => {
+          labels.push({
+            label,
+            opacity: label.style.opacity
+          })
+          label.style.opacity = "0"
+        })
+
+      Object.values(audioMenuLabels).forEach(
+        (label) => {
+          labels.push({
+            label,
+            opacity: label.style.opacity
+          })
+          label.style.opacity = "0"
         }
       )
 
-      overlay.appendChild(close)
+      youtubeLabel.style.opacity = "0"
 
-      document.body.appendChild(overlay)
+      /*
+       * ----------------------------------------------------------
+       * Get REAL planet positions from the existing scene.
+       * ----------------------------------------------------------
+       */
 
-      let W = 0
-      let H = 0
-      let DPR = 1
+      const getPlanet =
+        (name) => {
+          const found =
+            objects.find(
+              (o) =>
+                o.mesh &&
+                o.mesh.userData &&
+                o.mesh.userData.name === name
+            )
 
-      const resize = () => {
-        DPR =
-          Math.min(
-            window.devicePixelRatio || 1,
-            2
+          return found
+            ? found.mesh
+            : null
+        }
+
+      const worldPosition =
+        (object) => {
+          const result =
+            new THREE.Vector3()
+
+          object.getWorldPosition(result)
+
+          return result
+        }
+
+      const planetPoint =
+        (name, distance) => {
+          const planet =
+            getPlanet(name)
+
+          if (!planet)
+            return null
+
+          const pos =
+            worldPosition(planet)
+
+          /*
+           * Approach from the side/front rather than stopping
+           * exactly at the planet centre.
+           */
+          const direction =
+            pos.clone()
+              .sub(camera.position)
+              .normalize()
+
+          return pos.clone()
+            .sub(direction.multiplyScalar(distance))
+        }
+
+      /*
+       * ----------------------------------------------------------
+       * REAL 3D METEOR FIELD
+       * ----------------------------------------------------------
+       */
+
+      const meteorGroup =
+        new THREE.Group()
+
+      meteorGroup.name =
+        "NYXTRYP_VISUALS_METEORS"
+
+      scene.add(meteorGroup)
+
+      const meteorGeometry =
+        new THREE.IcosahedronGeometry(
+          0.08,
+          1
+        )
+
+      const meteorMaterial =
+        new THREE.MeshStandardMaterial({
+          color: 0x777777,
+          roughness: 0.92,
+          metalness: 0.05
+        })
+
+      const meteorites = []
+
+      for (
+        let i = 0;
+        i < 90;
+        i++
+      ) {
+        const meteor =
+          new THREE.Mesh(
+            meteorGeometry,
+            meteorMaterial
           )
 
-        W =
-          window.innerWidth
-
-        H =
-          window.innerHeight
-
-        canvas.width =
-          W * DPR
-
-        canvas.height =
-          H * DPR
-
-        ctx.setTransform(
-          DPR,
-          0,
-          0,
-          DPR,
-          0,
-          0
+        meteor.position.set(
+          THREE.MathUtils.randFloatSpread(34),
+          THREE.MathUtils.randFloatSpread(22),
+          THREE.MathUtils.randFloat(-8, -70)
         )
+
+        const scale =
+          THREE.MathUtils.randFloat(
+            0.35,
+            3.2
+          )
+
+        meteor.scale.setScalar(scale)
+
+        meteor.rotation.set(
+          Math.random() * Math.PI,
+          Math.random() * Math.PI,
+          Math.random() * Math.PI
+        )
+
+        meteor.userData.velocity =
+          new THREE.Vector3(
+            THREE.MathUtils.randFloat(-0.035, 0.035),
+            THREE.MathUtils.randFloat(-0.035, 0.035),
+            THREE.MathUtils.randFloat(0.10, 0.38)
+          )
+
+        meteor.userData.spin =
+          new THREE.Vector3(
+            THREE.MathUtils.randFloat(-0.025, 0.025),
+            THREE.MathUtils.randFloat(-0.025, 0.025),
+            THREE.MathUtils.randFloat(-0.025, 0.025)
+          )
+
+        meteorGroup.add(meteor)
+        meteorites.push(meteor)
       }
 
-      resize()
+      /*
+       * ----------------------------------------------------------
+       * REAL SATELLITE CLONES
+       *
+       * We clone the existing 3D satellite groups so the normal
+       * universe is never damaged.
+       * ----------------------------------------------------------
+       */
 
-      window.addEventListener(
-        "resize",
-        resize
+      const cinematicSatellites =
+        []
+
+      const satelliteNames = [
+        "TRACKS",
+        "MIXES",
+        "RADIO",
+        "YOUTUBE"
+      ]
+
+      satelliteNames.forEach(
+        (name, index) => {
+          const original =
+            scene.getObjectByName(name)
+
+          if (!original)
+            return
+
+          const clone =
+            original.clone(true)
+
+          const originalWorld =
+            worldPosition(original)
+
+          clone.position.copy(
+            originalWorld
+          )
+
+          clone.quaternion.copy(
+            original.getWorldQuaternion(
+              new THREE.Quaternion()
+            )
+          )
+
+          clone.scale.multiplyScalar(
+            1.15
+          )
+
+          clone.userData.cinematic =
+            true
+
+          clone.userData.index =
+            index
+
+          scene.add(clone)
+
+          cinematicSatellites.push(
+            clone
+          )
+        }
       )
 
       /*
-       * =========================================================
-       * NYXTRYP VISUALS
-       * CONTINUOUS COSMIC FLIGHT
+       * ----------------------------------------------------------
+       * CAMERA WAYPOINTS
        *
-       * This is deliberately NOT a particle show.
-       * The camera travels continuously through a generated
-       * 3D-like universe made from depth, geometry and light.
-       * =========================================================
+       * These are derived from the ACTUAL planet locations.
+       * ----------------------------------------------------------
        */
 
-      const TAU = Math.PI * 2
+      const names = [
+        "AUDIO",
+        "VIDEOS",
+        "PHOTOS",
+        "RELEASES",
+        "GUESTBOOK",
+        "ABOUT",
+        "SOCIAL"
+      ]
 
-      let running = true
-      let t0 = performance.now()
-      let last = t0
+      const waypoints = []
 
-      let flightTime = 0
+      waypoints.push(
+        camera.position.clone()
+      )
 
-      const duration =
-        168000
+      names.forEach(
+        (name) => {
+          const point =
+            planetPoint(
+              name,
+              THREE.MathUtils.randFloat(
+                2.4,
+                4.8
+              )
+            )
 
-      const mouse = {
-        x: 0,
-        y: 0,
-        active: false
-      }
+          if (point)
+            waypoints.push(point)
+        }
+      )
 
-      const stars = []
-      const rings = []
-      const structures = []
-      const streams = []
+      /*
+       * Add a final deep-space point.
+       */
+      waypoints.push(
+        new THREE.Vector3(
+          0,
+          1.5,
+          -31
+        )
+      )
 
-      const rand =
-        (a, b) =>
-          a +
-          Math.random() *
-          (b - a)
+      /*
+       * ----------------------------------------------------------
+       * Smooth Catmull-Rom flight.
+       * ----------------------------------------------------------
+       */
 
-      const makeStar = () => ({
-        x: rand(-1, 1),
-        y: rand(-1, 1),
-        z: rand(0.02, 1),
-        size: rand(.35, 1.8),
-        drift: rand(-.12, .12)
+      const curve =
+        new THREE.CatmullRomCurve3(
+          waypoints,
+          false,
+          "catmullrom",
+          0.48
+        )
+
+      /*
+       * ----------------------------------------------------------
+       * Camera motion state.
+       * ----------------------------------------------------------
+       */
+
+      const flightCamera =
+        camera.position.clone()
+
+      const flightLook =
+        new THREE.Vector3()
+
+      const previousCamera =
+        camera.position.clone()
+
+      let flightRaf = 0
+      let lastFrame =
+        performance.now()
+
+      /*
+       * ----------------------------------------------------------
+       * Cinematic black fade + final text.
+       * ----------------------------------------------------------
+       */
+
+      const fade =
+        document.createElement("div")
+
+      Object.assign(fade.style, {
+        position: "absolute",
+        inset: "0",
+        background: "#000",
+        opacity: "0",
+        pointerEvents: "none",
+        transition: "opacity 1.8s ease",
+        zIndex: "5"
       })
 
-      for (let i = 0; i < 900; i++)
-        stars.push(makeStar())
+      overlay.appendChild(fade)
 
-      const makeRing = (
-        z,
-        radius,
-        tilt,
-        speed
-      ) => ({
-        z,
-        radius,
-        tilt,
-        speed,
-        phase: rand(0, TAU)
+      const finalText =
+        document.createElement("div")
+
+      Object.assign(finalText.style, {
+        position: "absolute",
+        inset: "0",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        opacity: "0",
+        transition: "opacity 2.5s ease",
+        color: "#fff",
+        fontFamily: "Arial, Helvetica, sans-serif",
+        pointerEvents: "none",
+        zIndex: "10"
       })
-
-      for (let i = 0; i < 32; i++) {
-        rings.push(
-          makeRing(
-            rand(.04, 1),
-            rand(.18, 1.55),
-            rand(-1.1, 1.1),
-            rand(-.35, .35)
-          )
-        )
-      }
-
-      for (let i = 0; i < 260; i++) {
-        structures.push({
-          a: rand(0, TAU),
-          radius: rand(.25, 2.8),
-          z: rand(.02, 1),
-          length: rand(.4, 2.2),
-          twist: rand(-2, 2),
-          type: Math.floor(
-            rand(0, 4)
-          )
-        })
-      }
-
-      for (let i = 0; i < 420; i++) {
-        streams.push({
-          a: rand(0, TAU),
-          r: rand(.15, 2.4),
-          z: rand(.02, 1),
-          speed: rand(.25, 1.3),
-          phase: rand(0, TAU)
-        })
-      }
-
-      const project = (
-        x,
-        y,
-        z
-      ) => {
-
-        const depth =
-          Math.max(
-            .035,
-            z
-          )
-
-        const focal =
-          Math.min(W, H) *
-          .92
-
-        return {
-          x:
-            W * .5 +
-            x *
-            focal /
-            depth,
-
-          y:
-            H * .5 +
-            y *
-            focal /
-            depth,
-
-          scale:
-            focal /
-            depth
-        }
-      }
-
-      const clear = () => {
-        const g =
-          ctx.createRadialGradient(
-            W * .5,
-            H * .5,
-            0,
-            W * .5,
-            H * .5,
-            Math.max(W, H)
-          )
-
-        g.addColorStop(
-          0,
-          "#111827"
-        )
-
-        g.addColorStop(
-          .32,
-          "#050914"
-        )
-
-        g.addColorStop(
-          1,
-          "#000000"
-        )
-
-        ctx.fillStyle = g
-        ctx.fillRect(
-          0,
-          0,
-          W,
-          H
-        )
-      }
-
-      const starfield = (
-        dt,
-        speed,
-        bend
-      ) => {
-
-        for (const s of stars) {
-
-          s.z -=
-            dt *
-            speed *
-            (
-              .65 +
-              s.size * .22
-            )
-
-          s.x +=
-            Math.sin(
-              flightTime * .00018 +
-              s.drift
-            ) *
-            dt *
-            bend *
-            .015
-
-          s.y +=
-            Math.cos(
-              flightTime * .00016 +
-              s.drift
-            ) *
-            dt *
-            bend *
-            .012
-
-          if (s.z < .018) {
-            s.z = 1
-            s.x = rand(-1, 1)
-            s.y = rand(-1, 1)
-          }
-
-          const p =
-            project(
-              s.x,
-              s.y,
-              s.z
-            )
-
-          if (
-            p.x < -80 ||
-            p.x > W + 80 ||
-            p.y < -80 ||
-            p.y > H + 80
-          )
-            continue
-
-          const alpha =
-            Math.min(
-              .95,
-              .12 +
-              (1 - s.z) *
-              .9
-            )
-
-          ctx.globalAlpha =
-            alpha
-
-          ctx.fillStyle =
-            "#dcecff"
-
-          ctx.beginPath()
-
-          ctx.arc(
-            p.x,
-            p.y,
-            Math.max(
-              .35,
-              s.size *
-              p.scale *
-              .002
-            ),
-            0,
-            TAU
-          )
-
-          ctx.fill()
-
-          if (s.z < .16) {
-
-            ctx.globalAlpha =
-              alpha * .24
-
-            ctx.strokeStyle =
-              "#9fc9ff"
-
-            ctx.lineWidth = 1
-
-            ctx.beginPath()
-
-            ctx.moveTo(
-              p.x,
-              p.y
-            )
-
-            ctx.lineTo(
-              W * .5 +
-              s.x *
-              p.scale *
-              1.08,
-
-              H * .5 +
-              s.y *
-              p.scale *
-              1.08
-            )
-
-            ctx.stroke()
-          }
-        }
-
-        ctx.globalAlpha = 1
-      }
-
-      const giantRing =
-        (
-          radius,
-          rotation,
-          alpha
-        ) => {
-
-          ctx.save()
-
-          ctx.translate(
-            W * .5,
-            H * .5
-          )
-
-          ctx.rotate(rotation)
-
-          ctx.scale(
-            1,
-            .32
-          )
-
-          ctx.strokeStyle =
-            `rgba(170,215,255,${alpha})`
-
-          ctx.lineWidth = 1.5
-
-          ctx.shadowBlur = 18
-
-          ctx.shadowColor =
-            "rgba(100,180,255,.55)"
-
-          ctx.beginPath()
-
-          ctx.arc(
-            0,
-            0,
-            radius,
-            0,
-            TAU
-          )
-
-          ctx.stroke()
-
-          ctx.shadowBlur = 0
-
-          ctx.restore()
-        }
-
-      const tunnel =
-        (
-          time,
-          intensity
-        ) => {
-
-          for (
-            let i = 0;
-            i < 18;
-            i++
-          ) {
-
-            const p =
-              i / 18
-
-            const z =
-              .04 +
-              p * .96
-
-            const twist =
-              time *
-              .00035 *
-              (1 - p) +
-              p * 8
-
-            const radius =
-              (
-                .08 +
-                p * 1.7
-              ) *
-              (
-                1 +
-                Math.sin(
-                  time * .001 +
-                  p * 9
-                ) *
-                .12
-              )
-
-            const x =
-              Math.cos(
-                twist
-              ) *
-              radius
-
-            const y =
-              Math.sin(
-                twist
-              ) *
-              radius
-
-            const q =
-              project(
-                x,
-                y,
-                z
-              )
-
-            ctx.globalAlpha =
-              (.08 +
-              intensity *
-              .055) *
-              (1 - p)
-
-            ctx.strokeStyle =
-              "#a9d8ff"
-
-            ctx.lineWidth =
-              1 +
-              intensity *
-              1.5
-
-            ctx.beginPath()
-
-            ctx.arc(
-              q.x,
-              q.y,
-              q.scale *
-              radius *
-              .22,
-              0,
-              TAU
-            )
-
-            ctx.stroke()
-          }
-
-          ctx.globalAlpha = 1
-      }
-
-      const architecture =
-        (
-          time,
-          power
-        ) => {
-
-          ctx.save()
-
-          ctx.translate(
-            W * .5,
-            H * .5
-          )
-
-          for (
-            let i = 0;
-            i < 42;
-            i++
-          ) {
-
-            const a =
-              i / 42 *
-              TAU +
-              time *
-              .00022
-
-            const r =
-              (
-                .22 +
-                (i % 7) * .19
-              ) *
-              (
-                1 +
-                Math.sin(
-                  time * .0008 +
-                  i
-                ) *
-                .16
-              )
-
-            const len =
-              (
-                80 +
-                (i % 5) *
-                65
-              ) *
-              power
-
-            const x =
-              Math.cos(a) *
-              r *
-              Math.min(W, H)
-
-            const y =
-              Math.sin(a) *
-              r *
-              Math.min(W, H) *
-              .55
-
-            ctx.globalAlpha =
-              .055 +
-              power * .06
-
-            ctx.strokeStyle =
-              "#b9d8ff"
-
-            ctx.lineWidth =
-              .6 +
-              power * .8
-
-            ctx.beginPath()
-
-            ctx.moveTo(
-              x,
-              y
-            )
-
-            ctx.lineTo(
-              x +
-              Math.cos(a) *
-              len,
-
-              y +
-              Math.sin(a) *
-              len
-            )
-
-            ctx.stroke()
-          }
-
-          ctx.restore()
-
-          ctx.globalAlpha = 1
-      }
-
-      const flyStructures =
-        (
-          dt,
-          time,
-          power
-        ) => {
-
-          for (
-            const s of structures
-          ) {
-
-            s.z -=
-              dt *
-              (.28 +
-              power *
-              .55)
-
-            s.a +=
-              dt *
-              .0009 *
-              s.twist
-
-            if (s.z < .045) {
-              s.z = 1
-              s.a = rand(
-                0,
-                TAU
-              )
-            }
-
-            const radius =
-              s.radius *
-              (
-                .7 +
-                .3 *
-                Math.sin(
-                  time * .0006 +
-                  s.a
-                )
-              )
-
-            const x =
-              Math.cos(s.a) *
-              radius
-
-            const y =
-              Math.sin(s.a) *
-              radius *
-              .62
-
-            const p =
-              project(
-                x,
-                y,
-                s.z
-              )
-
-            const size =
-              Math.min(
-                800,
-                p.scale *
-                s.length *
-                .08
-              )
-
-            if (
-              p.x < -500 ||
-              p.x > W + 500 ||
-              p.y < -500 ||
-              p.y > H + 500
-            )
-              continue
-
-            ctx.save()
-
-            ctx.translate(
-              p.x,
-              p.y
-            )
-
-            ctx.rotate(
-              s.a +
-              time * .00025
-            )
-
-            ctx.globalAlpha =
-              Math.min(
-                .75,
-                .035 +
-                (1 - s.z) *
-                .58
-              )
-
-            ctx.strokeStyle =
-              s.type === 0
-                ? "#d9edff"
-                : "#9db8ff"
-
-            ctx.lineWidth =
-              Math.max(
-                .5,
-                1.2 *
-                (1 - s.z)
-              )
-
-            if (
-              s.type === 0
-            ) {
-
-              ctx.strokeRect(
-                -size,
-                -size * .18,
-                size * 2,
-                size * .36
-              )
-
-            } else if (
-              s.type === 1
-            ) {
-
-              ctx.beginPath()
-
-              ctx.moveTo(
-                -size,
-                0
-              )
-
-              ctx.lineTo(
-                0,
-                -size * .55
-              )
-
-              ctx.lineTo(
-                size,
-                0
-              )
-
-              ctx.lineTo(
-                0,
-                size * .55
-              )
-
-              ctx.closePath()
-
-              ctx.stroke()
-
-            } else if (
-              s.type === 2
-            ) {
-
-              ctx.beginPath()
-
-              ctx.arc(
-                0,
-                0,
-                size,
-                0,
-                TAU
-              )
-
-              ctx.stroke()
-
-            } else {
-
-              ctx.beginPath()
-
-              ctx.moveTo(
-                -size,
-                -size
-              )
-
-              ctx.lineTo(
-                size,
-                size
-              )
-
-              ctx.moveTo(
-                size,
-                -size
-              )
-
-              ctx.lineTo(
-                -size,
-                size
-              )
-
-              ctx.stroke()
-            }
-
-            ctx.restore()
-          }
-
-          ctx.globalAlpha = 1
-      }
-
-      const flyStreams =
-        (
-          dt,
-          time,
-          power
-        ) => {
-
-          for (
-            const s of streams
-          ) {
-
-            s.z -=
-              dt *
-              s.speed *
-              (
-                .55 +
-                power
-              )
-
-            s.a +=
-              dt *
-              (
-                .0004 +
-                power *
-                .0009
-              )
-
-            if (s.z < .025) {
-              s.z = 1
-              s.r = rand(
-                .15,
-                2.6
-              )
-              s.a = rand(
-                0,
-                TAU
-              )
-            }
-
-            const spiral =
-              s.a +
-              s.z * 7 +
-              time *
-              .00015
-
-            const x =
-              Math.cos(
-                spiral
-              ) *
-              s.r *
-              (
-                .4 +
-                (1 - s.z) *
-                .7
-              )
-
-            const y =
-              Math.sin(
-                spiral
-              ) *
-              s.r *
-              (
-                .4 +
-                (1 - s.z) *
-                .7
-              )
-
-            const q =
-              project(
-                x,
-                y,
-                s.z
-              )
-
-            const tail =
-              project(
-                x * .82,
-                y * .82,
-                Math.min(
-                  1,
-                  s.z + .025
-                )
-              )
-
-            ctx.globalAlpha =
-              .05 +
-              (1 - s.z) *
-              .45
-
-            ctx.strokeStyle =
-              "#c6e3ff"
-
-            ctx.lineWidth =
-              .6 +
-              (1 - s.z) *
-              1.4
-
-            ctx.beginPath()
-
-            ctx.moveTo(
-              tail.x,
-              tail.y
-            )
-
-            ctx.lineTo(
-              q.x,
-              q.y
-            )
-
-            ctx.stroke()
-          }
-
-          ctx.globalAlpha = 1
-      }
-
-      const nebula =
-        (
-          time,
-          amount
-        ) => {
-
-          const g =
-            ctx.createRadialGradient(
-              W * .5,
-              H * .5,
-              0,
-              W * .5,
-              H * .5,
-              Math.min(W, H) *
-              .72
-            )
-
-          g.addColorStop(
-            0,
-            `rgba(130,180,255,${.025 * amount})`
-          )
-
-          g.addColorStop(
-            .35,
-            `rgba(90,100,220,${.018 * amount})`
-          )
-
-          g.addColorStop(
-            1,
-            "rgba(0,0,0,0)"
-          )
-
-          ctx.fillStyle = g
-
-          ctx.fillRect(
-            0,
-            0,
-            W,
-            H
-          )
-      }
-
-      const lens =
-        (
-          strength
-        ) => {
-
-          if (strength <= 0)
-            return
-
-          const g =
-            ctx.createRadialGradient(
-              W * .5,
-              H * .5,
-              0,
-              W * .5,
-              H * .5,
-              Math.min(W, H) *
-              .5
-            )
-
-          g.addColorStop(
-            0,
-            `rgba(255,255,255,${.035 * strength})`
-          )
-
-          g.addColorStop(
-            .25,
-            `rgba(150,210,255,${.018 * strength})`
-          )
-
-          g.addColorStop(
-            1,
-            "rgba(0,0,0,0)"
-          )
-
-          ctx.fillStyle = g
-
-          ctx.fillRect(
-            0,
-            0,
-            W,
-            H
-          )
-      }
 
       const title =
         document.createElement("div")
 
-      Object.assign(
-        title.style,
-        {
-          position: "absolute",
-          left: "50%",
-          top: "50%",
-          transform: "translate(-50%,-50%)",
-          color: "#fff",
-          fontFamily:
-            "Arial, Helvetica, sans-serif",
-          fontSize:
-            "clamp(28px,7vw,88px)",
-          fontWeight: "200",
-          letterSpacing: ".48em",
-          whiteSpace: "nowrap",
-          opacity: "0",
-          pointerEvents: "none",
-          textIndent: ".48em",
-          transition:
-            "opacity 3s ease"
-        }
-      )
-
       title.textContent =
         "NYXTRYP"
 
-      overlay.appendChild(title)
+      Object.assign(title.style, {
+        fontSize: "clamp(38px, 7vw, 86px)",
+        fontWeight: "200",
+        letterSpacing: "0.42em",
+        marginLeft: "0.42em",
+        textShadow: "0 0 35px rgba(180,220,255,.35)"
+      })
 
       const subtitle =
         document.createElement("div")
 
-      Object.assign(
-        subtitle.style,
-        {
-          position: "absolute",
-          left: "50%",
-          top: "calc(50% + 65px)",
-          transform: "translateX(-50%)",
-          color:
-            "rgba(210,230,255,.62)",
-          fontFamily:
-            "Arial, Helvetica, sans-serif",
-          fontSize: "10px",
-          fontWeight: "300",
-          letterSpacing: ".7em",
-          whiteSpace: "nowrap",
-          opacity: "0",
-          pointerEvents: "none",
-          textIndent: ".7em",
-          transition:
-            "opacity 3s ease"
-        }
-      )
-
       subtitle.textContent =
         "SEE YOU"
 
-      overlay.appendChild(
-        subtitle
-      )
+      Object.assign(subtitle.style, {
+        marginTop: "18px",
+        fontSize: "11px",
+        fontWeight: "300",
+        letterSpacing: "0.65em",
+        marginLeft: "0.65em",
+        opacity: "0.62"
+      })
+
+      finalText.appendChild(title)
+      finalText.appendChild(subtitle)
+      overlay.appendChild(finalText)
+
+      /*
+       * ----------------------------------------------------------
+       * Mouse / touch steering.
+       * ----------------------------------------------------------
+       */
+
+      const steer = {
+        x: 0,
+        y: 0,
+        targetX: 0,
+        targetY: 0
+      }
 
       const pointerMove =
-        (e) => {
+        (event) => {
+          const x =
+            event.clientX ??
+            (event.touches &&
+              event.touches[0] &&
+              event.touches[0].clientX)
 
-          mouse.x =
-            (
-              e.clientX /
-              W -
-              .5
-            )
+          const y =
+            event.clientY ??
+            (event.touches &&
+              event.touches[0] &&
+              event.touches[0].clientY)
 
-          mouse.y =
-            (
-              e.clientY /
-              H -
-              .5
-            )
+          if (
+            x == null ||
+            y == null
+          )
+            return
 
-          mouse.active = true
+          steer.targetX =
+            ((x / window.innerWidth) -
+              0.5) * 2
+
+          steer.targetY =
+            ((y / window.innerHeight) -
+              0.5) * 2
         }
 
-      const pointerLeave =
-        () => {
-          mouse.active = false
-        }
-
-      overlay.addEventListener(
+      window.addEventListener(
         "pointermove",
         pointerMove
       )
 
-      overlay.addEventListener(
-        "pointerleave",
-        pointerLeave
-      )
-
-      const finish =
-        () => {
-
-          if (!running)
-            return
-
-          running = false
-
-          window.removeEventListener(
-            "resize",
-            resize
-          )
-
-          overlay.removeEventListener(
-            "pointermove",
-            pointerMove
-          )
-
-          overlay.removeEventListener(
-            "pointerleave",
-            pointerLeave
-          )
-
-          overlay.remove()
-
-          document.removeEventListener(
-            "keydown",
-            escape
-          )
-        }
-
-      const escape =
-        (e) => {
-
-          if (
-            e.key === "Escape"
-          )
-            finish()
-        }
-
-      close.addEventListener(
-        "click",
-        finish
-      )
-
-      document.addEventListener(
-        "keydown",
-        escape
-      )
-
       /*
-       * FLIGHT PHASES
-       *
-       * 0-25s     departure
-       * 25-55s    acceleration
-       * 55-95s    giant structures
-       * 95-125s   tunnel / hyperspace
-       * 125-150s  deep space
-       * 150-168s  arrival / NYXTRYP
+       * ----------------------------------------------------------
+       * Cinematic flight.
+       * ----------------------------------------------------------
        */
 
-      const frame =
+      const animateFlight =
         (now) => {
-
-          if (!running)
+          if (!active)
             return
 
-          const dt =
-            Math.min(
-              34,
-              now - last
-            )
-
-          last = now
-
-          flightTime =
-            now - t0
-
           const elapsed =
-            flightTime
+            now - flightStart
 
           const progress =
             Math.min(
               1,
               elapsed /
-              duration
+                FLIGHT_DURATION
             )
 
-          const seconds =
-            elapsed / 1000
+          const dt =
+            Math.min(
+              0.05,
+              (now - lastFrame) /
+                1000
+            )
 
-          clear()
-
-          /*
-           * Pointer subtly bends the flight direction.
-           */
-          const bend =
-            mouse.active
-              ? (
-                  mouse.x * 1.7 +
-                  mouse.y * .8
-                )
-              : 0
+          lastFrame = now
 
           /*
-           * Continuous speed curve.
-           * Never actually stops.
+           * Flight acceleration curve:
+           * slow departure → acceleration → cruise →
+           * violent passes → deep-space braking.
            */
-          const cruise =
-            seconds < 18
-              ? .16 +
-                seconds * .018
-              : seconds < 48
-                ? .48 +
-                  (
-                    seconds - 18
-                  ) * .012
-                : seconds < 112
-                  ? .84
-                : seconds < 142
-                  ? 1.08
-                  : 0.55
+          let curveT
 
-          starfield(
-            dt / 16,
-            cruise,
-            bend
-          )
-
-          nebula(
-            elapsed,
-            1 +
-            Math.sin(
-              elapsed * .00012
-            ) * .35
-          )
-
-          /*
-           * DEPARTURE:
-           * almost empty space, then distant geometry.
-           */
-          if (
-            seconds < 28
-          ) {
-
+          if (progress < 0.10) {
             const p =
-              Math.min(
-                1,
-                seconds / 28
-              )
+              progress / 0.10
 
-            giantRing(
-              Math.min(
-                W,
-                H
-              ) *
-              (
-                .12 +
-                p * .7
-              ),
-              elapsed * .00008,
-              .08 +
-              p * .16
-            )
-
-            tunnel(
-              elapsed,
-              p * .6
-            )
-          }
-
-          /*
-           * GIANT STRUCTURES:
-           * architecture flies around the viewer.
-           */
-          if (
-            seconds >= 22 &&
-            seconds < 78
+            curveT =
+              p * p * 0.12
+          } else if (
+            progress < 0.78
           ) {
-
             const p =
-              Math.min(
-                1,
-                (
-                  seconds - 22
-                ) / 18
-              )
+              (progress - 0.10) /
+              0.68
 
-            flyStructures(
-              dt / 16,
-              elapsed,
-              p
-            )
-
-            architecture(
-              elapsed,
-              .4 +
-              p
-            )
-
-            giantRing(
-              Math.min(
-                W,
-                H
-              ) *
-              (
-                .3 +
-                Math.sin(
-                  elapsed * .00035
-                ) *
-                .08
-              ),
-              elapsed * .00022,
-              .18
-            )
-          }
-
-          /*
-           * TRANSITION:
-           * structures collapse into a flight corridor.
-           */
-          if (
-            seconds >= 68 &&
-            seconds < 105
-          ) {
-
-            const p =
-              Math.min(
-                1,
-                (
-                  seconds - 68
-                ) / 37
-              )
-
-            flyStreams(
-              dt / 16,
-              elapsed,
-              .7 +
-              p * 1.8
-            )
-
-            tunnel(
-              elapsed,
-              1.5 +
-              p * 2
-            )
-
-            giantRing(
-              Math.min(
-                W,
-                H
-              ) *
-              (
-                .75 -
-                p * .38
-              ),
-              elapsed * .0005,
-              .16 +
-              p * .14
-            )
-          }
-
-          /*
-           * HYPERSPACE:
-           * high-speed tunnel, no discrete scene cut.
-           */
-          if (
-            seconds >= 95 &&
-            seconds < 132
-          ) {
-
-            const p =
-              Math.min(
-                1,
-                (
-                  seconds - 95
-                ) / 37
-              )
-
-            flyStreams(
-              dt / 10,
-              elapsed,
-              2.5 +
-              p * 3
-            )
-
-            tunnel(
-              elapsed,
-              4 +
-              p * 2
-            )
-
-            architecture(
-              elapsed,
-              1.5 +
-              p * 2
-            )
-
-            lens(
-              p * 1.8
-            )
-          }
-
-          /*
-           * DEEP SPACE:
-           * speed begins falling, scale becomes enormous.
-           */
-          if (
-            seconds >= 125 &&
-            seconds < 154
-          ) {
-
-            const p =
-              Math.min(
-                1,
-                (
-                  seconds - 125
-                ) / 29
-              )
-
-            flyStructures(
-              dt / 18,
-              elapsed,
-              1.2 -
-              p * .8
-            )
-
-            giantRing(
-              Math.min(
-                W,
-                H
-              ) *
-              (
-                .7 +
-                p * 1.2
-              ),
-              elapsed * .00009,
-              .12 *
-              (1 - p)
-            )
-
-            nebula(
-              elapsed,
-              2.5 -
-              p * 2
-            )
-          }
-
-          /*
-           * FINAL ARRIVAL:
-           * everything disappears into black.
-           */
-          if (
-            seconds >= 148
-          ) {
-
-            const p =
-              Math.min(
-                1,
-                (
-                  seconds - 148
-                ) / 20
-              )
-
-            ctx.fillStyle =
-              `rgba(0,0,0,${p * .94})`
-
-            ctx.fillRect(
-              0,
-              0,
-              W,
-              H
-            )
-
-            if (p > .35) {
-
-              title.style.opacity =
-                String(
-                  Math.min(
-                    1,
-                    (
-                      p - .35
-                    ) / .3
-                  )
-                )
-
-              subtitle.style.opacity =
-                String(
-                  Math.min(
-                    1,
-                    (
-                      p - .55
-                    ) / .25
-                  )
-                )
-            }
-          }
-
-          /*
-           * Very subtle central flight glow.
-           */
-          if (
-            seconds > 8 &&
-            seconds < 150
-          ) {
-
-            const g =
-              ctx.createRadialGradient(
-                W * (
-                  .5 +
-                  bend * .018
-                ),
-                H * (
-                  .5 +
-                  mouse.y * .018
-                ),
-                0,
-                W * .5,
-                H * .5,
-                Math.min(W,H) *
-                .18
-              )
-
-            g.addColorStop(
-              0,
-              "rgba(190,225,255,.055)"
-            )
-
-            g.addColorStop(
-              1,
-              "rgba(0,0,0,0)"
-            )
-
-            ctx.fillStyle = g
-
-            ctx.fillRect(
-              0,
-              0,
-              W,
-              H
-            )
-          }
-
-          ctx.globalAlpha = 1
-
-          if (
-            elapsed <
-            duration
-          ) {
-            requestAnimationFrame(
-              frame
-            )
+            curveT =
+              0.12 +
+              p * 0.68
           } else {
-            title.style.opacity = "1"
-            subtitle.style.opacity = "1"
+            const p =
+              (progress - 0.78) /
+              0.22
+
+            curveT =
+              0.80 +
+              p * 0.20
+          }
+
+          const point =
+            curve.getPointAt(
+              THREE.MathUtils.clamp(
+                curveT,
+                0,
+                1
+              )
+            )
+
+          const tangent =
+            curve.getTangentAt(
+              THREE.MathUtils.clamp(
+                curveT,
+                0,
+                0.999
+              )
+            )
+
+          /*
+           * Smooth lateral steering.
+           */
+          steer.x +=
+            (
+              steer.targetX -
+              steer.x
+            ) *
+            Math.min(
+              1,
+              dt * 2.8
+            )
+
+          steer.y +=
+            (
+              steer.targetY -
+              steer.y
+            ) *
+            Math.min(
+              1,
+              dt * 2.8
+            )
+
+          /*
+           * Real camera position.
+           */
+          flightCamera.lerp(
+            point,
+            Math.min(
+              1,
+              dt * 5.5
+            )
+          )
+
+          /*
+           * Add subtle ship-like lateral movement.
+           * No ship is rendered.
+           */
+          const side =
+            new THREE.Vector3()
+              .crossVectors(
+                tangent,
+                camera.up
+              )
+              .normalize()
+
+          const up =
+            new THREE.Vector3()
+              .crossVectors(
+                side,
+                tangent
+              )
+              .normalize()
+
+          flightCamera.addScaledVector(
+            side,
+            steer.x *
+              1.35
+          )
+
+          flightCamera.addScaledVector(
+            up,
+            -steer.y *
+              0.95
+          )
+
+          camera.position.copy(
+            flightCamera
+          )
+
+          /*
+           * Look ahead in the actual 3D world.
+           */
+          flightLook.copy(
+            flightCamera
+          )
+
+          flightLook.addScaledVector(
+            tangent,
+            5.5
+          )
+
+          /*
+           * Small natural camera roll.
+           */
+          const roll =
+            Math.sin(
+              elapsed * 0.00042
+            ) *
+            0.018 +
+            steer.x *
+            0.025
+
+          camera.lookAt(
+            flightLook
+          )
+
+          camera.rotateZ(
+            roll
+          )
+
+          /*
+           * ------------------------------------------------------
+           * Meteorites fly toward camera.
+           * ------------------------------------------------------
+           */
+
+          const speedBoost =
+            1 +
+            progress *
+            2.8
+
+          meteorites.forEach(
+            (meteor, index) => {
+              const v =
+                meteor.userData.velocity
+
+              meteor.position.x +=
+                v.x *
+                speedBoost
+
+              meteor.position.y +=
+                v.y *
+                speedBoost
+
+              meteor.position.z +=
+                v.z *
+                speedBoost
+
+              meteor.rotation.x +=
+                meteor.userData.spin.x
+
+              meteor.rotation.y +=
+                meteor.userData.spin.y
+
+              meteor.rotation.z +=
+                meteor.userData.spin.z
+
+              /*
+               * Recycle behind camera.
+               */
+              const local =
+                meteor.position
+                  .clone()
+                  .sub(
+                    camera.position
+                  )
+
+              if (
+                local.length() > 75 ||
+                local.z > 12
+              ) {
+                meteor.position.copy(
+                  camera.position
+                )
+
+                meteor.position
+                  .addScaledVector(
+                    tangent,
+                    THREE.MathUtils.randFloat(
+                      -45,
+                      -18
+                    )
+                  )
+
+                meteor.position
+                  .addScaledVector(
+                    side,
+                    THREE.MathUtils.randFloat(
+                      -16,
+                      16
+                    )
+                  )
+
+                meteor.position
+                  .addScaledVector(
+                    up,
+                    THREE.MathUtils.randFloat(
+                      -12,
+                      12
+                    )
+                  )
+              }
+            }
+          )
+
+          /*
+           * ------------------------------------------------------
+           * Satellite flight.
+           * ------------------------------------------------------
+           */
+
+          cinematicSatellites.forEach(
+            (satellite, index) => {
+              const phase =
+                elapsed *
+                (0.00025 +
+                  index *
+                  0.000035)
+
+              satellite.position.add(
+                new THREE.Vector3(
+                  Math.sin(phase * 1.7 + index) *
+                    dt *
+                    2.2,
+                  Math.cos(phase * 1.3 + index) *
+                    dt *
+                    1.6,
+                  Math.sin(phase * 0.9 + index) *
+                    dt *
+                    3.8
+                )
+              )
+
+              satellite.rotation.y +=
+                dt *
+                (0.35 +
+                  index *
+                  0.11)
+
+              /*
+               * If a satellite gets far behind,
+               * bring it back ahead of the camera.
+               */
+              const relative =
+                satellite.position
+                  .clone()
+                  .sub(
+                    camera.position
+                  )
+
+              if (
+                relative.length() > 55
+              ) {
+                satellite.position.copy(
+                  camera.position
+                )
+
+                satellite.position
+                  .addScaledVector(
+                    tangent,
+                    THREE.MathUtils.randFloat(
+                      -18,
+                      6
+                    )
+                  )
+
+                satellite.position
+                  .addScaledVector(
+                    side,
+                    THREE.MathUtils.randFloat(
+                      -10,
+                      10
+                    )
+                  )
+
+                satellite.position
+                  .addScaledVector(
+                    up,
+                    THREE.MathUtils.randFloat(
+                      -8,
+                      8
+                    )
+                  )
+              }
+            }
+          )
+
+          /*
+           * ------------------------------------------------------
+           * Deep-space braking.
+           * ------------------------------------------------------
+           */
+
+          if (
+            progress > 0.84
+          ) {
+            const fadeProgress =
+              (
+                progress -
+                0.84
+              ) /
+              0.16
+
+            fade.style.opacity =
+              String(
+                Math.min(
+                  0.92,
+                  fadeProgress *
+                    1.25
+                )
+              )
+          }
+
+          /*
+           * Final destination.
+           */
+          if (
+            progress >= 1 &&
+            !finished
+          ) {
+            finished = true
+
+            fade.style.opacity =
+              "1"
 
             setTimeout(
-              finish,
-              6500
+              () => {
+                finalText.style.opacity =
+                  "1"
+              },
+              1500
+            )
+
+            /*
+             * Keep the scene alive behind
+             * the final message.
+             */
+          }
+
+          /*
+           * Render the REAL Three.js scene.
+           */
+          renderer.render(
+            scene,
+            camera
+          )
+
+          previousCamera.copy(
+            camera.position
+          )
+
+          flightRaf =
+            requestAnimationFrame(
+              animateFlight
+            )
+        }
+
+      /*
+       * Close restores the exact camera state.
+       */
+      const cleanup =
+        () => {
+          if (!active)
+            return
+
+          active = false
+
+          cancelAnimationFrame(
+            flightRaf
+          )
+
+          window.removeEventListener(
+            "pointermove",
+            pointerMove
+          )
+
+          meteorGroup.removeFromParent()
+
+          cinematicSatellites.forEach(
+            (satellite) => {
+              satellite.removeFromParent()
+            }
+          )
+
+          meteorGeometry.dispose()
+          meteorMaterial.dispose()
+
+          camera.position.copy(
+            savedCameraPosition
+          )
+
+          camera.quaternion.copy(
+            savedCameraQuaternion
+          )
+
+          cameraTarget.copy(
+            savedCameraTarget
+          )
+
+          lookTarget.copy(
+            savedLookTarget
+          )
+
+          cameraDistance =
+            savedCameraDistance
+
+          selectedPlanet =
+            savedSelectedPlanet
+
+          renderer.setPixelRatio(
+            savedPixelRatio
+          )
+
+          labels.forEach(
+            ({
+              label,
+              opacity
+            }) => {
+              label.style.opacity =
+                opacity
+            }
+          )
+
+          youtubeLabel.style.opacity =
+            "0"
+
+          overlay.remove()
+
+          renderer.render(
+            scene,
+            camera
+          )
+        }
+
+      close.addEventListener(
+        "click",
+        cleanup
+      )
+
+      /*
+       * Escape closes manually.
+       */
+      const escape =
+        (event) => {
+          if (
+            event.key === "Escape"
+          ) {
+            cleanup()
+
+            window.removeEventListener(
+              "keydown",
+              escape
             )
           }
         }
 
+      window.addEventListener(
+        "keydown",
+        escape
+      )
+
+      /*
+       * Start immediately.
+       */
       requestAnimationFrame(
-        frame
+        animateFlight
       )
 
       return
