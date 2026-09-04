@@ -2280,899 +2280,562 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         // ======================================================
 
         if (hit.userData.name === "VISUALS") {
-          diagnosticAction("VISUALS opened")
+      diagnosticAction("VISUALS opened")
 
-          const old = document.getElementById(
-            "nyxtryp-visuals-window"
-          )
+      const old = document.getElementById("nyxtryp-visuals-window")
+      if (old) old.remove()
 
-          if (old) old.remove()
+      const overlay = document.createElement("div")
+      overlay.id = "nyxtryp-visuals-window"
 
-          const overlay = document.createElement("div")
-          overlay.id = "nyxtryp-visuals-window"
+      Object.assign(overlay.style, {
+        position: "fixed",
+        inset: "0",
+        zIndex: "100000",
+        overflow: "hidden",
+        background: "#010207",
+        cursor: "crosshair",
+        touchAction: "none"
+      })
 
-          Object.assign(overlay.style, {
-            position: "fixed",
-            inset: "0",
-            zIndex: "100000",
-            overflow: "hidden",
-            background: "#000",
-            cursor: "crosshair",
-            touchAction: "none"
-          })
+      const canvas = document.createElement("canvas")
+      Object.assign(canvas.style, {
+        position: "absolute",
+        inset: "0",
+        width: "100%",
+        height: "100%"
+      })
 
-          const canvas = document.createElement("canvas")
+      overlay.appendChild(canvas)
+      document.body.appendChild(overlay)
 
-          Object.assign(canvas.style, {
-            position: "absolute",
-            inset: "0",
-            width: "100%",
-            height: "100%",
-            display: "block"
-          })
+      const ctx = canvas.getContext("2d")
+      let w = 0
+      let h = 0
+      let dpr = Math.min(window.devicePixelRatio || 1, 2)
 
-          overlay.appendChild(canvas)
+      const resize = () => {
+        w = window.innerWidth
+        h = window.innerHeight
+        dpr = Math.min(window.devicePixelRatio || 1, 2)
+        canvas.width = w * dpr
+        canvas.height = h * dpr
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      }
 
-          const close = document.createElement("button")
+      resize()
+      window.addEventListener("resize", resize)
 
-          close.textContent = "×"
+      const cx = () => w * 0.5
+      const cy = () => h * 0.5
 
-          Object.assign(close.style, {
-            position: "fixed",
-            top: "22px",
-            right: "28px",
-            width: "46px",
-            height: "46px",
-            border: "1px solid rgba(255,255,255,.22)",
-            borderRadius: "50%",
-            background: "rgba(0,0,0,.22)",
-            color: "rgba(255,255,255,.8)",
-            fontSize: "30px",
-            fontWeight: "200",
-            lineHeight: "42px",
-            padding: "0",
-            cursor: "pointer",
-            zIndex: "10",
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            transition: "transform .3s ease, background .3s ease"
-          })
+      const rnd = (a, b) => a + Math.random() * (b - a)
+      const TAU = Math.PI * 2
 
-          close.onmouseenter = () => {
-            close.style.transform = "rotate(90deg)"
-            close.style.background = "rgba(255,255,255,.1)"
-          }
+      const stars = Array.from({ length: 180 }, () => ({
+        x: Math.random(),
+        y: Math.random(),
+        z: rnd(0.2, 1),
+        a: rnd(0.15, 0.8),
+        s: rnd(0.3, 1.6)
+      }))
 
-          close.onmouseleave = () => {
-            close.style.transform = "rotate(0deg)"
-            close.style.background = "rgba(0,0,0,.22)"
-          }
+      const particles = []
+      const waves = []
+      const meteors = []
 
-          overlay.appendChild(close)
+      let t = 0
+      let last = performance.now()
+      let eventTime = 0
+      let phase = "quiet"
+      let event = 0
+      let gravityX = cx()
+      let gravityY = cy()
+      let pointerDown = false
+      let vortex = 0
+      let raf = 0
 
-          document.body.appendChild(overlay)
+      const palette = [
+        [255,255,255],
+        [190,225,255],
+        [100,150,255],
+        [125,80,220],
+        [60,210,255]
+      ]
 
-          const ctx = canvas.getContext("2d")
+      const color = (p, a = 1) => {
+        const k = Math.max(0, Math.min(3.999, p))
+        const i = Math.floor(k)
+        const f = k - i
+        const a1 = palette[i]
+        const a2 = palette[Math.min(i + 1, 4)]
+        const r = Math.round(a1[0] + (a2[0] - a1[0]) * f)
+        const g = Math.round(a1[1] + (a2[1] - a1[1]) * f)
+        const b = Math.round(a1[2] + (a2[2] - a1[2]) * f)
+        return `rgba(${r},${g},${b},${a})`
+      }
 
-          let width = 0
-          let height = 0
-          let dpr = 1
-          let animationFrame = 0
-          let running = true
-          let lastTime = performance.now()
-          let lastBurst = 0
+      const seedGalaxy = () => {
+        particles.length = 0
 
-          const stars = []
-          const particles = []
-          const flashes = []
+        for (let i = 0; i < 1050; i++) {
+          const arm = Math.random() < 0.5 ? 0 : 1
+          const r = Math.pow(Math.random(), 0.62) * Math.min(w,h) * 0.58
+          const base = arm * Math.PI + r * 0.012
+          const angle = base + rnd(-0.28, 0.28) * (1 - r / Math.min(w,h))
+          const spread = rnd(-1,1) * (16 + r * 0.08)
 
-          const pointer = {
-            x: 0,
-            y: 0,
-            active: false
-          }
-
-          const resize = () => {
-            width = window.innerWidth
-            height = window.innerHeight
-            dpr = Math.min(window.devicePixelRatio || 1, 2)
-
-            canvas.width =
-              Math.floor(width * dpr)
-
-            canvas.height =
-              Math.floor(height * dpr)
-
-            ctx.setTransform(
-              dpr,
-              0,
-              0,
-              dpr,
-              0,
-              0
-            )
-
-            stars.length = 0
-
-            const count =
-              width < 700
-                ? 150
-                : 280
-
-            for (let i = 0; i < count; i++) {
-              stars.push({
-                x: Math.random() * width,
-                y: Math.random() * height,
-                z: Math.random(),
-                size:
-                  0.35 +
-                  Math.random() * 1.25,
-                twinkle:
-                  Math.random() * Math.PI * 2,
-                speed:
-                  0.15 +
-                  Math.random() * 0.7
-              })
-            }
-          }
-
-          resize()
-
-          window.addEventListener(
-            "resize",
-            resize
-          )
-
-          const randomColor = () => {
-            const colors = [
-              [150, 190, 255],
-              [190, 160, 255],
-              [110, 220, 255],
-              [255, 255, 255],
-              [170, 230, 255],
-              [230, 190, 255]
-            ]
-
-            return colors[
-              Math.floor(
-                Math.random() *
-                colors.length
-              )
-            ]
-          }
-
-          const createParticle = (
-            x,
-            y,
+          particles.push({
+            x: cx() + Math.cos(angle) * r,
+            y: cy() + Math.sin(angle) * r * 0.48 + spread,
+            px: cx(),
+            py: cy(),
+            vx: 0,
+            vy: 0,
+            r: rnd(0.35, 1.8),
+            life: 1,
+            age: rnd(0, 10),
+            arm,
+            radius: r,
             angle,
-            speed,
-            size,
-            life,
-            color
-          ) => {
-            particles.push({
-              x,
-              y,
-              vx:
-                Math.cos(angle) *
-                speed,
-              vy:
-                Math.sin(angle) *
-                speed,
-              size,
-              life,
-              maxLife: life,
-              color,
-              drag: 0.985,
-              gravity:
-                (Math.random() - 0.5) *
-                0.003,
-              trail: []
-            })
-          }
-
-          const burst = (
-            x,
-            y,
-            amount = 90,
-            power = 2.4
-          ) => {
-            const color = randomColor()
-
-            flashes.push({
-              x,
-              y,
-              life: 1,
-              size: 8
-            })
-
-            for (
-              let i = 0;
-              i < amount;
-              i++
-            ) {
-              const angle =
-                Math.random() *
-                Math.PI *
-                2
-
-              const speed =
-                power *
-                (
-                  0.35 +
-                  Math.pow(
-                    Math.random(),
-                    0.55
-                  )
-                )
-
-              createParticle(
-                x,
-                y,
-                angle,
-                speed,
-                0.7 +
-                  Math.random() *
-                  2.0,
-                0.75 +
-                  Math.random() *
-                  1.25,
-                color
-              )
-            }
-
-            for (
-              let i = 0;
-              i < Math.floor(amount * 0.18);
-              i++
-            ) {
-              const angle =
-                Math.random() *
-                Math.PI *
-                2
-
-              const speed =
-                power *
-                (
-                  0.15 +
-                  Math.random() *
-                  0.45
-                )
-
-              createParticle(
-                x,
-                y,
-                angle,
-                speed,
-                2 +
-                  Math.random() *
-                  2.8,
-                1.2 +
-                  Math.random() *
-                  1.3,
-                [255, 255, 255]
-              )
-            }
-          }
-
-          const spiralBurst = (
-            x,
-            y
-          ) => {
-            const count = 150
-
-            for (
-              let i = 0;
-              i < count;
-              i++
-            ) {
-              const angle =
-                i *
-                0.19 +
-                Math.random() *
-                0.25
-
-              const speed =
-                0.45 +
-                i / count *
-                3.0
-
-              createParticle(
-                x,
-                y,
-                angle,
-                speed,
-                0.5 +
-                  Math.random() *
-                  1.6,
-                1.2 +
-                  Math.random() *
-                  1.5,
-                randomColor()
-              )
-            }
-          }
-
-          const satelliteStream = (
-            x,
-            y
-          ) => {
-            for (
-              let i = 0;
-              i < 8;
-              i++
-            ) {
-              const angle =
-                Math.random() *
-                Math.PI *
-                2
-
-              createParticle(
-                x,
-                y,
-                angle,
-                0.5 +
-                  Math.random() *
-                  1.8,
-                0.6 +
-                  Math.random() *
-                  1.4,
-                0.6 +
-                  Math.random() *
-                  0.8,
-                randomColor()
-              )
-            }
-          }
-
-          const drawBackground = (
-            time
-          ) => {
-            const gradient =
-              ctx.createRadialGradient(
-                width * 0.5,
-                height * 0.48,
-                0,
-                width * 0.5,
-                height * 0.48,
-                Math.max(
-                  width,
-                  height
-                ) * 0.72
-              )
-
-            gradient.addColorStop(
-              0,
-              "rgba(18,24,45,0.95)"
-            )
-
-            gradient.addColorStop(
-              0.32,
-              "rgba(5,8,18,0.97)"
-            )
-
-            gradient.addColorStop(
-              1,
-              "rgba(0,0,0,1)"
-            )
-
-            ctx.fillStyle = gradient
-            ctx.fillRect(
-              0,
-              0,
-              width,
-              height
-            )
-
-            for (
-              const star of stars
-            ) {
-              star.twinkle +=
-                0.015 *
-                star.speed
-
-              const alpha =
-                0.2 +
-                (
-                  Math.sin(
-                    star.twinkle
-                  ) +
-                  1
-                ) *
-                0.28
-
-              ctx.beginPath()
-
-              ctx.arc(
-                star.x,
-                star.y,
-                star.size *
-                  (
-                    0.75 +
-                    star.z *
-                    0.8
-                  ),
-                0,
-                Math.PI * 2
-              )
-
-              ctx.fillStyle =
-                `rgba(220,235,255,${alpha})`
-
-              ctx.fill()
-            }
-
-            if (
-              pointer.active
-            ) {
-              const glow =
-                ctx.createRadialGradient(
-                  pointer.x,
-                  pointer.y,
-                  0,
-                  pointer.x,
-                  pointer.y,
-                  180
-                )
-
-              glow.addColorStop(
-                0,
-                "rgba(150,190,255,.07)"
-              )
-
-              glow.addColorStop(
-                1,
-                "rgba(80,100,180,0)"
-              )
-
-              ctx.fillStyle = glow
-
-              ctx.fillRect(
-                pointer.x - 180,
-                pointer.y - 180,
-                360,
-                360
-              )
-            }
-          }
-
-          const drawParticles = (
-            delta
-          ) => {
-            for (
-              let i =
-                particles.length - 1;
-              i >= 0;
-              i--
-            ) {
-              const p =
-                particles[i]
-
-              p.trail.push({
-                x: p.x,
-                y: p.y
-              })
-
-              if (
-                p.trail.length > 5
-              ) {
-                p.trail.shift()
-              }
-
-              p.x +=
-                p.vx *
-                delta *
-                60
-
-              p.y +=
-                p.vy *
-                delta *
-                60
-
-              p.vx *=
-                Math.pow(
-                  p.drag,
-                  delta * 60
-                )
-
-              p.vy *=
-                Math.pow(
-                  p.drag,
-                  delta * 60
-                )
-
-              p.vy +=
-                p.gravity *
-                delta *
-                60
-
-              p.life -= delta
-
-              const alpha =
-                Math.max(
-                  0,
-                  p.life /
-                  p.maxLife
-                )
-
-              if (
-                p.life <= 0 ||
-                p.x < -100 ||
-                p.x > width + 100 ||
-                p.y < -100 ||
-                p.y > height + 100
-              ) {
-                particles.splice(i, 1)
-                continue
-              }
-
-              const [r, g, b] =
-                p.color
-
-              if (
-                p.trail.length > 1
-              ) {
-                ctx.beginPath()
-
-                ctx.moveTo(
-                  p.trail[0].x,
-                  p.trail[0].y
-                )
-
-                for (
-                  let t = 1;
-                  t < p.trail.length;
-                  t++
-                ) {
-                  ctx.lineTo(
-                    p.trail[t].x,
-                    p.trail[t].y
-                  )
-                }
-
-                ctx.strokeStyle =
-                  `rgba(${r},${g},${b},${alpha * .28})`
-
-                ctx.lineWidth =
-                  p.size * 0.75
-
-                ctx.stroke()
-              }
-
-              ctx.beginPath()
-
-              ctx.arc(
-                p.x,
-                p.y,
-                p.size,
-                0,
-                Math.PI * 2
-              )
-
-              ctx.fillStyle =
-                `rgba(${r},${g},${b},${alpha})`
-
-              ctx.shadowBlur =
-                12
-
-              ctx.shadowColor =
-                `rgba(${r},${g},${b},${alpha})`
-
-              ctx.fill()
-
-              ctx.shadowBlur = 0
-            }
-          }
-
-          const drawFlashes = (
-            delta
-          ) => {
-            for (
-              let i =
-                flashes.length - 1;
-              i >= 0;
-              i--
-            ) {
-              const f =
-                flashes[i]
-
-              f.life -=
-                delta * 2.8
-
-              f.size +=
-                delta * 180
-
-              if (
-                f.life <= 0
-              ) {
-                flashes.splice(i, 1)
-                continue
-              }
-
-              const gradient =
-                ctx.createRadialGradient(
-                  f.x,
-                  f.y,
-                  0,
-                  f.x,
-                  f.y,
-                  f.size
-                )
-
-              gradient.addColorStop(
-                0,
-                `rgba(255,255,255,${f.life * .65})`
-              )
-
-              gradient.addColorStop(
-                0.12,
-                `rgba(180,210,255,${f.life * .3})`
-              )
-
-              gradient.addColorStop(
-                1,
-                "rgba(100,130,255,0)"
-              )
-
-              ctx.fillStyle =
-                gradient
-
-              ctx.fillRect(
-                f.x - f.size,
-                f.y - f.size,
-                f.size * 2,
-                f.size * 2
-              )
-            }
-          }
-
-          const updatePointer = (
-            event
-          ) => {
-            const rect =
-              canvas.getBoundingClientRect()
-
-            pointer.x =
-              event.clientX -
-              rect.left
-
-            pointer.y =
-              event.clientY -
-              rect.top
-
-            pointer.active = true
-          }
-
-          canvas.addEventListener(
-            "pointermove",
-            event => {
-              updatePointer(event)
-
-              if (
-                Math.random() < 0.24
-              ) {
-                satelliteStream(
-                  pointer.x,
-                  pointer.y
-                )
-              }
-            }
-          )
-
-          canvas.addEventListener(
-            "pointerleave",
-            () => {
-              pointer.active = false
-            }
-          )
-
-          canvas.addEventListener(
-            "pointerdown",
-            event => {
-              updatePointer(event)
-
-              if (
-                event.pointerType ===
-                "touch"
-              ) {
-                burst(
-                  pointer.x,
-                  pointer.y,
-                  105,
-                  2.7
-                )
-              } else {
-                burst(
-                  pointer.x,
-                  pointer.y,
-                  130,
-                  3.0
-                )
-              }
-            }
-          )
-
-          const automaticBurst = (
-            time
-          ) => {
-            if (
-              time - lastBurst <
-              (
-                width < 700
-                  ? 1500
-                  : 1050
-              )
-            ) {
-              return
-            }
-
-            lastBurst = time
-
-            const x =
-              width *
-              (
-                0.18 +
-                Math.random() *
-                0.64
-              )
-
-            const y =
-              height *
-              (
-                0.18 +
-                Math.random() *
-                0.62
-              )
-
-            const type =
-              Math.random()
-
-            if (
-              type < 0.22
-            ) {
-              spiralBurst(
-                x,
-                y
-              )
-            } else {
-              burst(
-                x,
-                y,
-                width < 700
-                  ? 70
-                  : 105,
-                2.1 +
-                  Math.random() *
-                  1.1
-              )
-            }
-          }
-
-          const animate = (
-            time
-          ) => {
-            if (!running)
-              return
-
-            const delta =
-              Math.min(
-                0.033,
-                (
-                  time -
-                  lastTime
-                ) / 1000
-              )
-
-            lastTime = time
-
-            drawBackground(
-              time
-            )
-
-            automaticBurst(
-              time
-            )
-
-            drawFlashes(
-              delta
-            )
-
-            drawParticles(
-              delta
-            )
-
-            animationFrame =
-              requestAnimationFrame(
-                animate
-              )
-          }
-
-          close.onclick = () => {
-            running = false
-
-            cancelAnimationFrame(
-              animationFrame
-            )
-
-            window.removeEventListener(
-              "resize",
-              resize
-            )
-
-            overlay.remove()
-          }
-
-          const onKeyDown = (
-            event
-          ) => {
-            if (
-              event.key === "Escape"
-            ) {
-              close.onclick()
-              window.removeEventListener(
-                "keydown",
-                onKeyDown
-              )
-            }
-          }
-
-          window.addEventListener(
-            "keydown",
-            onKeyDown
-          )
-
-          overlay.addEventListener(
-            "pointerdown",
-            event => {
-              if (
-                event.target ===
-                overlay
-              ) {
-                const rect =
-                  overlay.getBoundingClientRect()
-
-                burst(
-                  event.clientX -
-                    rect.left,
-                  event.clientY -
-                    rect.top,
-                  100,
-                  2.6
-                )
-              }
-            }
-          )
-
-          isDragging = false
-          pointerMoved = false
-          pendingReturn = false
-
-          // Initial explosion immediately after opening.
-          burst(
-            width * 0.5,
-            height * 0.5,
-            width < 700
-              ? 120
-              : 180,
-            2.8
-          )
-
-          setTimeout(() => {
-            if (running) {
-              spiralBurst(
-                width * 0.5,
-                height * 0.5
-              )
-            }
-          }, 450)
-
-          animationFrame =
-            requestAnimationFrame(
-              animate
-            )
-
-          return
+            speed: rnd(0.0005, 0.0022),
+            hue: rnd(0.2, 3.8)
+          })
         }
+      }
+
+      const seedWave = () => {
+        particles.length = 0
+        for (let i = 0; i < 650; i++) {
+          particles.push({
+            x: rnd(-w * 0.2, w * 1.2),
+            y: rnd(-h, h * 1.5),
+            vx: rnd(2, 8),
+            vy: rnd(-0.5, 0.5),
+            r: rnd(0.4, 2),
+            life: rnd(0.3, 1),
+            age: rnd(0, 8),
+            hue: rnd(0.5, 3.8)
+          })
+        }
+      }
+
+      const seedMeteors = () => {
+        particles.length = 0
+        for (let i = 0; i < 420; i++) {
+          const side = Math.random()
+          particles.push({
+            x: side < 0.5 ? rnd(-w, w * 0.4) : rnd(w * 0.6, w * 2),
+            y: rnd(-h, h),
+            vx: rnd(-7, -2),
+            vy: rnd(1, 5),
+            r: rnd(0.5, 2.2),
+            life: rnd(0.3, 1),
+            age: rnd(0, 8),
+            hue: rnd(0, 4)
+          })
+        }
+      }
+
+      const seedPortal = () => {
+        particles.length = 0
+        for (let i = 0; i < 900; i++) {
+          const a = Math.random() * TAU
+          const r = rnd(20, Math.min(w,h) * 0.7)
+          particles.push({
+            x: cx() + Math.cos(a) * r,
+            y: cy() + Math.sin(a) * r,
+            vx: 0,
+            vy: 0,
+            r: rnd(0.3, 1.7),
+            life: 1,
+            age: rnd(0, 8),
+            angle: a,
+            radius: r,
+            hue: rnd(0.2, 4)
+          })
+        }
+      }
+
+      const resetEvent = () => {
+        event = (event + 1) % 4
+        eventTime = 0
+        phase = "impact"
+
+        if (event === 0) seedGalaxy()
+        if (event === 1) seedWave()
+        if (event === 2) seedMeteors()
+        if (event === 3) seedPortal()
+      }
+
+      const drawStars = () => {
+        for (const s of stars) {
+          const x = s.x * w
+          const y = s.y * h
+          const pulse = 0.65 + Math.sin(t * 0.0015 + s.x * 12) * 0.35
+          ctx.beginPath()
+          ctx.fillStyle = `rgba(190,215,255,${s.a * pulse})`
+          ctx.arc(x, y, s.s * s.z, 0, TAU)
+          ctx.fill()
+        }
+      }
+
+      const drawCore = (power) => {
+        const g = ctx.createRadialGradient(cx(),cy(),0,cx(),cy(),Math.min(w,h)*0.22*power)
+        g.addColorStop(0,"rgba(255,255,255,0.95)")
+        g.addColorStop(0.025,"rgba(210,235,255,0.9)")
+        g.addColorStop(0.12,"rgba(90,150,255,0.32)")
+        g.addColorStop(0.38,"rgba(90,60,220,0.10)")
+        g.addColorStop(1,"rgba(0,0,0,0)")
+        ctx.fillStyle = g
+        ctx.fillRect(0,0,w,h)
+
+        ctx.beginPath()
+        ctx.fillStyle = "rgba(255,255,255,0.98)"
+        ctx.shadowBlur = 35 * power
+        ctx.shadowColor = "rgba(170,220,255,0.95)"
+        ctx.arc(cx(),cy(),Math.max(1.5,5*power),0,TAU)
+        ctx.fill()
+        ctx.shadowBlur = 0
+      }
+
+      const drawGalaxy = (dt) => {
+        const maxR = Math.min(w,h) * 0.62
+
+        for (const p of particles) {
+          p.angle += p.speed * dt * 3
+          const bend = Math.sin(p.radius * 0.018 + t * 0.001) * 0.08
+          const a = p.angle + bend
+          const r = p.radius
+
+          let tx = cx() + Math.cos(a) * r
+          let ty = cy() + Math.sin(a) * r * 0.48
+
+          const dx = gravityX - tx
+          const dy = gravityY - ty
+          const dist = Math.sqrt(dx*dx + dy*dy) + 1
+          const force = pointerDown ? Math.min(18, 15000 / (dist*dist)) : 0
+
+          tx += dx / dist * force
+          ty += dy / dist * force
+
+          p.x += (tx - p.x) * 0.055
+          p.y += (ty - p.y) * 0.055
+
+          const edge = Math.max(0, 1 - r / maxR)
+          const alpha = 0.2 + edge * 0.72
+
+          ctx.beginPath()
+          ctx.fillStyle = color(p.hue, alpha)
+          ctx.arc(p.x,p.y,p.r,0,TAU)
+          ctx.fill()
+        }
+
+        ctx.save()
+        ctx.translate(cx(),cy())
+        ctx.rotate(t * 0.00012)
+
+        ctx.beginPath()
+        ctx.ellipse(0,0,maxR*0.82,maxR*0.27,0,0,TAU)
+        ctx.strokeStyle = "rgba(120,170,255,0.055)"
+        ctx.lineWidth = 2
+        ctx.stroke()
+
+        ctx.beginPath()
+        ctx.ellipse(0,0,maxR*0.58,maxR*0.18,0,0,TAU)
+        ctx.strokeStyle = "rgba(170,110,255,0.05)"
+        ctx.stroke()
+
+        ctx.restore()
+
+        drawCore(1)
+      }
+
+      const drawWave = (dt) => {
+        for (const p of particles) {
+          p.x += p.vx * dt * 0.06
+          p.y += p.vy * dt * 0.06
+
+          const wave = Math.sin(p.x * 0.012 - t * 0.003) * 75
+          const targetY = h * 0.5 + wave
+
+          p.y += (targetY - p.y) * 0.035
+
+          if (p.x > w + 50) p.x = -50
+
+          ctx.beginPath()
+          ctx.moveTo(p.x,p.y)
+          ctx.lineTo(p.x - p.vx * 5,p.y - p.vy * 5)
+          ctx.strokeStyle = color(p.hue,0.3 + p.life*0.5)
+          ctx.lineWidth = p.r
+          ctx.stroke()
+        }
+
+        const g = ctx.createRadialGradient(cx(),cy(),0,cx(),cy(),h)
+        g.addColorStop(0,"rgba(80,130,255,0.08)")
+        g.addColorStop(0.45,"rgba(90,60,210,0.035)")
+        g.addColorStop(1,"rgba(0,0,0,0)")
+        ctx.fillStyle = g
+        ctx.fillRect(0,0,w,h)
+      }
+
+      const drawMeteors = (dt) => {
+        for (const p of particles) {
+          p.x += p.vx * dt * 0.12
+          p.y += p.vy * dt * 0.12
+
+          if (p.x < -100 || p.y > h + 100) {
+            p.x = rnd(w,w*1.5)
+            p.y = rnd(-h*0.4,h*0.8)
+          }
+
+          ctx.beginPath()
+          ctx.moveTo(p.x,p.y)
+          ctx.lineTo(p.x - p.vx * 8,p.y - p.vy * 8)
+          ctx.strokeStyle = color(p.hue,0.25 + p.life*0.55)
+          ctx.lineWidth = p.r
+          ctx.stroke()
+        }
+      }
+
+      const drawPortal = (dt) => {
+        for (const p of particles) {
+          p.angle += 0.0012 * dt * (1 + 120 / (p.radius + 40))
+          const r = p.radius + Math.sin(t*0.002 + p.angle*4)*8
+
+          let tx = cx() + Math.cos(p.angle)*r
+          let ty = cy() + Math.sin(p.angle)*r
+
+          const dx = gravityX - tx
+          const dy = gravityY - ty
+          const dist = Math.sqrt(dx*dx + dy*dy) + 1
+
+          if (pointerDown) {
+            tx += dx/dist * Math.min(80,30000/(dist*dist))
+            ty += dy/dist * Math.min(80,30000/(dist*dist))
+          }
+
+          p.x += (tx-p.x)*0.08
+          p.y += (ty-p.y)*0.08
+
+          ctx.beginPath()
+          ctx.fillStyle = color(p.hue,0.25 + p.life*0.65)
+          ctx.arc(p.x,p.y,p.r,0,TAU)
+          ctx.fill()
+        }
+
+        ctx.save()
+        ctx.translate(cx(),cy())
+        ctx.rotate(t*0.0004)
+        ctx.beginPath()
+        ctx.ellipse(0,0,Math.min(w,h)*0.35,Math.min(w,h)*0.10,0,0,TAU)
+        ctx.strokeStyle = "rgba(130,190,255,0.28)"
+        ctx.lineWidth = 2
+        ctx.shadowBlur = 25
+        ctx.shadowColor = "rgba(90,140,255,0.7)"
+        ctx.stroke()
+        ctx.restore()
+
+        drawCore(0.8)
+      }
+
+      const collapse = (dt) => {
+        for (const p of particles) {
+          const dx = cx() - p.x
+          const dy = cy() - p.y
+          const dist = Math.sqrt(dx*dx + dy*dy) + 1
+          const f = Math.min(45, 9000/(dist+30))
+          p.x += dx/dist * f * dt * 0.018
+          p.y += dy/dist * f * dt * 0.018
+
+          ctx.beginPath()
+          ctx.fillStyle = color(0,Math.min(1,dist/500))
+          ctx.arc(p.x,p.y,p.r,0,TAU)
+          ctx.fill()
+        }
+
+        drawCore(1.4)
+      }
+
+      const explosion = (dt) => {
+        for (const p of particles) {
+          if (!p.vx && !p.vy) {
+            const a = Math.random()*TAU
+            const speed = rnd(2,12)
+            p.vx = Math.cos(a)*speed
+            p.vy = Math.sin(a)*speed
+          }
+
+          const dx = p.x-cx()
+          const dy = p.y-cy()
+          const dist = Math.sqrt(dx*dx+dy*dy)+1
+
+          p.vx += -dy/dist * 0.8 * dt
+          p.vy += dx/dist * 0.8 * dt
+          p.vx *= 0.997
+          p.vy *= 0.997
+          p.x += p.vx * dt * 0.04
+          p.y += p.vy * dt * 0.04
+
+          ctx.beginPath()
+          ctx.fillStyle = color(p.hue,0.75)
+          ctx.arc(p.x,p.y,p.r,0,TAU)
+          ctx.fill()
+        }
+
+        drawCore(Math.max(0,1-eventTime/900))
+      }
+
+      const animate = (now) => {
+        const dt = Math.min(40,now-last)
+        last = now
+        t += dt
+        eventTime += dt
+
+        ctx.fillStyle = "rgba(1,2,7,0.18)"
+        ctx.fillRect(0,0,w,h)
+
+        drawStars()
+
+        if (phase === "quiet") {
+          ctx.fillStyle = "rgba(1,2,7,0.45)"
+          ctx.fillRect(0,0,w,h)
+
+          const pulse = 0.35 + Math.sin(t*0.004)*0.2
+          drawCore(pulse)
+
+          if (eventTime > 1800) {
+            phase = "collapse"
+            eventTime = 0
+          }
+        } else if (phase === "collapse") {
+          collapse(dt)
+          if (eventTime > 1500) {
+            phase = "explosion"
+            eventTime = 0
+          }
+        } else if (phase === "explosion") {
+          explosion(dt)
+          if (eventTime > 2200) {
+            resetEvent()
+            phase = "event"
+            eventTime = 0
+          }
+        } else {
+          if (event === 0) drawGalaxy(dt)
+          if (event === 1) drawWave(dt)
+          if (event === 2) drawMeteors(dt)
+          if (event === 3) drawPortal(dt)
+
+          if (eventTime > 8500) {
+            phase = "quiet"
+            eventTime = 0
+            particles.forEach(p => {
+              p.vx *= 0.2
+              p.vy *= 0.2
+            })
+          }
+        }
+
+        if (pointerDown) {
+          vortex += dt * 0.004
+        } else {
+          vortex *= 0.96
+        }
+
+        raf = requestAnimationFrame(animate)
+      }
+
+      const pointer = (e) => {
+        const r = canvas.getBoundingClientRect()
+        gravityX = e.clientX - r.left
+        gravityY = e.clientY - r.top
+      }
+
+      const down = (e) => {
+        pointerDown = true
+        pointer(e)
+      }
+
+      const move = (e) => pointer(e)
+
+      const up = () => {
+        pointerDown = false
+
+        for (const p of particles) {
+          const dx = p.x - gravityX
+          const dy = p.y - gravityY
+          const dist = Math.sqrt(dx*dx + dy*dy) + 1
+          if (dist < 260) {
+            p.vx += dx/dist * (260-dist)*0.025
+            p.vy += dy/dist * (260-dist)*0.025
+          }
+        }
+      }
+
+      canvas.addEventListener("pointerdown",down)
+      canvas.addEventListener("pointermove",move)
+      window.addEventListener("pointerup",up)
+
+      const close = document.createElement("button")
+      close.textContent = "×"
+
+      Object.assign(close.style,{
+        position:"absolute",
+        top:"24px",
+        right:"28px",
+        zIndex:"3",
+        width:"46px",
+        height:"46px",
+        border:"1px solid rgba(180,210,255,0.25)",
+        borderRadius:"50%",
+        background:"rgba(0,0,0,0.25)",
+        color:"rgba(220,235,255,0.8)",
+        fontSize:"30px",
+        lineHeight:"42px",
+        fontWeight:"200",
+        cursor:"pointer",
+        backdropFilter:"blur(8px)"
+      })
+
+      close.onclick = () => {
+        cancelAnimationFrame(raf)
+        window.removeEventListener("resize",resize)
+        window.removeEventListener("pointerup",up)
+        overlay.remove()
+      }
+
+      overlay.appendChild(close)
+
+      const title = document.createElement("div")
+      title.textContent = "VISUALS"
+
+      Object.assign(title.style,{
+        position:"absolute",
+        left:"30px",
+        bottom:"28px",
+        zIndex:"3",
+        color:"rgba(220,235,255,0.35)",
+        fontFamily:"monospace",
+        fontSize:"11px",
+        letterSpacing:"0.35em",
+        pointerEvents:"none"
+      })
+
+      overlay.appendChild(title)
+
+      seedGalaxy()
+      phase = "quiet"
+      event = 0
+      eventTime = 0
+
+      ctx.fillStyle = "#010207"
+      ctx.fillRect(0,0,w,h)
+
+      raf = requestAnimationFrame(animate)
+
+      return
+    }
 
         if (hit.userData.name === "GUESTBOOK") {
           diagnosticAction("GUESTBOOK opened")
