@@ -2087,6 +2087,201 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         }
 
         // ======================================================
+        // RELEASES CLICK
+        // Opens the RELEASES information window.
+        // RELEASES never enters the planet flight logic.
+        // ======================================================
+
+        if (
+          hit.userData.name === "RELEASES"
+        ) {
+
+          const existingReleases =
+            document.getElementById(
+              "nyxtryp-releases-window"
+            )
+
+          if (existingReleases) {
+            existingReleases.remove()
+          }
+
+          const overlay =
+            document.createElement("div")
+
+          overlay.id =
+            "nyxtryp-releases-window"
+
+          overlay.style.position =
+            "absolute"
+
+          overlay.style.inset =
+            "0"
+
+          overlay.style.zIndex =
+            "100"
+
+          overlay.style.background =
+            "rgba(0,0,0,0.94)"
+
+          overlay.style.display =
+            "flex"
+
+          overlay.style.alignItems =
+            "center"
+
+          overlay.style.justifyContent =
+            "center"
+
+          overlay.style.overflow =
+            "hidden"
+
+          overlay.style.fontFamily =
+            "Arial, Helvetica, sans-serif"
+
+          const close =
+            document.createElement("button")
+
+          close.textContent =
+            "×"
+
+          close.style.position =
+            "absolute"
+
+          close.style.right =
+            "24px"
+
+          close.style.top =
+            "18px"
+
+          close.style.zIndex =
+            "5"
+
+          close.style.border =
+            "0"
+
+          close.style.background =
+            "transparent"
+
+          close.style.color =
+            "#ffffff"
+
+          close.style.fontSize =
+            "30px"
+
+          close.style.fontWeight =
+            "200"
+
+          close.style.cursor =
+            "pointer"
+
+          close.style.opacity =
+            "0.75"
+
+          close.onclick =
+            () => overlay.remove()
+
+          overlay.appendChild(
+            close
+          )
+
+          const content =
+            document.createElement("div")
+
+          content.style.position =
+            "relative"
+
+          content.style.width =
+            "min(900px, 86vw)"
+
+          content.style.height =
+            "min(650px, 78vh)"
+
+          content.style.display =
+            "flex"
+
+          content.style.flexDirection =
+            "column"
+
+          content.style.alignItems =
+            "center"
+
+          content.style.justifyContent =
+            "center"
+
+          content.style.overflow =
+            "hidden"
+
+          overlay.appendChild(
+            content
+          )
+
+          const title =
+            document.createElement("div")
+
+          title.textContent =
+            "RELEASES"
+
+          title.style.color =
+            "#ffffff"
+
+          title.style.fontSize =
+            "clamp(32px, 6vw, 72px)"
+
+          title.style.fontWeight =
+            "300"
+
+          title.style.letterSpacing =
+            "0.18em"
+
+          title.style.textAlign =
+            "center"
+
+          title.style.marginBottom =
+            "32px"
+
+          content.appendChild(
+            title
+          )
+
+          const text =
+            document.createElement("div")
+
+          text.textContent =
+            "No releases yet.\nNew music is coming."
+
+          text.style.color =
+            "rgba(255,255,255,0.72)"
+
+          text.style.fontSize =
+            "clamp(15px, 2vw, 19px)"
+
+          text.style.fontWeight =
+            "300"
+
+          text.style.letterSpacing =
+            "0.08em"
+
+          text.style.lineHeight =
+            "1.8"
+
+          text.style.textAlign =
+            "center"
+
+          text.style.whiteSpace =
+            "pre-line"
+
+          content.appendChild(
+            text
+          )
+
+          document.body.appendChild(
+            overlay
+          )
+
+          return
+        }
+
+        // ======================================================
         // YOUTUBE SATELLITE CLICK
         // Opens the current YouTube channel.
         // ======================================================
