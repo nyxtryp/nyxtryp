@@ -2271,7 +2271,237 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         // PHOTOS CLICK
         // ======================================================
 
-        if (hit.userData.name === "PHOTOS") {
+
+if (
+  hit.userData.name === "SOCIAL"
+) {
+  const socials = [
+    {
+      name: "WEBSITE",
+      handle: "NYXTRYP",
+      url: "https://nyxtryp.vercel.app"
+    },
+    {
+      name: "TELEGRAM",
+      handle: "NYXTRYP",
+      url: "https://t.me/nyxtryp"
+    },
+    {
+      name: "YOUTUBE",
+      handle: "NYXTRYP",
+      url: "https://www.youtube.com/@nyxtryp"
+    },
+    {
+      name: "TIKTOK",
+      handle: "NYXTRYP",
+      url: "https://www.tiktok.com/@nyxtryp"
+    },
+    {
+      name: "INSTAGRAM",
+      handle: "NYXTRYP",
+      url: "https://www.instagram.com/nyxtryp/"
+    }
+  ]
+
+  const old = document.getElementById(
+    "nyxtryp-social-window"
+  )
+
+  if (old) old.remove()
+
+  const overlay = document.createElement("div")
+  overlay.id = "nyxtryp-social-window"
+
+  overlay.innerHTML = `
+    <div class="nyxtryp-social-panel">
+      <button class="nyxtryp-social-close">×</button>
+
+      <div class="nyxtryp-social-title">
+        SOCIAL
+      </div>
+
+      <div class="nyxtryp-social-subtitle">
+        FOLLOW NYXTRYP
+      </div>
+
+      <div class="nyxtryp-social-list">
+        ${socials.map((item) => `
+          <a
+            class="nyxtryp-social-card"
+            href="${item.url}"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span class="nyxtryp-social-name">
+              ${item.name}
+            </span>
+
+            <span class="nyxtryp-social-handle">
+              ${item.handle}
+            </span>
+
+            <span class="nyxtryp-social-arrow">
+              ↗
+            </span>
+          </a>
+        `).join("")}
+      </div>
+    </div>
+  `
+
+  const style = document.createElement("style")
+  style.textContent = `
+    #nyxtryp-social-window {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(0,0,0,.58);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      font-family: Arial, sans-serif;
+    }
+
+    .nyxtryp-social-panel {
+      position: relative;
+      width: min(560px, 100%);
+      max-height: 88vh;
+      overflow-y: auto;
+      padding: 42px 32px 32px;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 24px;
+      background: rgba(8,10,18,.88);
+      box-shadow: 0 30px 100px rgba(0,0,0,.55);
+    }
+
+    .nyxtryp-social-close {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      width: 38px;
+      height: 38px;
+      border: 0;
+      background: transparent;
+      color: rgba(255,255,255,.75);
+      font-size: 30px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .nyxtryp-social-title {
+      color: white;
+      font-size: 30px;
+      font-weight: 600;
+      letter-spacing: .22em;
+      text-align: center;
+    }
+
+    .nyxtryp-social-subtitle {
+      margin-top: 8px;
+      margin-bottom: 28px;
+      color: rgba(255,255,255,.42);
+      font-size: 11px;
+      letter-spacing: .22em;
+      text-align: center;
+    }
+
+    .nyxtryp-social-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .nyxtryp-social-card {
+      display: grid;
+      grid-template-columns: 1fr auto 28px;
+      align-items: center;
+      gap: 16px;
+      min-height: 68px;
+      padding: 0 20px;
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 16px;
+      background: rgba(255,255,255,.035);
+      color: white;
+      text-decoration: none;
+      transition:
+        transform .2s ease,
+        background .2s ease,
+        border-color .2s ease;
+    }
+
+    .nyxtryp-social-card:hover {
+      transform: translateY(-2px);
+      background: rgba(255,255,255,.09);
+      border-color: rgba(255,255,255,.28);
+    }
+
+    .nyxtryp-social-name {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: .12em;
+    }
+
+    .nyxtryp-social-handle {
+      color: rgba(255,255,255,.5);
+      font-size: 12px;
+      letter-spacing: .08em;
+    }
+
+    .nyxtryp-social-arrow {
+      color: rgba(255,255,255,.65);
+      font-size: 18px;
+      text-align: right;
+    }
+
+    @media (max-width: 600px) {
+      #nyxtryp-social-window {
+        padding: 14px;
+      }
+
+      .nyxtryp-social-panel {
+        padding: 38px 16px 18px;
+        border-radius: 20px;
+      }
+
+      .nyxtryp-social-card {
+        grid-template-columns: 1fr 28px;
+        gap: 8px;
+        min-height: 62px;
+        padding: 0 16px;
+      }
+
+      .nyxtryp-social-handle {
+        display: none;
+      }
+    }
+  `
+
+  document.head.appendChild(style)
+  document.body.appendChild(overlay)
+
+  const close = overlay.querySelector(
+    ".nyxtryp-social-close"
+  )
+
+  close.onclick = () => {
+    overlay.remove()
+    style.remove()
+  }
+
+  overlay.onclick = (event) => {
+    if (event.target === overlay) {
+      overlay.remove()
+      style.remove()
+    }
+  }
+
+  return
+}
+
+if (hit.userData.name === "PHOTOS") {
 
           const old = document.getElementById("nyxtryp-photos-window")
           if (old) old.remove()
@@ -3843,7 +4073,7 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         }
       )
 
- 
+
       Object.values(
         audioMenuLabels
       ).forEach(
