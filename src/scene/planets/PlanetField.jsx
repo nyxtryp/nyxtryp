@@ -4277,6 +4277,9 @@ if (hit.userData.name === "PHOTOS") {
 
           const syncThumbs = () => {
 
+          thumbs.innerHTML = ""
+          thumbList.length = 0
+
           photos.forEach((src, i) => {
             const t = document.createElement("button")
 
