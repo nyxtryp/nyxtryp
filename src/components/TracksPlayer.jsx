@@ -41,7 +41,7 @@ function Meter({ channel, value }) {
 }
 
 export default function TracksPlayer({ onClose }) {
-  const audioRef = useRef(null), canvasRef = useRef(null), ctxRef = useRef(null), splitRef = useRef(null), animRef = useRef(null)
+  const audioRef = useRef(null), canvasRef = useRef(null), ctxRef = useRef(null), canvasCtxRef = useRef(null), splitRef = useRef(null), animRef = useRef(null)
   const meterRef = useRef({ left:-60, right:-60 })
   const vuLeftDataRef = useRef(null), vuRightDataRef = useRef(null), spectrumDataRef = useRef(null)
   const spectrumRef = useRef(new Float32Array(64))
@@ -117,8 +117,8 @@ export default function TracksPlayer({ onClose }) {
   useEffect(()=>{
     if(!playing)return
     const canvas=canvasRef.current;if(!canvas)return
-    const c=canvas.getContext("2d");if(!c)return
-    ctxRef.current=c
+    const c=canvasCtxRef.current || canvas.getContext("2d");if(!c)return
+    canvasCtxRef.current=c
     let raf
     const drawSpectrum=()=>{
       const split=splitRef.current,now=performance.now()
@@ -130,8 +130,8 @@ export default function TracksPlayer({ onClose }) {
         spectrum.getByteFrequencyData(ld)
         const bars=64
         const minHz=20
-        const maxHz=Math.min(25000,(window.AudioContext||window.webkitAudioContext)?(splitRef.current?ctxRef.current?.sampleRate||44100:44100)/2:22050)
         const sampleRate=ctxRef.current?.sampleRate||44100
+        const maxHz=Math.min(25000,sampleRate/2)
         const nyquist=sampleRate/2
         const last=drawSpectrum.lastTime||now,dt=clamp(now-last,1,80);drawSpectrum.lastTime=now
         const gap=2.2,pad=12,barWidth=(canvas.width-pad*2-gap*(bars-1))/bars,smoothed=spectrumRef.current,velocity=velocityRef.current,peaks=peakRef.current
