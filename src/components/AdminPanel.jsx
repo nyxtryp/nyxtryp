@@ -220,33 +220,11 @@ export default function AdminPanel() {
     setBusy(true)
     setError('')
     setProgress({ total: selected.length, current: 0, step: 'prepare', name: selected[0].name })
-    setStatus('1/4 · ЧТЕНИЕ ФАЙЛА')
-
-    let captured
-    try {
-      captured = await Promise.all(selected.map(async original => {
-        try {
-          const buffer = await original.arrayBuffer()
-          return {
-            original,
-            file: new File([buffer], original.name, { type: original.type || 'application/octet-stream', lastModified: original.lastModified || Date.now() })
-          }
-        } catch (error) {
-          throw new Error(`Не удалось получить доступ к файлу «${original.name}»: ${error?.message || 'ошибка чтения'}`)
-        }
-      }))
-    } catch (e) {
-      setError(e.message || 'Ошибка чтения файла')
-      setStatus('ОШИБКА ЗАГРУЗКИ')
-      setBusy(false)
-      inputElement.value = ''
-      return
-    }
-
     setStatus('1/4 · ПОДГОТОВКА')
+
     try {
-      for (let i = 0; i < captured.length; i += 1) {
-        const original = captured[i].file
+      for (let i = 0; i < selected.length; i += 1) {
+        const original = selected[i]
         setProgress({ total: selected.length, current: i + 1, step: 'prepare', name: original.name })
         setStatus(`${i + 1}/${selected.length} · ПОДГОТОВКА`)
         const prepared = active === 'photos' ? await preparePhoto(original) : { file: original, name: original.name }
