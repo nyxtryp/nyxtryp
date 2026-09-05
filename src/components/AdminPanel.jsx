@@ -11,42 +11,32 @@ const prettyName = name => name.replace(/\.[^.]+$/, '')
 const extension = name => (name.match(/\.[^.]+$/) || [''])[0]
 
 async function toBase64(file) {
-  let objectUrl = null
+  if (!file) throw new Error('Файл не выбран')
+
+  let buffer
   try {
-    objectUrl = URL.createObjectURL(file)
-    const response = await fetch(objectUrl)
-    if (!response.ok) throw new Error(`Не удалось прочитать файл (${response.status})`)
-    const buffer = await response.arrayBuffer()
-    const bytes = new Uint8Array(buffer)
-    let binary = ''
-    const chunkSize = 0x8000
-    for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-      binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)))
-    }
-    return btoa(binary)
-  } catch (fetchError) {
+    buffer = await file.arrayBuffer()
+  } catch (arrayBufferError) {
     try {
-      return await new Promise((resolve, reject) => {
+      buffer = await new Promise((resolve, reject) => {
         const reader = new FileReader()
-        reader.onload = () => {
-          const bytes = new Uint8Array(reader.result || new ArrayBuffer(0))
-          let binary = ''
-          const chunkSize = 0x8000
-          for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-            binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)))
-          }
-          resolve(btoa(binary))
-        }
-        reader.onerror = () => reject(reader.error || fetchError || new Error('File read failed'))
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = () => reject(reader.error || arrayBufferError)
         reader.onabort = () => reject(new Error('Чтение файла отменено'))
         reader.readAsArrayBuffer(file)
       })
-    } catch {
-      throw fetchError
+    } catch (fileReaderError) {
+      throw new Error(`Не удалось прочитать файл: ${fileReaderError?.message || arrayBufferError?.message || 'ошибка доступа'}`)
     }
-  } finally {
-    if (objectUrl) URL.revokeObjectURL(objectUrl)
   }
+
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+  const chunkSize = 0x8000
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)))
+  }
+  return btoa(binary)
 }
 
 async function preparePhoto(file) {
