@@ -106,7 +106,7 @@ export default function RadioPlayer({ onClose }) {
 
         const dynamic = data.radio.map(name => ({
           title: name.replace(/\.mp3$/i, ''),
-          file: `/audio/radio/${encodeURIComponent(name)}`
+          file: data.radioUrls?.[name] || `/audio/radio/${encodeURIComponent(name)}`
         }))
 
         RADIO_TRACKS.splice(0, RADIO_TRACKS.length, ...dynamic)

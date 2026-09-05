@@ -1,3 +1,5 @@
+import { list, del, copy } from '@vercel/blob'
+
 const OWNER = 'nyxtryp'
 const REPO = 'nyxtryp'
 const API = `https://api.github.com/repos/${OWNER}/${REPO}`
@@ -8,6 +10,8 @@ const folders = {
   mixes: 'public/audio/mixes',
   photos: 'public/photos'
 }
+
+const audioTypes = new Set(['tracks', 'radio', 'mixes'])
 
 function json(res, status, data) {
   res.status(status).setHeader('Content-Type', 'application/json; charset=utf-8').send(JSON.stringify(data))
@@ -50,6 +54,40 @@ async function listFiles(folder) {
   return data.filter(item => item.type === 'file').map(item => item.name).sort((a, b) => a.localeCompare(b))
 }
 
+async function listAudio(type) {
+  const result = await list({ prefix: `${type}/`, limit: 1000 })
+  return (result.blobs || [])
+    .filter(blob => blob.pathname.startsWith(`${type}/`))
+    .map(blob => ({ name: blob.pathname.slice(type.length + 1), url: blob.url }))
+    .filter(item => safeName(item.name))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+async function findBlob(type, name) {
+  const target = `${type}/${name}`
+  const result = await list({ prefix: `${type}/`, limit: 1000 })
+  return (result.blobs || []).find(blob => blob.pathname === target) || null
+}
+
+async function githubRename(type, oldName, newName) {
+  const folder = folders[type]
+  const oldPath = `${folder}/${oldName}`
+  const newPath = `${folder}/${newName}`
+  const oldEncoded = encodeURIComponent(oldPath).replace(/%2F/g, '/')
+  const newEncoded = encodeURIComponent(newPath).replace(/%2F/g, '/')
+  const file = await github(`/contents/${oldEncoded}?ref=main`)
+  await github(`/contents/${newEncoded}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: `admin: rename ${type}/${oldName} to ${newName}`, content: file.content.replace(/\n/g, ''), branch: 'main' })
+  })
+  await github(`/contents/${oldEncoded}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: `admin: remove old name ${type}/${oldName}`, sha: file.sha, branch: 'main' })
+  })
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS')
@@ -58,17 +96,29 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const result = {}
-      for (const [key, folder] of Object.entries(folders)) result[key] = await listFiles(folder)
+      const result = { tracks: [], radio: [], mixes: [], photos: [] }
+      for (const type of audioTypes) {
+        const [githubFiles, blobFiles] = await Promise.all([
+          listFiles(folders[type]),
+          listAudio(type)
+        ])
+        const blobNames = new Set(blobFiles.map(item => item.name))
+        result[type] = [...new Set([...githubFiles, ...blobFiles.map(item => item.name)])]
+          .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
+        result[type] = result[type].filter(name => !blobNames.has(name) || blobFiles.some(item => item.name === name))
+      }
+      result.photos = await listFiles(folders.photos)
       return json(res, 200, result)
     }
 
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
     if (!checkAdmin(body)) return json(res, 403, { error: 'Forbidden.' })
-
     if (req.method === 'POST' && body.action === 'auth') return json(res, 200, { ok: true })
 
     if (req.method === 'POST') {
+      if (audioTypes.has(String(body.type || ''))) {
+        return json(res, 400, { error: 'Audio files are uploaded directly to storage.' })
+      }
       const type = String(body.type || '')
       const name = safeName(body.name)
       const content = String(body.content || '')
@@ -96,14 +146,17 @@ export default async function handler(req, res) {
       const newName = safeName(body.newName)
       if (!folders[type] || !oldName || !newName) return json(res, 400, { error: 'Type, oldName and newName are required.' })
       if (oldName === newName) return json(res, 400, { error: 'New name must be different.' })
-      const folder = folders[type]
-      const oldPath = `${folder}/${oldName}`
-      const newPath = `${folder}/${newName}`
-      const oldEncoded = encodeURIComponent(oldPath).replace(/%2F/g, '/')
-      const newEncoded = encodeURIComponent(newPath).replace(/%2F/g, '/')
-      const file = await github(`/contents/${oldEncoded}?ref=main`)
-      await github(`/contents/${newEncoded}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `admin: rename ${type}/${oldName} to ${newName}`, content: file.content.replace(/\n/g, ''), branch: 'main' }) })
-      await github(`/contents/${oldEncoded}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: `admin: remove old name ${type}/${oldName}`, sha: file.sha, branch: 'main' }) })
+
+      if (audioTypes.has(type)) {
+        const blob = await findBlob(type, oldName)
+        if (blob) {
+          await copy(blob.url, `${type}/${newName}`, { access: 'public', allowOverwrite: true })
+          await del(blob.url)
+          return json(res, 200, { ok: true, action: 'renamed', type, oldName, newName })
+        }
+      }
+
+      await githubRename(type, oldName, newName)
       return json(res, 200, { ok: true, action: 'renamed', type, oldName, newName })
     }
 
@@ -111,6 +164,15 @@ export default async function handler(req, res) {
       const type = String(body.type || '')
       const name = safeName(body.name)
       if (!folders[type] || !name) return json(res, 400, { error: 'Invalid file.' })
+
+      if (audioTypes.has(type)) {
+        const blob = await findBlob(type, name)
+        if (blob) {
+          await del(blob.url)
+          return json(res, 200, { ok: true })
+        }
+      }
+
       const filePath = `${folders[type]}/${name}`
       const encodedPath = encodeURIComponent(filePath).replace(/%2F/g, '/')
       const file = await github(`/contents/${encodedPath}?ref=main`)

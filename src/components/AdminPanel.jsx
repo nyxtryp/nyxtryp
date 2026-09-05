@@ -1,43 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { upload as uploadBlob } from '@vercel/blob/client'
 
 const TYPES = [
-  { id: 'tracks', label: 'TRACKS', accept: 'audio/mpeg,audio/mp3', icon: '♪', kind: 'AUDIO' },
-  { id: 'radio', label: 'RADIO', accept: 'audio/mpeg,audio/mp3', icon: '◉', kind: 'AUDIO' },
-  { id: 'mixes', label: 'MIXES', accept: 'audio/mpeg,audio/mp3', icon: '◒', kind: 'AUDIO' },
+  { id: 'tracks', label: 'TRACKS', accept: 'audio/*', icon: '♪', kind: 'AUDIO' },
+  { id: 'radio', label: 'RADIO', accept: 'audio/*', icon: '◉', kind: 'AUDIO' },
+  { id: 'mixes', label: 'MIXES', accept: 'audio/*', icon: '◒', kind: 'AUDIO' },
   { id: 'photos', label: 'PHOTOS', accept: 'image/*', icon: '▧', kind: 'IMAGE' }
 ]
 
 const prettyName = name => name.replace(/\.[^.]+$/, '')
 const extension = name => (name.match(/\.[^.]+$/) || [''])[0]
-
-async function toBase64(file) {
-  if (!file) throw new Error('Файл не выбран')
-
-  let buffer
-  try {
-    buffer = await file.arrayBuffer()
-  } catch (arrayBufferError) {
-    try {
-      buffer = await new Promise((resolve, reject) => {
-        const reader = new FileReader()
-        reader.onload = () => resolve(reader.result)
-        reader.onerror = () => reject(reader.error || arrayBufferError)
-        reader.onabort = () => reject(new Error('Чтение файла отменено'))
-        reader.readAsArrayBuffer(file)
-      })
-    } catch (fileReaderError) {
-      throw new Error(`Не удалось прочитать файл: ${fileReaderError?.message || arrayBufferError?.message || 'ошибка доступа'}`)
-    }
-  }
-
-  const bytes = new Uint8Array(buffer)
-  let binary = ''
-  const chunkSize = 0x8000
-  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)))
-  }
-  return btoa(binary)
-}
 
 async function preparePhoto(file) {
   const MAX_BYTES = 2.8 * 1024 * 1024
@@ -208,15 +180,6 @@ export default function AdminPanel() {
       return
     }
 
-    if (active !== 'photos') {
-      const tooLarge = selected.find(f => f.size > 4 * 1024 * 1024)
-      if (tooLarge) {
-        setError(`«${tooLarge.name}» больше 4 МБ. Большие MP3 пока нельзя передать через текущий Vercel API.`)
-        setStatus('ОШИБКА ПРОВЕРКИ')
-        return
-      }
-    }
-
     setBusy(true)
     setError('')
     setProgress({ total: selected.length, current: 0, step: 'prepare', name: selected[0].name })
@@ -227,13 +190,41 @@ export default function AdminPanel() {
         const original = selected[i]
         setProgress({ total: selected.length, current: i + 1, step: 'prepare', name: original.name })
         setStatus(`${i + 1}/${selected.length} · ПОДГОТОВКА`)
-        const prepared = active === 'photos' ? await preparePhoto(original) : { file: original, name: original.name }
+        if (active !== 'photos') {
+          const name = replaceName || original.name
+          setProgress({ total: selected.length, current: i + 1, step: 'send', name })
+          setStatus(`${i + 1}/${selected.length} · ОТПРАВКА В STORAGE`)
+          await uploadBlob(`${active}/${name}`, original, {
+            access: 'public',
+            handleUploadUrl: '/api/upload',
+            multipart: true,
+            clientPayload: JSON.stringify({ adminKey: key, type: active, name }),
+            onUploadProgress: ({ percentage }) => {
+              setProgress({ total: selected.length, current: i + 1, step: 'send', name, percentage: Math.round(percentage) })
+              setStatus(`${i + 1}/${selected.length} · ЗАГРУЗКА ${Math.round(percentage)}%`)
+            }
+          })
+          setProgress({ total: selected.length, current: i + 1, step: 'done', name })
+          setStatus(`${i + 1}/${selected.length} · СОХРАНЕНО`)
+          continue
+        }
+
+        const prepared = await preparePhoto(original)
         const file = prepared.file
         const name = replaceName || prepared.name
 
         setProgress({ total: selected.length, current: i + 1, step: 'encode', name })
         setStatus(`${i + 1}/${selected.length} · ЧТЕНИЕ ФАЙЛА`)
-        const content = await toBase64(file)
+        const content = await (async fileToEncode => {
+          const buffer = await fileToEncode.arrayBuffer()
+          const bytes = new Uint8Array(buffer)
+          let binary = ''
+          const chunkSize = 0x8000
+          for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+            binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)))
+          }
+          return btoa(binary)
+        })(file)
 
         setProgress({ total: selected.length, current: i + 1, step: 'send', name })
         setStatus(`${i + 1}/${selected.length} · ОТПРАВКА В GITHUB`)

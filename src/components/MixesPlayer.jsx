@@ -64,7 +64,7 @@ export default function MixesPlayer({ onClose }) {
 
         const dynamic = data.mixes.map(name => ({
           title: name.replace(/\.mp3$/i, ""),
-          file: `/audio/mixes/${encodeURIComponent(name)}`
+          file: data.mixUrls?.[name] || `/audio/mixes/${encodeURIComponent(name)}`
         }))
 
         MIXES.splice(0, MIXES.length, ...dynamic)

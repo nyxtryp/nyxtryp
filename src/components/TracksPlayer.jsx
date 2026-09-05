@@ -55,7 +55,7 @@ export default function TracksPlayer({ onClose }) {
       .then(r => r.ok ? r.json() : Promise.reject(new Error('media api failed')))
       .then(data => {
         if (cancelled || !Array.isArray(data.tracks) || !data.tracks.length) return
-        const dynamic = data.tracks.map(name => ({ title: name.replace(/\.mp3$/i, ''), file: `/audio/tracks/${encodeURIComponent(name)}` }))
+        const dynamic = data.tracks.map(name => ({ title: name.replace(/\.mp3$/i, ''), file: data.trackUrls?.[name] || `/audio/tracks/${encodeURIComponent(name)}` }))
         TRACKS.splice(0, TRACKS.length, ...dynamic)
         setMediaVersion(v => v + 1)
       })
