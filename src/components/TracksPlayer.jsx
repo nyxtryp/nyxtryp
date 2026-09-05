@@ -10,17 +10,18 @@ const formatTime = value => {
   return `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, "0")}`
 }
 
-function Meter({ channel, value }) {
-  const scale = [[-30,-7.24],[-20,1.04],[-10,9.53],[-7,18.90],[-5,28.35],[-3,38.11],[-1,46.89],[0,52.23],[3,63.81],[5,76.40],[10,81.69]]
-  const toAngle = v => {
-    const x = clamp(v, -30, 10)
-    for (let i = 1; i < scale.length; i++) {
-      const [v2,a2] = scale[i], [v1,a1] = scale[i-1]
-      if (x <= v2) return a1 + (a2-a1) * ((x-v1)/(v2-v1))
-    }
-    return scale[scale.length-1][1]
+const VU_SCALE = [[-30,-7.24],[-20,1.04],[-10,9.53],[-7,18.90],[-5,28.35],[-3,38.11],[-1,46.89],[0,52.23],[3,63.81],[5,76.40],[10,81.69]]
+const vuToAngle = value => {
+  const x = clamp(value, -30, 10)
+  for (let i = 1; i < VU_SCALE.length; i++) {
+    const [v2,a2] = VU_SCALE[i], [v1,a1] = VU_SCALE[i-1]
+    if (x <= v2) return a1 + (a2-a1) * ((x-v1)/(v2-v1))
   }
-  const angle = toAngle(value)
+  return VU_SCALE[VU_SCALE.length-1][1]
+}
+
+function Meter({ channel, value, needleRef }) {
+  const angle = vuToAngle(value)
   const suffix = channel.toLowerCase()
   return <svg className="nyx-meter-svg" viewBox="0 0 1080 600" role="img" aria-label={`${channel} VU meter`}>
     <defs>
@@ -34,7 +35,7 @@ function Meter({ channel, value }) {
       <path d="m82,292 45.3061,0" fill="none" stroke="#000" strokeWidth="5" /><path d="m948.30743,285.82189 45.3061,0" fill="none" stroke="#000" strokeWidth="5" /><path d="m970.96048,263.16884 0,45.3061" fill="none" stroke="#000" strokeWidth="5" />
       <path d="m657,277.24518 c85.60879,8.87328 173.21481,25.29511 295.97922,75.9692" fill="none" stroke="#f00" strokeWidth="15" /><path d="m126.01626,357.7731 c161.49448,-60.14366 315.01211,-98.096 531.2366,-81.4418" fill="none" stroke="#000" strokeWidth="15" />
       <path d="m210.72277,271.30126 34.37058 47.77511" fill="none" stroke="#000" strokeWidth="8" /><path d="m285.65064,249.6478 27.49646 52.24328" fill="none" stroke="#000" strokeWidth="8" /><path d="m365.73409,233.49363 18.56011 52.93069" fill="none" stroke="#000" strokeWidth="8" /><path d="m451.66054,221.12022 8.93635 53.96181" fill="none" stroke="#000" strokeWidth="8" /><path d="m544.1174,217.33945 -0.68741 53.96181" fill="none" stroke="#000" strokeWidth="8" /><path d="m620.76379,220.0891 -8.59264 53.2744" fill="none" stroke="#000" strokeWidth="8" /><path d="m669.22631,226.96322 -14.43565 56.36775" fill="none" stroke="#f00" strokeWidth="8" /><path d="m777.83734,243.8048 -24.40311 48.80622" fill="none" stroke="#f00" strokeWidth="8" /><path d="m864.4512,318.73266 34.37058 -43.65063" fill="none" stroke="#f00" strokeWidth="8" />
-      <g transform={`rotate(${angle} 537.57412 730.481)`}><path d="M184.04706,291.70923 537.57412,730.481" fill="none" stroke="#000" strokeWidth="6.7" strokeLinecap="butt" /></g>
+      <g ref={needleRef} transform={`rotate(${angle} 537.57412 730.481)`}><path d="M184.04706,291.70923 537.57412,730.481" fill="none" stroke="#000" strokeWidth="6.7" strokeLinecap="butt" /></g>
       <text x="492.73926" y="393.86093" fontFamily="Roboto,Arial,sans-serif" fontSize="60" fontWeight="900">VU</text><text x="902.58594" y="255.49496" fontSize="40">5</text><text x="775.54688" y="218.96762" fontSize="40">3</text><text x="663.13672" y="202.96762" fontSize="40">0</text><text x="612.89453" y="196.49496" fontSize="40">1</text><text x="530.54688" y="194.96762" fontSize="40">3</text><text x="439.58594" y="202.49496" fontSize="40">5</text><text x="348.78125" y="210.49496" fontSize="40">7</text><text x="251.89453" y="221.96762" fontSize="40">10</text><text x="160.42969" y="243.96762" fontSize="40">20</text>
     </g>
   </svg>
@@ -42,11 +43,13 @@ function Meter({ channel, value }) {
 
 export default function TracksPlayer({ onClose }) {
   const audioRef = useRef(null), canvasRef = useRef(null), ctxRef = useRef(null), splitRef = useRef(null), animRef = useRef(null)
+  const vuLeftNeedleRef = useRef(null), vuRightNeedleRef = useRef(null)
+  const vuLeftDataRef = useRef(null), vuRightDataRef = useRef(null), spectrumDataRef = useRef(null)
   const meterRef = useRef({ left:-60, right:-60 })
   const spectrumRef = useRef(new Float32Array(64))
   const velocityRef = useRef(new Float32Array(64))
   const peakRef = useRef(new Float32Array(64))
-  const [trackIndex,setTrackIndex] = useState(0), [playing,setPlaying] = useState(false), [volume,setVolume] = useState(.68), [muted,setMuted] = useState(false), [currentTime,setCurrentTime] = useState(0), [duration,setDuration] = useState(0), [leftVU,setLeftVU] = useState(-60), [rightVU,setRightVU] = useState(-60), [,setMediaVersion] = useState(0)
+  const [trackIndex,setTrackIndex] = useState(0), [playing,setPlaying] = useState(false), [volume,setVolume] = useState(.68), [muted,setMuted] = useState(false), [currentTime,setCurrentTime] = useState(0), [duration,setDuration] = useState(0), [leftVU] = useState(-60), [rightVU] = useState(-60), [,setMediaVersion] = useState(0)
   const track = TRACKS[trackIndex]
 
   useEffect(() => {
@@ -73,13 +76,14 @@ export default function TracksPlayer({ onClose }) {
     left.fftSize = right.fftSize = 1024; spectrum.fftSize = 32768
     left.smoothingTimeConstant = right.smoothingTimeConstant = 0; spectrum.smoothingTimeConstant = 0
     source.connect(split); split.connect(left,0); split.connect(right,1); split.connect(spectrum,0); source.connect(ctx.destination)
+    vuLeftDataRef.current = new Uint8Array(left.fftSize); vuRightDataRef.current = new Uint8Array(right.fftSize); spectrumDataRef.current = new Uint8Array(spectrum.frequencyBinCount)
     ctxRef.current = ctx; splitRef.current = {left,right,spectrum}; return ctx
   }
 
   useEffect(() => {
     const audio=audioRef.current; if(!audio)return
     const wasPlaying=playing; let cancelled=false
-    audio.src=track.file; audio.volume=volume; audio.muted=muted; audio.load(); setCurrentTime(0); setDuration(0); meterRef.current={left:-60,right:-60}; setLeftVU(-60); setRightVU(-60)
+    audio.src=track.file; audio.volume=volume; audio.muted=muted; audio.load(); setCurrentTime(0); setDuration(0); meterRef.current={left:-60,right:-60}
     const startPlayback=async()=>{if(cancelled)return;try{const ctx=await setupAudio();if(ctx?.state==="suspended")await ctx.resume();await audio.play();if(!cancelled)setPlaying(true)}catch{if(!cancelled)setPlaying(false)}}
     if(wasPlaying){if(audio.readyState>=3)startPlayback();else audio.addEventListener("canplay",startPlayback,{once:true})}else{audio.pause();setPlaying(false)}
     return()=>{cancelled=true;audio.removeEventListener("canplay",startPlayback)}
@@ -87,98 +91,87 @@ export default function TracksPlayer({ onClose }) {
   useEffect(()=>{const audio=audioRef.current;if(!audio)return;audio.volume=volume;audio.muted=muted},[volume,muted])
   useEffect(()=>{const audio=audioRef.current;if(!audio)return;const time=()=>setCurrentTime(audio.currentTime||0),meta=()=>Number.isFinite(audio.duration)&&setDuration(audio.duration);audio.addEventListener("timeupdate",time);audio.addEventListener("loadedmetadata",meta);audio.addEventListener("durationchange",meta);return()=>{audio.removeEventListener("timeupdate",time);audio.removeEventListener("loadedmetadata",meta);audio.removeEventListener("durationchange",meta)}},[trackIndex])
 
-  // VU — отдельный animation loop. Формулы VU НЕ меняем.
-  useEffect(()=>{
-    let raf
-    const drawVU=()=>{
-      const split=splitRef.current, now=performance.now()
-      if(split){
-        const lt=new Uint8Array(split.left.fftSize),rt=new Uint8Array(split.right.fftSize)
-        split.left.getByteTimeDomainData(lt);split.right.getByteTimeDomainData(rt)
-        const rms=data=>{let sum=0;for(let i=0;i<data.length;i++){const sample=(data[i]-128)/128;sum+=sample*sample}return Math.sqrt(sum/data.length)}
-        const signalL=rms(lt),signalR=rms(rt)
-        const toDb=x=>x<=.000001?-60:clamp(20*Math.log10(x),-60,0),toVU=db=>clamp(db+12,-30,10)
-        const targetL=toVU(toDb(signalL)),targetR=toVU(toDb(signalR))
-        const updateMeter=(current,target,dt)=>{const tc=target>current?.045:.32;return current+(target-current)*(1-Math.exp(-dt/(tc*1000)))}
-        const last=drawVU.lastTime||now,dt=clamp(now-last,1,80);drawVU.lastTime=now
-        const ml=updateMeter(meterRef.current.left,targetL,dt),mr=updateMeter(meterRef.current.right,targetR,dt)
-        meterRef.current={left:ml,right:mr};setLeftVU(ml);setRightVU(mr)
-      }else{
-        meterRef.current={left:-60,right:-60};setLeftVU(-60);setRightVU(-60)
-      }
-      raf=requestAnimationFrame(drawVU)
-    }
-    drawVU()
-    return()=>cancelAnimationFrame(raf)
-  },[playing])
-
-  // 64-bar spectrum — completely separate animation loop.
+  // One shared animation loop. No allocations and no React state updates per frame.
   useEffect(()=>{
     const canvas=canvasRef.current;if(!canvas)return
-    let raf
-    const drawSpectrum=()=>{
-      const c=canvas.getContext("2d"),split=splitRef.current,now=performance.now()
+    const c=canvas.getContext("2d");if(!c)return
+    if(!playing){
+      cancelAnimationFrame(animRef.current)
+      animRef.current=null
       c.clearRect(0,0,canvas.width,canvas.height)
-      if(split){
-        const spectrum=split.spectrum
-        const ld=new Uint8Array(spectrum.frequencyBinCount)
-        spectrum.getByteFrequencyData(ld)
-
-        const bars=64
-        const minHz=20
-        const maxHz=Math.min(25000,(ctxRef.current?.sampleRate||44100)/2)
-        const nyquist=(ctxRef.current?.sampleRate||44100)/2
-        const last=drawSpectrum.lastTime||now,dt=clamp(now-last,1,80);drawSpectrum.lastTime=now
-        const gap=2.2,pad=12,barWidth=(canvas.width-pad*2-gap*(bars-1))/bars,smoothed=spectrumRef.current,velocity=velocityRef.current,peaks=peakRef.current
-        const baseY=canvas.height-8,maxBarHeight=canvas.height*.86,depth=Math.max(3,Math.min(8,canvas.width/150))
-
-        for(let i=0;i<bars;i++){
-          // 64 независимых столбика по логарифмической шкале частот.
-          const t=i/(bars-1)
-          const freq=minHz*Math.pow(maxHz/minHz,t)
-
-          // FFT bins идут линейно по частоте.
-          const bin=Math.max(0,Math.min(ld.length-1,Math.floor((freq/nyquist)*ld.length)))
-
-          // Каждый столбик получает только своё FFT-значение.
-          const raw=Math.pow(ld[bin]/255,.72)
-
-          const signalStrength=0
-          const bandEnergy=clamp(raw*(.72+signalStrength*2.1),0,1)
-          const target=bandEnergy*(.82+Math.sin(i*.73)*.045)
-          const position=smoothed[i],deltaTarget=target-position
-          const force=deltaTarget>0?.19:.095
-          velocity[i]+=deltaTarget*force*(dt/16.67)
-          const bandDamping=i<12?.84:i<28?.78:i<46?.72:.66
-          velocity[i]*=Math.pow(bandDamping,dt/16.67)
-          smoothed[i]=clamp(position+velocity[i]*(dt/16.67),0,1)
-          if(smoothed[i]<.0015)smoothed[i]=0
-          if(smoothed[i]>peaks[i])peaks[i]=smoothed[i]
-          else peaks[i]=Math.max(smoothed[i],peaks[i]-(.0045*(dt/16.67)))
-          const v=Math.max(playing?.002:.001,smoothed[i]),h=Math.max(3,maxBarHeight*v),x=pad+i*(barWidth+gap),y=baseY-h
-          const hue=190+i*1.65
-          const front=c.createLinearGradient(0,y,0,baseY)
-          front.addColorStop(0,`hsla(${hue},100%,78%,.98)`)
-          front.addColorStop(.28,`hsla(${hue},100%,58%,.94)`)
-          front.addColorStop(1,`hsla(${hue},92%,35%,.86)`)
-          c.save();c.shadowBlur=10;c.shadowColor=`hsla(${hue},100%,60%,.55)`
-          c.fillStyle=front;c.fillRect(x,y,barWidth,h)
-          c.shadowBlur=0
-          c.beginPath();c.moveTo(x,y);c.lineTo(x+depth,y-depth*.7);c.lineTo(x+barWidth+depth,y-depth*.7);c.lineTo(x+barWidth,y);c.closePath();c.fillStyle=`hsla(${hue},100%,82%,.88)`;c.fill()
-          c.beginPath();c.moveTo(x+barWidth,y);c.lineTo(x+barWidth+depth,y-depth*.7);c.lineTo(x+barWidth+depth,baseY-depth*.7);c.lineTo(x+barWidth,baseY);c.closePath();c.fillStyle=`hsla(${hue},90%,30%,.9)`;c.fill()
-          c.fillStyle=`hsla(${hue},100%,92%,.7)`;c.fillRect(x+1,y+1,Math.max(1,barWidth-2),Math.min(2,h))
-          const peakY=baseY-Math.max(3,maxBarHeight*peaks[i])-5
-          c.shadowBlur=8;c.shadowColor=`hsla(${hue},100%,72%,.9)`;c.fillStyle=`hsla(${hue},100%,88%,.98)`;c.fillRect(x-1,peakY,barWidth+2,2.2);c.restore()
-        }
-
-        c.save();c.globalAlpha=.18;c.strokeStyle="#8adfff";c.lineWidth=1
-        for(let j=1;j<5;j++){const gy=baseY-(canvas.height*.86)*(j/5);c.beginPath();c.moveTo(8,gy);c.lineTo(canvas.width-8,gy);c.stroke()}
-        c.restore()
-      }
-      raf=requestAnimationFrame(drawSpectrum)
+      meterRef.current={left:-60,right:-60}
+      if(vuLeftNeedleRef.current)vuLeftNeedleRef.current.setAttribute("transform",`rotate(${vuToAngle(-60)} 537.57412 730.481)`)
+      if(vuRightNeedleRef.current)vuRightNeedleRef.current.setAttribute("transform",`rotate(${vuToAngle(-60)} 537.57412 730.481)`)
+      return
     }
-    drawSpectrum()
-    return()=>cancelAnimationFrame(raf)
+    const split=splitRef.current
+    const vuL=vuLeftDataRef.current,vuR=vuRightDataRef.current,spectrumData=spectrumDataRef.current
+    if(!split||!vuL||!vuR||!spectrumData)return
+
+    const bars=64,minHz=20,maxHz=Math.min(25000,(ctxRef.current?.sampleRate||44100)/2),nyquist=(ctxRef.current?.sampleRate||44100)/2
+    const gap=2.2,pad=12,barWidth=(canvas.width-pad*2-gap*(bars-1))/bars,baseY=canvas.height-8,maxBarHeight=canvas.height*.86,depth=Math.max(3,Math.min(8,canvas.width/150))
+    const bins=new Int32Array(bars),hues=new Float32Array(bars),xs=new Float32Array(bars)
+    for(let i=0;i<bars;i++){
+      const t=i/(bars-1),freq=minHz*Math.pow(maxHz/minHz,t)
+      bins[i]=Math.max(0,Math.min(spectrumData.length-1,Math.floor((freq/nyquist)*spectrumData.length)))
+      hues[i]=190+i*1.65
+      xs[i]=pad+i*(barWidth+gap)
+    }
+    let last=performance.now(),vuLast=last
+
+    const rms=data=>{let sum=0;for(let i=0;i<data.length;i++){const sample=(data[i]-128)/128;sum+=sample*sample}return Math.sqrt(sum/data.length)}
+    const toDb=x=>x<=.000001?-60:clamp(20*Math.log10(x),-60,0)
+    const toVU=db=>clamp(db+12,-30,10)
+    const updateMeter=(current,target,dt)=>{const tc=target>current?.045:.32;return current+(target-current)*(1-Math.exp(-dt/(tc*1000)))}
+
+    const draw=now=>{
+      if(!playing)return
+      const dt=clamp(now-last,1,80);last=now
+      split.left.getByteTimeDomainData(vuL);split.right.getByteTimeDomainData(vuR)
+      const targetL=toVU(toDb(rms(vuL))),targetR=toVU(toDb(rms(vuR)))
+      const meterDt=clamp(now-vuLast,1,80);vuLast=now
+      const ml=updateMeter(meterRef.current.left,targetL,meterDt),mr=updateMeter(meterRef.current.right,targetR,meterDt)
+      meterRef.current={left:ml,right:mr}
+      if(vuLeftNeedleRef.current)vuLeftNeedleRef.current.setAttribute("transform",`rotate(${vuToAngle(ml)} 537.57412 730.481)`)
+      if(vuRightNeedleRef.current)vuRightNeedleRef.current.setAttribute("transform",`rotate(${vuToAngle(mr)} 537.57412 730.481)`)
+
+      split.spectrum.getByteFrequencyData(spectrumData)
+      const smoothed=spectrumRef.current,velocity=velocityRef.current,peaks=peakRef.current
+      c.clearRect(0,0,canvas.width,canvas.height)
+      for(let i=0;i<bars;i++){
+        const raw=Math.pow(spectrumData[bins[i]]/255,.72)
+        const bandEnergy=clamp(raw*.72,0,1)
+        const target=bandEnergy*(.82+Math.sin(i*.73)*.045)
+        const position=smoothed[i],deltaTarget=target-position
+        const force=deltaTarget>0?.19:.095
+        velocity[i]+=deltaTarget*force*(dt/16.67)
+        const bandDamping=i<12?.84:i<28?.78:i<46?.72:.66
+        velocity[i]*=Math.pow(bandDamping,dt/16.67)
+        smoothed[i]=clamp(position+velocity[i]*(dt/16.67),0,1)
+        if(smoothed[i]<.0015)smoothed[i]=0
+        if(smoothed[i]>peaks[i])peaks[i]=smoothed[i]
+        else peaks[i]=Math.max(smoothed[i],peaks[i]-(.0045*(dt/16.67)))
+        const v=Math.max(.002,smoothed[i]),h=Math.max(3,maxBarHeight*v),x=xs[i],y=baseY-h,hue=hues[i]
+        const front=c.createLinearGradient(0,y,0,baseY)
+        front.addColorStop(0,`hsla(${hue},100%,78%,.98)`)
+        front.addColorStop(.28,`hsla(${hue},100%,58%,.94)`)
+        front.addColorStop(1,`hsla(${hue},92%,35%,.86)`)
+        c.save();c.shadowBlur=10;c.shadowColor=`hsla(${hue},100%,60%,.55)`
+        c.fillStyle=front;c.fillRect(x,y,barWidth,h)
+        c.shadowBlur=0
+        c.beginPath();c.moveTo(x,y);c.lineTo(x+depth,y-depth*.7);c.lineTo(x+barWidth+depth,y-depth*.7);c.lineTo(x+barWidth,y);c.closePath();c.fillStyle=`hsla(${hue},100%,82%,.88)`;c.fill()
+        c.beginPath();c.moveTo(x+barWidth,y);c.lineTo(x+barWidth+depth,y-depth*.7);c.lineTo(x+barWidth+depth,baseY-depth*.7);c.lineTo(x+barWidth,baseY);c.closePath();c.fillStyle=`hsla(${hue},90%,30%,.9)`;c.fill()
+        c.fillStyle=`hsla(${hue},100%,92%,.7)`;c.fillRect(x+1,y+1,Math.max(1,barWidth-2),Math.min(2,h))
+        const peakY=baseY-Math.max(3,maxBarHeight*peaks[i])-5
+        c.shadowBlur=8;c.shadowColor=`hsla(${hue},100%,72%,.9)`;c.fillStyle=`hsla(${hue},100%,88%,.98)`;c.fillRect(x-1,peakY,barWidth+2,2.2);c.restore()
+      }
+      c.save();c.globalAlpha=.18;c.strokeStyle="#8adfff";c.lineWidth=1
+      for(let j=1;j<5;j++){const gy=baseY-(canvas.height*.86)*(j/5);c.beginPath();c.moveTo(8,gy);c.lineTo(canvas.width-8,gy);c.stroke()}
+      c.restore()
+      animRef.current=requestAnimationFrame(draw)
+    }
+    animRef.current=requestAnimationFrame(draw)
+    return()=>{cancelAnimationFrame(animRef.current);animRef.current=null}
   },[playing])
 
   const play=async()=>{const audio=audioRef.current;if(!audio)return;try{const ctx=await setupAudio();if(ctx?.state==="suspended")await ctx.resume();await audio.play();setPlaying(true)}catch{setPlaying(false)}}
@@ -195,9 +188,9 @@ export default function TracksPlayer({ onClose }) {
       .tracks-visualizer{width:100%;height:3cm;min-height:90px;display:block;border-radius:10px;background:rgba(0,0,0,.22)}
       .nyx-vu{display:flex;gap:10px;width:100%;justify-content:center}.nyx-meter{flex:1;min-width:0;background:transparent;border-radius:4px;overflow:hidden;box-shadow:0 0 18px rgba(40,190,255,.28)}.nyx-meter-svg{display:block;width:100%;height:auto}.tracks-controls,.tracks-progress,.tracks-volume{display:flex;align-items:center;justify-content:center;gap:8px}.tracks-progress,.tracks-volume{font-size:9px;opacity:.75}.tracks-progress input,.tracks-volume input{flex:1}.tracks-button{border:1px solid rgba(150,210,255,.18);background:rgba(255,255,255,.045);color:#eaf4ff;border-radius:10px;min-width:36px;height:34px;cursor:pointer}.tracks-button.main{min-width:48px;font-size:16px}.tracks-playlist{flex:1;min-height:0;overflow-y:auto;border-top:1px solid rgba(150,210,255,.12);padding-top:7px}.tracks-item{width:100%;box-sizing:border-box;display:flex;align-items:center;gap:8px;border:0;background:transparent;color:rgba(235,245,255,.72);padding:6px 7px;border-radius:7px;cursor:pointer;text-align:left;font-size:10px}.tracks-item.active{background:rgba(100,190,255,.1);color:#fff}.tracks-number{width:20px;opacity:.45}.tracks-item-title{flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}@media(max-width:600px){.tracks-window{width:min(420px,90vw);height:auto;max-height:88vh;padding:46px 20px 16px}.nyx-vu{display:none}.tracks-playlist{max-height:145px;flex:none}}
     `}</style>
-    <div className="tracks-overlay" onPointerDown={e=>e.pointerType==="mouse"&&onClose()}><div className="tracks-window" onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}>
+    <div className="tracks-overlay" data-nyxtryp-media-overlay="true" onPointerDown={e=>e.pointerType==="mouse"&&onClose()}><div className="tracks-window" onPointerDown={e=>e.stopPropagation()} onClick={e=>e.stopPropagation()}>
       <audio ref={audioRef} onEnded={()=>changeTrack(1)} /><button className="tracks-close" onClick={onClose}>×</button><div className="tracks-brand"><span>NYXTRYP</span><span className="tracks-brand-pulse">TRACK</span></div>
-      <div className="nyx-vu"><div className="nyx-meter"><Meter channel="L" value={leftVU}/></div><div className="nyx-meter"><Meter channel="R" value={rightVU}/></div></div><canvas ref={canvasRef} className="tracks-visualizer" width="1200" height="240" />
+      <div className="nyx-vu"><div className="nyx-meter"><Meter channel="L" value={leftVU} needleRef={vuLeftNeedleRef}/></div><div className="nyx-meter"><Meter channel="R" value={rightVU} needleRef={vuRightNeedleRef}/></div></div><canvas ref={canvasRef} className="tracks-visualizer" width="1200" height="240" />
       <div className="tracks-controls"><button className="tracks-button" onClick={()=>changeTrack(-1)}>‹</button><button className="tracks-button main" onClick={togglePlay}>{playing?"Ⅱ":"▶"}</button><button className="tracks-button" onClick={()=>changeTrack(1)}>›</button></div>
       <div className="tracks-progress"><span>{formatTime(currentTime)}</span><input type="range" min="0" max={duration||0} step=".1" value={Math.min(currentTime,duration||0)} onChange={seek}/><span>{formatTime(duration)}</span></div><div className="tracks-volume"><button className="tracks-button" onClick={()=>setMuted(v=>!v)}>{muted?"🔇":"🔊"}</button><input type="range" min="0" max="1" step=".01" value={volume} onChange={e=>setVolume(Number(e.target.value))}/></div>
       <div className="tracks-playlist">{TRACKS.map((item,index)=><button key={item.file} className={`tracks-item${index===trackIndex?" active":""}`} onClick={()=>{setTrackIndex(index);setTimeout(play,100)}}><span className="tracks-number">{String(index+1).padStart(2,"0")}</span><span className="tracks-item-title">{item.title}</span></button>)}</div>
