@@ -4138,6 +4138,7 @@ if (hit.userData.name === "PHOTOS") {
 
               if (photos.length) {
                 index = Math.min(index, photos.length - 1)
+                syncThumbs()
                 update()
               }
             })
@@ -4274,6 +4275,8 @@ if (hit.userData.name === "PHOTOS") {
             }
           }
 
+          const syncThumbs = () => {
+
           photos.forEach((src, i) => {
             const t = document.createElement("button")
 
@@ -4309,6 +4312,10 @@ if (hit.userData.name === "PHOTOS") {
             thumbs.appendChild(t)
             thumbList.push(t)
           })
+
+          }
+
+          syncThumbs()
 
           prev.onclick = () => {
             index = (index - 1 + photos.length) % photos.length
