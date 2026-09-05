@@ -1,3 +1,4 @@
+# trigger 2
 name: Fix gallery thumbnail sync
 
 on:
@@ -5,6 +6,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/fix-gallery-sync.yml'
+      - '.gallery-sync-trigger'
 
 permissions:
   contents: write
@@ -178,9 +180,9 @@ jobs:
           git commit -m 'fix: sync gallery thumbnails with media API'
           git push origin main
 
-      - name: Remove temporary workflow
+      - name: Remove temporary workflow and trigger
         if: always()
         run: |
-          git rm -f .github/workflows/fix-gallery-sync.yml || true
+          git rm -f .github/workflows/fix-gallery-sync.yml .gallery-sync-trigger || true
           git commit -m 'chore: remove gallery sync workflow' || true
           git push origin main || true
