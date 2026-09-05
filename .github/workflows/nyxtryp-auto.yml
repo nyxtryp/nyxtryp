@@ -214,6 +214,7 @@ jobs:
                     git commit -m "auto: apply NYXTRYP edit"
                     git push
           EOF
+          git rm -f .gallery-sync-trigger || true
           git config user.name "NYXTRYP Auto"
           git config user.email "actions@github.com"
           git add src/scene/planets/PlanetField.jsx .github/workflows/nyxtryp-auto.yml
