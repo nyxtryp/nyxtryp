@@ -95,6 +95,11 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
 
   try {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
+
+    // Every admin endpoint, including the file listing, requires the admin key.
+    if (!checkAdmin(body)) return json(res, 403, { error: 'Forbidden.' })
+
     if (req.method === 'GET') {
       const result = { tracks: [], radio: [], mixes: [], photos: [] }
       for (const type of audioTypes) {
@@ -111,8 +116,6 @@ export default async function handler(req, res) {
       return json(res, 200, result)
     }
 
-    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
-    if (!checkAdmin(body)) return json(res, 403, { error: 'Forbidden.' })
     if (req.method === 'POST' && body.action === 'auth') return json(res, 200, { ok: true })
 
     if (req.method === 'POST') {
