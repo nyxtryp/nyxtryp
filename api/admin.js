@@ -1,8 +1,11 @@
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import { list, del, copy } from '@vercel/blob'
 
 const OWNER = 'nyxtryp'
 const REPO = 'nyxtryp'
 const API = `https://api.github.com/repos/${OWNER}/${REPO}`
+const COOKIE = 'nyxtryp_admin'
+const SESSION_TTL = 86400
 
 const folders = {
   tracks: 'public/audio/tracks',
@@ -14,7 +17,10 @@ const folders = {
 const audioTypes = new Set(['tracks', 'radio', 'mixes'])
 
 function json(res, status, data) {
-  res.status(status).setHeader('Content-Type', 'application/json; charset=utf-8').send(JSON.stringify(data))
+  res.status(status)
+    .setHeader('Content-Type', 'application/json; charset=utf-8')
+    .setHeader('Cache-Control', 'no-store')
+    .send(JSON.stringify(data))
 }
 
 async function github(path, options = {}) {
@@ -32,7 +38,11 @@ async function github(path, options = {}) {
   const text = await response.text()
   let data
   try { data = JSON.parse(text) } catch { data = { message: text } }
-  if (!response.ok) { const error = new Error(data.message || 'GitHub request failed'); error.status = response.status; throw error }
+  if (!response.ok) {
+    const error = new Error(data.message || 'GitHub request failed')
+    error.status = response.status
+    throw error
+  }
   return data
 }
 
@@ -49,24 +59,55 @@ function checkLoginKey(body) {
   return Boolean(adminKey && bodyKey === adminKey)
 }
 
+function signSession(timestamp, nonce) {
+  const secret = process.env.GUESTBOOK_ADMIN_KEY
+  return createHmac('sha256', secret).update(`${timestamp}.${nonce}`).digest('base64url')
+}
+
+function createSession() {
+  const timestamp = Math.floor(Date.now() / 1000)
+  const nonce = cryptoRandom()
+  return `${timestamp}.${nonce}.${signSession(timestamp, nonce)}`
+}
+
+function cryptoRandom() {
+  return createHmac('sha256', `${process.env.GUESTBOOK_ADMIN_KEY}:${Date.now()}:${Math.random()}`)
+    .digest('base64url')
+}
+
 function checkAdmin(req) {
-  const adminKey = process.env.GUESTBOOK_ADMIN_KEY
-  const cookieKey = getCookie(req, 'nyxtryp_admin')
-  return Boolean(adminKey && cookieKey === adminKey)
+  const secret = process.env.GUESTBOOK_ADMIN_KEY
+  if (!secret) return false
+
+  const value = getCookie(req, COOKIE)
+  const parts = value.split('.')
+  if (parts.length !== 3) return false
+
+  const [timestamp, nonce, signature] = parts
+  const issued = Number(timestamp)
+  if (!Number.isSafeInteger(issued)) return false
+
+  const now = Math.floor(Date.now() / 1000)
+  if (issued > now + 60 || now - issued > SESSION_TTL) return false
+
+  const expected = signSession(timestamp, nonce)
+  const a = Buffer.from(signature)
+  const b = Buffer.from(expected)
+  return a.length === b.length && timingSafeEqual(a, b)
 }
 
 function setAdminCookie(res) {
-  const adminKey = process.env.GUESTBOOK_ADMIN_KEY
-  res.setHeader('Set-Cookie', `nyxtryp_admin=${encodeURIComponent(adminKey)}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`)
+  res.setHeader('Set-Cookie', `${COOKIE}=${encodeURIComponent(createSession())}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${SESSION_TTL}`)
 }
 
 function clearAdminCookie(res) {
-  res.setHeader('Set-Cookie', 'nyxtryp_admin=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0')
+  res.setHeader('Set-Cookie', `${COOKIE}=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0`)
 }
 
 function safeName(name) {
   const value = String(name || '').trim()
   if (!value || value === '.' || value === '..') return null
+  if (value.length > 180) return null
   if (value.includes('/') || value.includes('\\') || value.includes('..')) return null
   return value
 }
@@ -98,7 +139,22 @@ async function githubRename(type, oldName, newName) {
   const newPath = `${folder}/${newName}`
   const oldEncoded = encodeURIComponent(oldPath).replace(/%2F/g, '/')
   const newEncoded = encodeURIComponent(newPath).replace(/%2F/g, '/')
+
   const file = await github(`/contents/${oldEncoded}?ref=main`)
+
+  let destinationExists = false
+  try {
+    await github(`/contents/${newEncoded}?ref=main`)
+    destinationExists = true
+  } catch (error) {
+    if (error.status !== 404) throw error
+  }
+  if (destinationExists) {
+    const error = new Error('A file with the new name already exists.')
+    error.status = 409
+    throw error
+  }
+
   await github(`/contents/${newEncoded}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
@@ -112,9 +168,7 @@ async function githubRename(type, oldName, newName) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,DELETE,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Cache-Control', 'no-store')
   if (req.method === 'OPTIONS') return res.status(204).end()
 
   try {
@@ -184,7 +238,9 @@ export default async function handler(req, res) {
       if (audioTypes.has(type)) {
         const blob = await findBlob(type, oldName)
         if (blob) {
-          await copy(blob.url, `${type}/${newName}`, { access: 'public', allowOverwrite: true })
+          const destination = await findBlob(type, newName)
+          if (destination) return json(res, 409, { error: 'A file with the new name already exists.' })
+          await copy(blob.url, `${type}/${newName}`, { access: 'public', allowOverwrite: false })
           await del(blob.url)
           return json(res, 200, { ok: true, action: 'renamed', type, oldName, newName })
         }
@@ -217,6 +273,6 @@ export default async function handler(req, res) {
     return json(res, 501, { error: 'Admin operation is not implemented yet.' })
   } catch (error) {
     console.error('Admin API error:', error)
-    return json(res, error.status || 500, { error: error.message || 'Admin service error.' })
+    return json(res, error.status || 500, { error: 'Admin service error.' })
   }
 }
