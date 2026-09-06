@@ -77,7 +77,7 @@ function fileMeta(name, type) {
 }
 
 export default function AdminPanel() {
-  const [key, setKey] = useState(() => sessionStorage.getItem('nyxtryp-admin-key') || '')
+  const [key, setKey] = useState('')
   const [ok, setOk] = useState(false)
   const [active, setActive] = useState('tracks')
   const [files, setFiles] = useState({ tracks: [], radio: [], mixes: [], photos: [] })
@@ -110,30 +110,15 @@ export default function AdminPanel() {
   }
 
   useEffect(() => {
-    const saved = sessionStorage.getItem('nyxtryp-admin-key')
-    if (!saved) return
-    ;(async () => {
-      try {
-        const r = await fetch('/api/admin', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'auth', adminKey: saved })
-        })
-        if (!r.ok) throw new Error('Неверный admin key')
-        await load()
-      } catch {
-        sessionStorage.removeItem('nyxtryp-admin-key')
-        setKey('')
-        setOk(false)
-      }
-    })()
+    load()
   }, [])
 
   const api = async (method, body) => {
+    const payload = body?.action === 'auth' ? { ...body, adminKey: key } : body
     const r = await fetch('/api/admin', {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...body, adminKey: key })
+      body: JSON.stringify(payload || {})
     })
     const data = await r.json().catch(() => ({}))
     if (!r.ok) throw new Error(data.error || `Ошибка ${r.status}`)
@@ -147,7 +132,7 @@ export default function AdminPanel() {
     setError('')
     try {
       await api('POST', { action: 'auth' })
-      sessionStorage.setItem('nyxtryp-admin-key', key.trim())
+      setKey('')
       await load()
       setStatus('')
     } catch (e) {
@@ -157,10 +142,11 @@ export default function AdminPanel() {
     }
   }
 
-  const logout = () => {
-    sessionStorage.removeItem('nyxtryp-admin-key')
+  const logout = async () => {
+    try { await fetch('/api/admin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'logout' }) }) } catch {}
     setKey('')
     setOk(false)
+    setFiles({ tracks: [], radio: [], mixes: [], photos: [] })
   }
 
   const chooseFile = mode => {
@@ -198,7 +184,7 @@ export default function AdminPanel() {
             access: 'public',
             handleUploadUrl: '/api/upload',
             multipart: true,
-            clientPayload: JSON.stringify({ adminKey: key, type: active, name }),
+            clientPayload: JSON.stringify({ type: active, name }),
             onUploadProgress: ({ percentage }) => {
               setProgress({ total: selected.length, current: i + 1, step: 'send', name, percentage: Math.round(percentage) })
               setStatus(`${i + 1}/${selected.length} · ЗАГРУЗКА ${Math.round(percentage)}%`)
