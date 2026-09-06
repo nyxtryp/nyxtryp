@@ -36,9 +36,12 @@ async function github(path, options = {}) {
   return data
 }
 
-function checkAdmin(body) {
+function checkAdmin(body, req) {
   const adminKey = process.env.GUESTBOOK_ADMIN_KEY
-  return Boolean(adminKey && String(body?.adminKey || '') === adminKey)
+  const bodyKey = String(body?.adminKey || '')
+  const cookieHeader = String(req?.headers?.cookie || '')
+  const cookieKey = cookieHeader.match(/(?:^|;\s*)nyxtryp_admin=([^;]+)/)?.[1] || ''
+  return Boolean(adminKey && (bodyKey === adminKey || cookieKey === adminKey))
 }
 
 function safeName(name) {
@@ -98,7 +101,7 @@ export default async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
 
     // Every admin endpoint, including the file listing, requires the admin key.
-    if (!checkAdmin(body)) return json(res, 403, { error: 'Forbidden.' })
+    if (!checkAdmin(body, req)) return json(res, 403, { error: 'Forbidden.' })
 
     if (req.method === 'GET') {
       const result = { tracks: [], radio: [], mixes: [], photos: [] }
@@ -116,7 +119,10 @@ export default async function handler(req, res) {
       return json(res, 200, result)
     }
 
-    if (req.method === 'POST' && body.action === 'auth') return json(res, 200, { ok: true })
+    if (req.method === 'POST' && body.action === 'auth') {
+      res.setHeader('Set-Cookie', `nyxtryp_admin=${encodeURIComponent(process.env.GUESTBOOK_ADMIN_KEY)}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`)
+      return json(res, 200, { ok: true })
+    }
 
     if (req.method === 'POST') {
       if (audioTypes.has(String(body.type || ''))) {
