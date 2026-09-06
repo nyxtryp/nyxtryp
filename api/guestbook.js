@@ -1,7 +1,14 @@
+import { createHmac, timingSafeEqual } from 'node:crypto'
+
 const OWNER = 'nyxtryp'
 const REPO = 'nyxtryp'
 const FILE_PATH = 'guestbook.json'
 const API = `https://api.github.com/repos/${OWNER}/${REPO}`
+const COOKIE = 'nyxtryp_admin'
+const SESSION_TTL = 86400
+const POST_WINDOW = 60 * 1000
+const POST_MAX = 5
+const postAttempts = new Map()
 
 const BAD_WORDS = [
   'бляд', 'бля', 'сука', 'сучк', 'еба', 'ебл', 'пизд', 'хуйн', 'хуй', 'нахуй',
@@ -15,7 +22,7 @@ function normalize(value = '') {
     .toLowerCase()
     .replace(/ё/g, 'е')
     .replace(/[0-9]/g, '')
-    .replace(/[._*\-+=[\]{}()<>!?/\\|:;,`~'"^]/g, '')
+    .replace(/[._*\-+[\]{}()<>!?/\\|:;,`~'"^]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -26,7 +33,65 @@ function containsBadLanguage(value) {
 }
 
 function json(res, status, data) {
-  res.status(status).setHeader('Content-Type', 'application/json; charset=utf-8').send(JSON.stringify(data))
+  res.status(status)
+    .setHeader('Content-Type', 'application/json; charset=utf-8')
+    .setHeader('Cache-Control', 'no-store')
+    .send(JSON.stringify(data))
+}
+
+function getCookie(req, name) {
+  const cookieHeader = String(req?.headers?.cookie || '')
+  const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`))
+  if (!match) return ''
+  try { return decodeURIComponent(match[1]) } catch { return '' }
+}
+
+function checkAdmin(req) {
+  const secret = process.env.GUESTBOOK_ADMIN_KEY
+  if (!secret) return false
+
+  const value = getCookie(req, COOKIE)
+  const parts = value.split('.')
+  if (parts.length !== 3) return false
+
+  const [timestamp, nonce, signature] = parts
+  const issued = Number(timestamp)
+  if (!Number.isSafeInteger(issued)) return false
+
+  const now = Math.floor(Date.now() / 1000)
+  if (issued > now + 60 || now - issued > SESSION_TTL) return false
+
+  const expected = createHmac('sha256', secret)
+    .update(`${timestamp}.${nonce}`)
+    .digest('base64url')
+  const a = Buffer.from(signature)
+  const b = Buffer.from(expected)
+  return a.length === b.length && timingSafeEqual(a, b)
+}
+
+function getClientIp(req) {
+  const forwarded = String(req?.headers?.['x-forwarded-for'] || '')
+  return forwarded.split(',')[0].trim() || String(req?.socket?.remoteAddress || 'unknown')
+}
+
+function isPostRateLimited(ip) {
+  const now = Date.now()
+  const record = postAttempts.get(ip)
+  if (!record || record.windowStarted + POST_WINDOW <= now) {
+    postAttempts.set(ip, { count: 0, windowStarted: now })
+    return false
+  }
+  return record.count >= POST_MAX
+}
+
+function recordPostAttempt(ip) {
+  const now = Date.now()
+  const record = postAttempts.get(ip)
+  if (!record || record.windowStarted + POST_WINDOW <= now) {
+    postAttempts.set(ip, { count: 1, windowStarted: now })
+    return
+  }
+  record.count += 1
 }
 
 async function github(path, options = {}) {
@@ -79,6 +144,13 @@ export default async function handler(req, res) {
       const name = String(body.name || '').trim()
       const message = String(body.message || '').trim()
       const honeypot = String(body.website || '').trim()
+      const asNyxtryp = body.asNyxtryp === true
+
+      if (!asNyxtryp) {
+        const ip = getClientIp(req)
+        if (isPostRateLimited(ip)) return json(res, 429, { error: 'Too many messages. Try again later.' })
+        recordPostAttempt(ip)
+      }
 
       if (honeypot) return json(res, 400, { error: 'Invalid submission.' })
       if (name.length > 40) return json(res, 400, { error: 'Name is too long.' })
@@ -88,14 +160,7 @@ export default async function handler(req, res) {
         return json(res, 400, { error: 'Please keep the guestbook respectful.' })
       }
 
-      const adminKey = process.env.GUESTBOOK_ADMIN_KEY
-      const suppliedKey = String(body.adminKey || '')
-      const asNyxtryp = body.asNyxtryp === true
-
-      if (
-        asNyxtryp &&
-        (!adminKey || suppliedKey !== adminKey)
-      ) {
+      if (asNyxtryp && !checkAdmin(req)) {
         return json(res, 403, { error: 'Forbidden.' })
       }
 
@@ -126,14 +191,9 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'DELETE') {
-      const adminKey = process.env.GUESTBOOK_ADMIN_KEY
+      if (!checkAdmin(req)) return json(res, 403, { error: 'Forbidden.' })
+
       const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
-      const suppliedKey = String(body.adminKey || '')
-
-      if (!adminKey || suppliedKey !== adminKey) {
-        return json(res, 403, { error: 'Forbidden.' })
-      }
-
       const id = String(body.id || '').trim()
       if (!id) return json(res, 400, { error: 'Message id is required.' })
 
