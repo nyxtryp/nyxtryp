@@ -7,9 +7,17 @@ function safeName(name) {
   return value
 }
 
-function checkAdmin(adminKey) {
+function getCookie(req, name) {
+  const cookieHeader = String(req?.headers?.cookie || '')
+  const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`))
+  if (!match) return ''
+  try { return decodeURIComponent(match[1]) } catch { return '' }
+}
+
+function checkAdmin(req) {
   const expected = process.env.GUESTBOOK_ADMIN_KEY
-  return Boolean(expected && String(adminKey || '') === expected)
+  const cookieKey = getCookie(req, 'nyxtryp_admin')
+  return Boolean(expected && cookieKey === expected)
 }
 
 export default async function handler(req, res) {
@@ -20,6 +28,8 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   try {
+    if (!checkAdmin(req)) return res.status(403).json({ error: 'Forbidden.' })
+
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
 
     const result = await handleUpload({
@@ -32,7 +42,6 @@ export default async function handler(req, res) {
         const type = String(payload.type || '')
         const name = safeName(payload.name)
         if (!['tracks', 'radio', 'mixes'].includes(type) || !name) throw new Error('Invalid audio upload target.')
-        if (!checkAdmin(payload.adminKey)) throw new Error('Forbidden.')
 
         const expectedPath = `${type}/${name}`
         if (pathname !== expectedPath) throw new Error('Invalid upload pathname.')
