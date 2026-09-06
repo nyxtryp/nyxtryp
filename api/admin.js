@@ -6,6 +6,10 @@ const REPO = 'nyxtryp'
 const API = `https://api.github.com/repos/${OWNER}/${REPO}`
 const COOKIE = 'nyxtryp_admin'
 const SESSION_TTL = 86400
+const AUTH_WINDOW = 15 * 60 * 1000
+const AUTH_MAX_FAILURES = 5
+const AUTH_LOCKOUT = 15 * 60 * 1000
+const authFailures = new Map()
 
 const folders = {
   tracks: 'public/audio/tracks',
@@ -51,6 +55,39 @@ function getCookie(req, name) {
   const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`))
   if (!match) return ''
   try { return decodeURIComponent(match[1]) } catch { return '' }
+}
+
+function getClientIp(req) {
+  const forwarded = String(req?.headers?.['x-forwarded-for'] || '')
+  return forwarded.split(',')[0].trim() || String(req?.socket?.remoteAddress || 'unknown')
+}
+
+function isAuthRateLimited(ip) {
+  const now = Date.now()
+  const record = authFailures.get(ip)
+  if (!record) return false
+  if (record.lockedUntil > now) return true
+  if (record.windowStarted + AUTH_WINDOW <= now) {
+    authFailures.delete(ip)
+    return false
+  }
+  return false
+}
+
+function recordAuthFailure(ip) {
+  const now = Date.now()
+  const record = authFailures.get(ip)
+  if (!record || record.windowStarted + AUTH_WINDOW <= now) {
+    authFailures.set(ip, { count: 1, windowStarted: now, lockedUntil: 0 })
+    return
+  }
+
+  record.count += 1
+  if (record.count >= AUTH_MAX_FAILURES) record.lockedUntil = now + AUTH_LOCKOUT
+}
+
+function clearAuthFailures(ip) {
+  authFailures.delete(ip)
 }
 
 function checkLoginKey(body) {
@@ -170,7 +207,13 @@ export default async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
 
     if (req.method === 'POST' && body.action === 'auth') {
-      if (!checkLoginKey(body)) return json(res, 403, { error: 'Forbidden.' })
+      const ip = getClientIp(req)
+      if (isAuthRateLimited(ip)) return json(res, 429, { error: 'Too many failed login attempts. Try again later.' })
+      if (!checkLoginKey(body)) {
+        recordAuthFailure(ip)
+        return json(res, 403, { error: 'Forbidden.' })
+      }
+      clearAuthFailures(ip)
       setAdminCookie(res)
       return json(res, 200, { ok: true })
     }
