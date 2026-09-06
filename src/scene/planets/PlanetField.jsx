@@ -989,7 +989,9 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
           audioSatellites.name =
             "AUDIO_MENU_SATELLITES_V1"
 
-          planet.add(
+          // AUDIO satellites live independently in the scene.
+          // They must not inherit AUDIO planet movement.
+          scene.add(
             audioSatellites
           )
 
@@ -1470,6 +1472,9 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
 
           planet.userData.audioSatellites =
             audioSatellites
+
+          audioSatellites.userData.parentPlanet =
+            planet
         }
 
         // ========================================================
@@ -5135,7 +5140,7 @@ if (hit.userData.name === "PHOTOS") {
             }
 
             // ======================================================
-            // AUDIO SATELLITE ORBIT — always active in space
+            // AUDIO SATELLITE ORBIT — independent from AUDIO movement
             // ======================================================
 
             const satellites =
@@ -5150,7 +5155,8 @@ if (hit.userData.name === "PHOTOS") {
                 satellites.getObjectByName("RADIO")
 
               const orbitRadius =
-                satellites.userData.orbitRadius || data.radius * 2.4
+                satellites.userData.orbitRadius ||
+                data.radius * 2.4
 
               satellites.userData.orbitAngle =
                 (satellites.userData.orbitAngle || 0) +
@@ -5158,6 +5164,19 @@ if (hit.userData.name === "PHOTOS") {
 
               const angle =
                 satellites.userData.orbitAngle
+
+              const center =
+                satellites.userData.orbitCenter
+
+              if (!center) {
+                satellites.userData.orbitCenter =
+                  mesh.position.clone()
+              }
+
+              const fixedCenter =
+                satellites.userData.orbitCenter
+
+              satellites.position.copy(fixedCenter)
 
               const setOrbit = (object, phase) => {
                 if (!object) return
