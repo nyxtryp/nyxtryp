@@ -1,8 +1,13 @@
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import { handleUpload } from '@vercel/blob/client'
+
+const COOKIE = 'nyxtryp_admin'
+const SESSION_TTL = 86400
 
 function safeName(name) {
   const value = String(name || '').trim()
   if (!value || value === '.' || value === '..') return null
+  if (value.length > 180) return null
   if (value.includes('/') || value.includes('\\') || value.includes('..')) return null
   return value
 }
@@ -14,17 +19,34 @@ function getCookie(req, name) {
   try { return decodeURIComponent(match[1]) } catch { return '' }
 }
 
+function signSession(timestamp, nonce) {
+  const secret = process.env.GUESTBOOK_ADMIN_KEY
+  return createHmac('sha256', secret).update(`${timestamp}.${nonce}`).digest('base64url')
+}
+
 function checkAdmin(req) {
-  const expected = process.env.GUESTBOOK_ADMIN_KEY
-  const cookieKey = getCookie(req, 'nyxtryp_admin')
-  return Boolean(expected && cookieKey === expected)
+  const secret = process.env.GUESTBOOK_ADMIN_KEY
+  if (!secret) return false
+
+  const value = getCookie(req, COOKIE)
+  const parts = value.split('.')
+  if (parts.length !== 3) return false
+
+  const [timestamp, nonce, signature] = parts
+  const issued = Number(timestamp)
+  if (!Number.isSafeInteger(issued)) return false
+
+  const now = Math.floor(Date.now() / 1000)
+  if (issued > now + 60 || now - issued > SESSION_TTL) return false
+
+  const expected = signSession(timestamp, nonce)
+  const a = Buffer.from(signature)
+  const b = Buffer.from(expected)
+  return a.length === b.length && timingSafeEqual(a, b)
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
-  if (req.method === 'OPTIONS') return res.status(204).end()
+  res.setHeader('Cache-Control', 'no-store')
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   try {
