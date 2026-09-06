@@ -100,7 +100,14 @@ export default async function handler(req, res) {
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
 
-    // Every admin endpoint, including the file listing, requires the admin key.
+    // Authentication itself must be allowed before checking for an existing session.
+    if (req.method === 'POST' && body.action === 'auth') {
+      if (!checkAdmin(body, req)) return json(res, 403, { error: 'Forbidden.' })
+      res.setHeader('Set-Cookie', `nyxtryp_admin=${encodeURIComponent(process.env.GUESTBOOK_ADMIN_KEY)}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`)
+      return json(res, 200, { ok: true })
+    }
+
+    // Every admin endpoint, except the authentication action above, requires the admin key.
     if (!checkAdmin(body, req)) return json(res, 403, { error: 'Forbidden.' })
 
     if (req.method === 'GET') {
@@ -117,11 +124,6 @@ export default async function handler(req, res) {
       }
       result.photos = await listFiles(folders.photos)
       return json(res, 200, result)
-    }
-
-    if (req.method === 'POST' && body.action === 'auth') {
-      res.setHeader('Set-Cookie', `nyxtryp_admin=${encodeURIComponent(process.env.GUESTBOOK_ADMIN_KEY)}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`)
-      return json(res, 200, { ok: true })
     }
 
     if (req.method === 'POST') {
