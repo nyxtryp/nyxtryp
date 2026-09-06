@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { list, del, copy } from '@vercel/blob'
 
 const OWNER = 'nyxtryp'
@@ -66,13 +66,8 @@ function signSession(timestamp, nonce) {
 
 function createSession() {
   const timestamp = Math.floor(Date.now() / 1000)
-  const nonce = cryptoRandom()
+  const nonce = randomBytes(18).toString('base64url')
   return `${timestamp}.${nonce}.${signSession(timestamp, nonce)}`
-}
-
-function cryptoRandom() {
-  return createHmac('sha256', `${process.env.GUESTBOOK_ADMIN_KEY}:${Date.now()}:${Math.random()}`)
-    .digest('base64url')
 }
 
 function checkAdmin(req) {
