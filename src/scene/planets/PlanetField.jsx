@@ -1650,6 +1650,13 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         permanentLabel.textContent =
           data.name
 
+        if (
+          data.name === "AUDIO"
+        ) {
+          permanentLabel.style.display =
+            "none"
+        }
+
         permanentLabel.style.position =
           "absolute"
 
@@ -1930,10 +1937,15 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
         )
 
         const planetMeshes =
-          objects.map(
-            ({ mesh }) =>
-              mesh
-          )
+          objects
+            .filter(
+              ({ mesh }) =>
+                mesh.userData.name !== "AUDIO"
+            )
+            .map(
+              ({ mesh }) =>
+                mesh
+            )
 
         const satelliteMeshes = []
 
