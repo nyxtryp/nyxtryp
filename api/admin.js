@@ -36,9 +36,23 @@ async function github(path, options = {}) {
   return data
 }
 
-function checkAdmin(body) {
+function getCookie(req, name) {
+  const cookieHeader = String(req?.headers?.cookie || '')
+  const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`))
+  if (!match) return ''
+  try { return decodeURIComponent(match[1]) } catch { return '' }
+}
+
+function checkAdmin(body, req) {
   const adminKey = process.env.GUESTBOOK_ADMIN_KEY
-  return Boolean(adminKey && String(body?.adminKey || '') === adminKey)
+  const bodyKey = String(body?.adminKey || '')
+  const cookieKey = getCookie(req, 'nyxtryp_admin')
+  return Boolean(adminKey && (bodyKey === adminKey || cookieKey === adminKey))
+}
+
+function setAdminCookie(res) {
+  const adminKey = process.env.GUESTBOOK_ADMIN_KEY
+  res.setHeader('Set-Cookie', `nyxtryp_admin=${encodeURIComponent(adminKey)}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`)
 }
 
 function safeName(name) {
@@ -95,6 +109,16 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
 
   try {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
+
+    if (req.method === 'POST' && body.action === 'auth') {
+      if (!checkAdmin(body, req)) return json(res, 403, { error: 'Forbidden.' })
+      setAdminCookie(res)
+      return json(res, 200, { ok: true })
+    }
+
+    if (!checkAdmin(body, req)) return json(res, 403, { error: 'Forbidden.' })
+
     if (req.method === 'GET') {
       const result = { tracks: [], radio: [], mixes: [], photos: [] }
       for (const type of audioTypes) {
@@ -110,10 +134,6 @@ export default async function handler(req, res) {
       result.photos = await listFiles(folders.photos)
       return json(res, 200, result)
     }
-
-    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
-    if (!checkAdmin(body)) return json(res, 403, { error: 'Forbidden.' })
-    if (req.method === 'POST' && body.action === 'auth') return json(res, 200, { ok: true })
 
     if (req.method === 'POST') {
       if (audioTypes.has(String(body.type || ''))) {
