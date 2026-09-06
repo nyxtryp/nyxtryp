@@ -43,11 +43,16 @@ function getCookie(req, name) {
   try { return decodeURIComponent(match[1]) } catch { return '' }
 }
 
-function checkAdmin(body, req) {
+function checkLoginKey(body) {
   const adminKey = process.env.GUESTBOOK_ADMIN_KEY
   const bodyKey = String(body?.adminKey || '')
+  return Boolean(adminKey && bodyKey === adminKey)
+}
+
+function checkAdmin(req) {
+  const adminKey = process.env.GUESTBOOK_ADMIN_KEY
   const cookieKey = getCookie(req, 'nyxtryp_admin')
-  return Boolean(adminKey && (bodyKey === adminKey || cookieKey === adminKey))
+  return Boolean(adminKey && cookieKey === adminKey)
 }
 
 function setAdminCookie(res) {
@@ -116,7 +121,7 @@ export default async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
 
     if (req.method === 'POST' && body.action === 'auth') {
-      if (!checkAdmin(body, req)) return json(res, 403, { error: 'Forbidden.' })
+      if (!checkLoginKey(body)) return json(res, 403, { error: 'Forbidden.' })
       setAdminCookie(res)
       return json(res, 200, { ok: true })
     }
@@ -126,7 +131,7 @@ export default async function handler(req, res) {
       return json(res, 200, { ok: true })
     }
 
-    if (!checkAdmin(body, req)) return json(res, 403, { error: 'Forbidden.' })
+    if (!checkAdmin(req)) return json(res, 403, { error: 'Forbidden.' })
 
     if (req.method === 'GET') {
       const result = { tracks: [], radio: [], mixes: [], photos: [] }
