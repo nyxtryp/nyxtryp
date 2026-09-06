@@ -1412,6 +1412,97 @@ export default function PlanetField({ onRadioOpen, onMixesOpen, onTracksOpen }) 
             radio
           )
 
+          const createSatelliteLabel =
+            (text, parent, offset) => {
+              const canvas =
+                document.createElement("canvas")
+
+              canvas.width = 512
+              canvas.height = 128
+
+              const ctx =
+                canvas.getContext("2d")
+
+              ctx.clearRect(
+                0,
+                0,
+                canvas.width,
+                canvas.height
+              )
+
+              ctx.font =
+                "500 48px Arial"
+
+              ctx.textAlign =
+                "center"
+
+              ctx.textBaseline =
+                "middle"
+
+              ctx.fillStyle =
+                "#ffffff"
+
+              ctx.fillText(
+                text,
+                canvas.width / 2,
+                canvas.height / 2
+              )
+
+              const texture =
+                new THREE.CanvasTexture(
+                  canvas
+                )
+
+              texture.minFilter =
+                THREE.LinearFilter
+
+              const material =
+                new THREE.SpriteMaterial({
+                  map: texture,
+                  transparent: true,
+                  depthWrite: false
+                })
+
+              const label =
+                new THREE.Sprite(
+                  material
+                )
+
+              label.scale.set(
+                data.radius * 0.95,
+                data.radius * 0.24,
+                1
+              )
+
+              label.position.set(
+                0,
+                offset,
+                0
+              )
+
+              parent.add(
+                label
+              )
+            }
+
+          createSatelliteLabel(
+            "tracks",
+            tracks,
+            data.radius * 0.62
+          )
+
+          createSatelliteLabel(
+            "mixes",
+            mixes,
+            data.radius * 0.68
+          )
+
+          createSatelliteLabel(
+            "radio",
+            radio,
+            data.radius * 1.05
+          )
+
           // ======================================================
           // AUDIO MENU MOTION DATA
           // ======================================================
