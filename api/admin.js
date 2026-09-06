@@ -55,6 +55,10 @@ function setAdminCookie(res) {
   res.setHeader('Set-Cookie', `nyxtryp_admin=${encodeURIComponent(adminKey)}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`)
 }
 
+function clearAdminCookie(res) {
+  res.setHeader('Set-Cookie', 'nyxtryp_admin=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0')
+}
+
 function safeName(name) {
   const value = String(name || '').trim()
   if (!value || value === '.' || value === '..') return null
@@ -114,6 +118,11 @@ export default async function handler(req, res) {
     if (req.method === 'POST' && body.action === 'auth') {
       if (!checkAdmin(body, req)) return json(res, 403, { error: 'Forbidden.' })
       setAdminCookie(res)
+      return json(res, 200, { ok: true })
+    }
+
+    if (req.method === 'POST' && body.action === 'logout') {
+      clearAdminCookie(res)
       return json(res, 200, { ok: true })
     }
 
