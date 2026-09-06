@@ -36,12 +36,9 @@ async function github(path, options = {}) {
   return data
 }
 
-function checkAdmin(body, req) {
+function checkAdmin(body) {
   const adminKey = process.env.GUESTBOOK_ADMIN_KEY
-  const bodyKey = String(body?.adminKey || '')
-  const cookieHeader = String(req?.headers?.cookie || '')
-  const cookieKey = cookieHeader.match(/(?:^|;\s*)nyxtryp_admin=([^;]+)/)?.[1] || ''
-  return Boolean(adminKey && (bodyKey === adminKey || cookieKey === adminKey))
+  return Boolean(adminKey && String(body?.adminKey || '') === adminKey)
 }
 
 function safeName(name) {
@@ -98,18 +95,6 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
 
   try {
-    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
-
-    // Authentication itself must be allowed before checking for an existing session.
-    if (req.method === 'POST' && body.action === 'auth') {
-      if (!checkAdmin(body, req)) return json(res, 403, { error: 'Forbidden.' })
-      res.setHeader('Set-Cookie', `nyxtryp_admin=${encodeURIComponent(process.env.GUESTBOOK_ADMIN_KEY)}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=86400`)
-      return json(res, 200, { ok: true })
-    }
-
-    // Every admin endpoint, except the authentication action above, requires the admin key.
-    if (!checkAdmin(body, req)) return json(res, 403, { error: 'Forbidden.' })
-
     if (req.method === 'GET') {
       const result = { tracks: [], radio: [], mixes: [], photos: [] }
       for (const type of audioTypes) {
@@ -125,6 +110,10 @@ export default async function handler(req, res) {
       result.photos = await listFiles(folders.photos)
       return json(res, 200, result)
     }
+
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
+    if (!checkAdmin(body)) return json(res, 403, { error: 'Forbidden.' })
+    if (req.method === 'POST' && body.action === 'auth') return json(res, 200, { ok: true })
 
     if (req.method === 'POST') {
       if (audioTypes.has(String(body.type || ''))) {
